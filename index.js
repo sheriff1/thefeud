@@ -50,6 +50,24 @@ io.on('connection', (socket) => {
     socket.join(sessionId);
   });
 
+  // Handle request for the current game state
+  socket.on('get-current-state', async ({ sessionId }) => {
+    console.log(`Fetching current state for session: ${sessionId}`);
+    try {
+      const sessionDoc = await db.collection('sessions').doc(sessionId).get();
+      if (sessionDoc.exists) {
+        const currentState = sessionDoc.data();
+        socket.emit('current-state', currentState); // Send the current state to the client
+      } else {
+        console.error(`Session ${sessionId} not found.`);
+        socket.emit('current-state', null); // Send null if the session does not exist
+      }
+    } catch (error) {
+      console.error('Error fetching current state:', error);
+      socket.emit('current-state', null); // Send null in case of an error
+    }
+  });
+
   socket.on('update-game', async ({ sessionId, gameState }) => {
     if (!sessionId) {
       console.error('Error: sessionId is missing or undefined');
