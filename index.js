@@ -19,9 +19,15 @@ const db = admin.firestore();
 // Initialize Express and Socket.IO
 const app = express();
 const server = http.createServer(app);
+
+const allowedOrigins = [
+  'http://localhost:5173', // Local development
+  'https://family-feud-eta.vercel.app', // Deployed frontend
+];
+
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173', // Replace with your frontend URL
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });
