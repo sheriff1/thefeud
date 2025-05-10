@@ -10,7 +10,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Initialize Firebase
-console.log('Firebase Credentials:', process.env.FIREBASE_CREDENTIALS);
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
