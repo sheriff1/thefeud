@@ -113,8 +113,11 @@ import { io } from 'socket.io-client';
 
 const store = useGameStore();
 
-// Replace with your backend URL (use Heroku URL after deployment)
-const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/');
+// HEROKU SOCKET URL
+const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
+// LOCAL SOCKET URL
+// const socket = io('http://localhost:4000'); // Uncomment this line for local development
+
 
 // Helper function to get the other team
 const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
@@ -165,6 +168,15 @@ onMounted(() => {
 
   // Join the session
   socket.emit('join-session', { sessionId });
+
+  // Request the current game state from the backend
+  socket.emit('get-current-state', { sessionId });
+
+  // Listen for the current game state from the backend
+  socket.on('current-state', (currentState) => {
+    console.log('Current game state received:', currentState);
+    Object.assign(store.$state, currentState); // Update the local store with the current game state
+  });
 
   // Listen for game state updates
   socket.on('game-updated', (newState) => {
