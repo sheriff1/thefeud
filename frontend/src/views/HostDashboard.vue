@@ -223,7 +223,7 @@ import { io } from 'socket.io-client';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 
-const socket = io('http://localhost:4000'); // Replace with the Heroku URL after deployment
+const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
 
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 
