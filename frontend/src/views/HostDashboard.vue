@@ -166,7 +166,15 @@
     <div class="container game-info-container">
       <h3>Active Game Info</h3>
 
-      <p>Strikes: {{ store.strikes }}</p>
+        <!-- Team Strike Counts -->
+      <div>
+        <p>{{ store.teamNames.A }} Strikes: {{ store.teamStrikes.A }}</p>
+        <p>{{ store.teamNames.B }} Strikes: {{ store.teamStrikes.B }}</p>
+      </div>
+      
+      <p>Current Round: {{ store.roundCounter }}</p>
+      <p>Current Team: {{ store.teamNames[store.currentTeam] }}</p>
+      
       <p>Points Pool: {{ store.pointPool }}</p>
 
       <!-- Hide Available Answers and Incorrect Button when the round is over -->

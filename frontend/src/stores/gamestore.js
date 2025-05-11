@@ -15,7 +15,7 @@ export const useGameStore = defineStore('game', {
     pointPool: 0,
     firstTeam: null,
     secondTeamGuessUsed: false,
-    scoreMultiplier: 1,
+    scoreMultiplier: null,
     timer: 0,
     timerRunning: false,
     roundCounter: 0,
@@ -170,7 +170,7 @@ export const useGameStore = defineStore('game', {
       this.pointPool = 0
       this.firstTeam = null
       this.secondTeamGuessUsed = false
-      this.scoreMultiplier = 1
+      this.scoreMultiplier = null
       this.timer = 0
       this.timerRunning = false
       this.roundCounter = 0
@@ -190,7 +190,7 @@ export const useGameStore = defineStore('game', {
       this.pointPool = 0
       this.firstTeam = null
       this.secondTeamGuessUsed = false
-      this.scoreMultiplier = 1
+      this.scoreMultiplier = null
       this.timer = 0
       this.timerRunning = false
       this.roundOver = false
@@ -209,7 +209,7 @@ export const useGameStore = defineStore('game', {
       this.pointPool = 0
       this.firstTeam = null
       this.secondTeamGuessUsed = false
-      this.scoreMultiplier = 1
+      this.scoreMultiplier = null
       this.timer = 0
       this.timerRunning = false
       this.roundOver = false
