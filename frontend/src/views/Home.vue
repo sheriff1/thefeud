@@ -1,6 +1,6 @@
 <template>
     <div class="home-container">
-      <h1>Welcome to Family Feud!</h1>
+      <h1>Welcome to The Feud!</h1>
       <p>Select an option to get started:</p>
   
       <div class="actions">
