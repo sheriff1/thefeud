@@ -114,12 +114,6 @@ import socket from '../utils/socket';
 
 const store = useGameStore();
 
-// HEROKU SOCKET URL
-// const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
-// LOCAL SOCKET URL
-// const socket = io('http://localhost:4000'); // Uncomment this line for local development
-
-
 // Helper function to get the other team
 const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
 
