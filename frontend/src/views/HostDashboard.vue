@@ -1,4 +1,11 @@
 <template>
+  <button
+    class="session-id-box"
+    :class="sessionIdBoxState"
+    @click="copySessionId">
+    {{ sessionIdBoxText }}
+  </button>
+  
   <div>
     <!-- Reset Game and Reset Round Container -->
     <div class="container reset-container">
@@ -40,6 +47,15 @@
       <div>
         <label for="file-upload">Upload CSV File:</label>
         <input id="file-upload" type="file" @change="handleUpload" />
+
+        <!-- Download Template Button -->
+        <a
+          href="/answers/family-feud-template.csv"
+          download
+          class="download-template-button"
+        >
+          Download Template
+        </a>
       </div>
 
       <!-- Question Input -->
@@ -278,6 +294,8 @@ const questionInput = ref(''); // Track the question input
 const questionSaved = ref(false); // Track if the question has been saved
 const previousRound = ref(store.roundCounter); // Track the previous round value
 const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
+const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
+const sessionIdBoxState = ref(''); // Default state (no additional class)
 
 onMounted(() => {
   store.initSocket();
@@ -546,6 +564,36 @@ const revealAllAnswers = () => {
   updateGameState(store.$state); // Emit the updated game state
 };
 
+const copySessionId = () => {
+  if (sessionId) {
+    navigator.clipboard.writeText(sessionId)
+      .then(() => {
+        // Show "Copied" and turn the box green
+        sessionIdBoxText.value = 'Copied!';
+        sessionIdBoxState.value = 'copied';
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = '';
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error('Failed to copy session ID:', err);
+
+        // Show "Error" and turn the box red
+        sessionIdBoxText.value = 'Error';
+        sessionIdBoxState.value = 'error';
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = '';
+        }, 2000);
+      });
+  }
+};
+
 </script>
 
 <style scoped>
@@ -639,5 +687,56 @@ button {
   background-color: #ccc;
   cursor: not-allowed;
 }
-</style>
 
+.download-template-button {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.download-template-button:hover {
+  background-color: #0056b3;
+}
+
+.download-template-button:active {
+  background-color: #003f7f;
+}
+
+.session-id-box {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  opacity: 0.7; /* Default opacity */
+  transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transition for hover and color changes */
+  border: none;
+  cursor: pointer; /* Make it clear that it's clickable */
+}
+
+.session-id-box:hover {
+  opacity: 1; /* Fully opaque on hover */
+}
+
+.session-id-box.copied {
+  background-color: rgb(22, 150, 105); /* Green for success */
+  color: white;
+}
+
+.session-id-box.error {
+  background-color: rgb(232, 59, 59); /* Red for error */
+  color: white;
+}
+</style>

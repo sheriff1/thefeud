@@ -1,4 +1,11 @@
 <template>
+  <button
+    class="session-id-box"
+    :class="sessionIdBoxState"
+    @click="copySessionId">
+    {{ sessionIdBoxText }}
+  </button>
+
   <div class="gameboard-container">
     <!-- Round Over Message -->
     <div v-if="store.roundOver" class="round-over-message">
@@ -107,12 +114,15 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import { io } from 'socket.io-client';
 import socket from '../utils/socket';
 
 const store = useGameStore();
+const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
+const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
+const sessionIdBoxState = ref(''); // Default state (no additional class)
 
 // Helper function to get the other team
 const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
@@ -155,7 +165,6 @@ watch(
 
 // Join a session and listen for updates
 onMounted(() => {
-  const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
     return;
@@ -190,6 +199,36 @@ onMounted(() => {
 onUnmounted(() => {
   socket.removeAllListeners();
 });
+
+const copySessionId = () => {
+  if (sessionId) {
+    navigator.clipboard.writeText(sessionId)
+      .then(() => {
+        // Show "Copied" and turn the box green
+        sessionIdBoxText.value = 'Copied!';
+        sessionIdBoxState.value = 'copied';
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = '';
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error('Failed to copy session ID:', err);
+
+        // Show "Error" and turn the box red
+        sessionIdBoxText.value = 'Error';
+        sessionIdBoxState.value = 'error';
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = '';
+        }, 2000);
+      });
+  }
+};
 
 </script>
 
@@ -517,5 +556,36 @@ hr {
     transform: rotateX(0deg);
     opacity: 1;
   }
+}
+
+.session-id-box {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  opacity: 0.7; /* Default opacity */
+  transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transition for hover and color changes */
+  border: none;
+  cursor: pointer; /* Make it clear that it's clickable */
+}
+
+.session-id-box:hover {
+  opacity: 1; /* Fully opaque on hover */
+}
+
+.session-id-box.copied {
+  background-color: green; /* Green for success */
+  color: white;
+}
+
+.session-id-box.error {
+  background-color: red; /* Red for error */
+  color: white;
 }
 </style>
