@@ -12,7 +12,49 @@
       <h3>Game Controls</h3>
       <button @click="resetGame">Reset Game</button>
       <button @click="resetRound">Reset Round</button>
-      <button @click="nextRound">Next Round</button> <!-- New button -->
+      <button @click="nextRound">Next Round</button>
+      <!-- Set Score Multiplier Section -->
+      <div>
+        <h4>Set Score Multiplier</h4>
+        <p v-if="multiplierSet">Score Multiplier: {{ selectedMultiplier }}x</p>
+        <button
+          @click="setMultiplier(1)"
+          :disabled="multiplierSet"
+        >
+          1x
+        </button>
+        <button
+          @click="setMultiplier(2)"
+          :disabled="multiplierSet"
+        >
+          2x
+        </button>
+        <button
+          @click="setMultiplier(3)"
+          :disabled="multiplierSet"
+        >
+          3x
+        </button>
+      </div>
+      
+      <!-- Who Starts Section -->
+      <div>
+        <h4>Who Starts?</h4>
+        <p v-if="startingTeamSet">Starting Team: {{ store.teamNames[startingTeam] }}</p>
+        <button
+          @click="setStartingTeam('A')"
+          :disabled="startingTeamSet"
+        >
+          {{ store.teamNames.A }}
+        </button>
+        <button
+          @click="setStartingTeam('B')"
+          :disabled="startingTeamSet"
+        >
+          {{ store.teamNames.B }}
+        </button>
+      </div>
+
     </div>
 
     <!-- Team Names Section -->
@@ -123,19 +165,6 @@
     <!-- Available Answers, Strikes, and Points Pool Container -->
     <div class="container game-info-container">
       <h3>Active Game Info</h3>
-
-      <!-- Who Starts and Score Multiplier -->
-      <div v-if="answersSaved && multiplierSet && !startingTeamSet">
-        <h4>Who starts?</h4>
-        <button @click="setStartingTeam('A')">{{ store.teamNames.A }}</button>
-        <button @click="setStartingTeam('B')">{{ store.teamNames.B }}</button>
-      </div>
-      <div v-if="answersSaved && !multiplierSet">
-        <h4>Set Score Multiplier</h4>
-        <button @click="setMultiplier(1)">1x</button>
-        <button @click="setMultiplier(2)">2x</button>
-        <button @click="setMultiplier(3)">3x</button>
-      </div>
 
       <p>Strikes: {{ store.strikes }}</p>
       <p>Points Pool: {{ store.pointPool }}</p>
@@ -309,6 +338,8 @@ socket.on('connect_error', (error) => {
 });
 
 const fileUploaded = ref(false);
+const startingTeam = ref(null); // Track the selected starting team
+const selectedMultiplier = ref(null); // Track the selected multiplier
 const startingTeamSet = ref(false);
 const multiplierSet = ref(false);
 const timerInput = ref(0);
@@ -400,13 +431,15 @@ const handleUpload = (event) => {
 
 const setStartingTeam = (team) => {
   store.setStartingTeam(team);
-  startingTeamSet.value = true;
+  startingTeam.value = team; // Set the selected starting team
+  startingTeamSet.value = true; // Disable the buttons
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
-  multiplierSet.value = true;
+  selectedMultiplier.value = multiplier; // Set the selected multiplier
+  multiplierSet.value = true; // Disable the buttons
   updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -415,6 +448,8 @@ const resetGame = () => {
   fileUploaded.value = false;
   startingTeamSet.value = false;
   multiplierSet.value = false;
+  startingTeam.value = null;
+  selectedMultiplier.value = null;
   answersSaved.value = false; // Reset the answers saved flag
   answerPairs.value = []; // Clear the answer pairs completely
   questionInput.value = ''; // Reset the question input
@@ -428,6 +463,8 @@ const resetRound = () => {
   fileUploaded.value = false;
   startingTeamSet.value = false;
   multiplierSet.value = false;
+  startingTeam.value = null;
+  selectedMultiplier.value = null;
   answersSaved.value = false; // Reset the answers saved flag
   answerPairs.value = []; // Clear the answer pairs completely
   questionInput.value = ''; // Reset the question input
@@ -442,6 +479,8 @@ const nextRound = () => {
   fileUploaded.value = false;
   startingTeamSet.value = false;
   multiplierSet.value = false;
+  startingTeam.value = null;
+  selectedMultiplier.value = null;
   answersSaved.value = false; // Reset the answers saved flag
   answerPairs.value = []; // Clear the answer pairs
   questionInput.value = ''; // Reset the question input
