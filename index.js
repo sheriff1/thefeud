@@ -23,12 +23,14 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5173', // Local development
   'https://family-feud-eta.vercel.app', // Deployed frontend
+  'https://familyfeud.sheriffjolaoso.com', // Deployed custom domain
 ];
 
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
