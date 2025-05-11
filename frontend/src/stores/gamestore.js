@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia'
 import { io } from 'socket.io-client'
+import socket from '../utils/socket';
 
-const socket = io("http://localhost:3000")  // Match server address
+// const socket = io(
+//   process.env.NODE_ENV === "production"
+//     ? "https://family-feud-backend-3df546793e25.herokuapp.com/" // Production backend URL
+//     : "http://localhost:4000" // Local backend URL
+// );
 
 export const useGameStore = defineStore('game', {
   state: () => ({

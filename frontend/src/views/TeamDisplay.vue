@@ -107,14 +107,15 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import { io } from 'socket.io-client';
+import socket from '../utils/socket';
 
 const store = useGameStore();
 
 // HEROKU SOCKET URL
-const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
+// const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
 // LOCAL SOCKET URL
 // const socket = io('http://localhost:4000'); // Uncomment this line for local development
 
@@ -190,6 +191,12 @@ onMounted(() => {
     alert('Failed to connect to the game session. Please try again.');
   });
 });
+
+// Clean up listeners when the component is unmounted
+onUnmounted(() => {
+  socket.removeAllListeners();
+});
+
 </script>
 
 <style scoped>

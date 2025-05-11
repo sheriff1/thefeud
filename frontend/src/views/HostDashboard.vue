@@ -217,14 +217,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import { io } from 'socket.io-client';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
+import socket from '../utils/socket';
 
 // HEROKU SOCKET URL
-const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
+// const socket = io('https://family-feud-backend-3df546793e25.herokuapp.com/'); // Replace with the Heroku URL after deployment
 // LOCAL SOCKET URL
 // const socket = io('http://localhost:4000'); // Uncomment this line for local development
 
@@ -264,6 +265,11 @@ socket.on('error', (error) => {
   alert(`Error: ${error.message}`);
 });
 
+// Handle connection errors
+socket.on('connect_error', (error) => {
+  console.error('WebSocket connection error:', error);
+});
+
 const store = useGameStore();
 const fileUploaded = ref(false);
 const startingTeamSet = ref(false);
@@ -280,6 +286,11 @@ const previousTeamNames = ref({ ...store.teamNames }); // Track the previous tea
 
 onMounted(() => {
   store.initSocket();
+});
+
+// Clean up listeners when the component is unmounted
+onUnmounted(() => {
+  socket.removeAllListeners();
 });
 
 const emitGameState = () => {
