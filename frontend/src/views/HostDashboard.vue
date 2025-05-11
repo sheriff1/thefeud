@@ -282,6 +282,7 @@ onMounted(() => {
   }
   // Join the session
   socket.emit('join-session', { sessionId });
+
   // Request the current game state from the backend
   socket.emit('get-current-state', { sessionId });
 
@@ -293,12 +294,40 @@ onMounted(() => {
     // Sync local variables with the global state
     teamAName.value = store.teamNames.A;
     teamBName.value = store.teamNames.B;
+
+    // Sync "Who Starts" state
+    if (store.firstTeam) {
+      startingTeam.value = store.firstTeam;
+      startingTeamSet.value = true;
+    }
+
+    // Sync "Score Multiplier" state
+    if (store.scoreMultiplier) {
+      selectedMultiplier.value = store.scoreMultiplier;
+      multiplierSet.value = true;
+    }
   });
 
   // Listen for game state updates
   socket.on('game-updated', (updatedGameState) => {
     console.log('Game state updated:', updatedGameState);
     Object.assign(store.$state, updatedGameState); // Update the global store with the new game state
+
+    // Sync local variables with the updated global state
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+
+    // Sync "Who Starts" state
+    if (store.firstTeam) {
+      startingTeam.value = store.firstTeam;
+      startingTeamSet.value = true;
+    }
+
+    // Sync "Score Multiplier" state
+    if (store.scoreMultiplier) {
+      selectedMultiplier.value = store.scoreMultiplier;
+      multiplierSet.value = true;
+    }
   });
 
   // Handle connection errors
