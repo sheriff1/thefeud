@@ -79,8 +79,15 @@ io.on('connection', (socket) => {
     console.log('Game state:', gameState);
 
     try {
+      // Add expiryTime to the gameState object
+      const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      gameState.expiryTime = new Date(Date.now() + expiryDuration); // Set expiry time 24 hours from now
+
+      // Save the updated gameState to Firestore
       await db.collection('sessions').doc(sessionId).set(gameState);
       console.log(`Game state saved to Firestore for session: ${sessionId}`);
+
+      // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);
     } catch (error) {
       console.error('Error updating game state:', error);
