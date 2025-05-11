@@ -23,7 +23,7 @@
         <input
           id="team-a-name"
           type="text"
-          v-model="store.teamNames.A"
+          v-model="teamAName"
           placeholder="Enter Team A Name"
         />
       </div>
@@ -32,11 +32,14 @@
         <input
           id="team-b-name"
           type="text"
-          v-model="store.teamNames.B"
+          v-model="teamBName"
           placeholder="Enter Team B Name"
         />
       </div>
-      <button @click="saveTeamNames">Save Team Names</button>
+      <p v-if="!isTeamNamesUnique" class="error-message">
+        Team names must be unique.
+      </p>
+      <button @click="saveTeamNames" :disabled="!isTeamNamesUnique">Save Team Names</button>
     </div>
 
     <!-- Manage Question and Answers Container -->
@@ -233,7 +236,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import { io } from 'socket.io-client';
 import Papa from 'papaparse';
@@ -241,15 +244,39 @@ import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
 
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
+const store = useGameStore();
 
 onMounted(() => {
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
     return;
   }
-
   // Join the session
   socket.emit('join-session', { sessionId });
+  // Request the current game state from the backend
+  socket.emit('get-current-state', { sessionId });
+
+  // Listen for the current game state from the backend
+  socket.on('current-state', (currentState) => {
+    console.log('Current game state received:', currentState);
+    Object.assign(store.$state, currentState); // Update the global store with the current game state
+
+    // Sync local variables with the global state
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+  });
+
+  // Listen for game state updates
+  socket.on('game-updated', (updatedGameState) => {
+    console.log('Game state updated:', updatedGameState);
+    Object.assign(store.$state, updatedGameState); // Update the global store with the new game state
+  });
+
+  // Handle connection errors
+  socket.on('connect_error', (error) => {
+    console.error('WebSocket connection error:', error);
+    alert('Failed to connect to the game session. Please try again.');
+  });
 });
 
 // Update game state
@@ -281,7 +308,6 @@ socket.on('connect_error', (error) => {
   console.error('WebSocket connection error:', error);
 });
 
-const store = useGameStore();
 const fileUploaded = ref(false);
 const startingTeamSet = ref(false);
 const multiplierSet = ref(false);
@@ -297,8 +323,17 @@ const previousTeamNames = ref({ ...store.teamNames }); // Track the previous tea
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 
+const teamAName = ref('');
+const teamBName = ref('');
+
+const isTeamNamesUnique = computed(() => {
+  return teamAName.value.trim().toLowerCase() !== teamBName.value.trim().toLowerCase();
+});
+
 onMounted(() => {
   store.initSocket();
+  teamAName.value = store.teamNames.A;
+  teamBName.value = store.teamNames.B;
 });
 
 // Clean up listeners when the component is unmounted
@@ -551,8 +586,24 @@ const saveQuestionAndAnswers = () => {
 };
 
 const saveTeamNames = () => {
-  store.saveTeamNames(); // Save the team names in the store
-  updateGameState(store.$state); // Emit the updated game state
+  const trimmedTeamAName = teamAName.value.trim();
+  const trimmedTeamBName = teamBName.value.trim();
+
+  if (!trimmedTeamAName || !trimmedTeamBName) {
+    alert('Both team names are required.');
+    return;
+  }
+
+  if (trimmedTeamAName.toLowerCase() === trimmedTeamBName.toLowerCase()) {
+    alert('Team names must be unique.');
+    return;
+  }
+
+  // Update the global state with the trimmed names
+  store.teamNames.A = trimmedTeamAName;
+  store.teamNames.B = trimmedTeamBName;
+
+  alert('Team names saved successfully!');
 };
 
 const revealAllAnswers = () => {
@@ -738,5 +789,11 @@ button {
 .session-id-box.error {
   background-color: rgb(232, 59, 59); /* Red for error */
   color: white;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.9rem;
+  margin-top: 8px;
 }
 </style>
