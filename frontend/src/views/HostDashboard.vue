@@ -36,7 +36,7 @@
           3x
         </button>
       </div>
-      
+
       <!-- Who Starts Section -->
       <div>
         <h4>Who Starts?</h4>
@@ -642,7 +642,8 @@ const saveTeamNames = () => {
   store.teamNames.A = trimmedTeamAName;
   store.teamNames.B = trimmedTeamBName;
 
-  alert('Team names saved successfully!');
+  //alert('Team names saved successfully!');
+  updateGameState(store.$state); // Emit the updated game state
 };
 
 const revealAllAnswers = () => {
