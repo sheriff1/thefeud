@@ -13,30 +13,29 @@
       <button @click="resetGame">Reset Game</button>
       <button @click="resetRound">Reset Round</button>
       <button @click="nextRound" :disabled="!store.roundOver">Next Round</button>
-
-      <!-- Who Starts Section -->
-      <div>
-        <h4>Who Starts?</h4>
-        <p v-if="startingTeamSet">Starting Team: {{ store.teamNames[startingTeam] }}</p>
-        <button
-          @click="setStartingTeam('A')"
-          :disabled="startingTeamSet"
-        >
-          {{ store.teamNames.A }}
-        </button>
-        <button
-          @click="setStartingTeam('B')"
-          :disabled="startingTeamSet"
-        >
-          {{ store.teamNames.B }}
-        </button>
-      </div>
-
     </div>
 
     <!-- Manage Question and Answers Section -->
-    <div class="container question-answers-container">
+  <div class="container question-answers-container">
   <h3>Manage Question and Answers</h3>
+
+  <!-- Who Starts Section -->
+  <div v-if="showWhoStarts">
+    <h4>Who Starts?</h4>
+    <p v-if="startingTeamSet">Starting Team: {{ store.teamNames[startingTeam] }}</p>
+    <button
+      @click="setStartingTeam('A')"
+      :disabled="startingTeamSet"
+    >
+      {{ store.teamNames.A }}
+    </button>
+    <button
+      @click="setStartingTeam('B')"
+      :disabled="startingTeamSet"
+    >
+      {{ store.teamNames.B }}
+    </button>
+  </div>
 
   <!-- Manage Question and Answers Section -->
   <template v-if="currentStep === 'manage'">
@@ -409,6 +408,9 @@ const currentStep = ref('manage'); // Possible values: 'manage', 'multiplier', '
 const teamAName = ref('');
 const teamBName = ref('');
 
+const correctCount = ref(0);
+const buzzerOnlyCount = ref(0);
+
 const isTeamNamesUnique = computed(() => {
   return teamAName.value.trim().toLowerCase() !== teamBName.value.trim().toLowerCase();
 });
@@ -536,6 +538,8 @@ const resetRound = () => {
   questionSaved.value = false;
   showAvailableAnswers.value = false;
   currentStep.value = 'manage';
+  correctCount.value = 0;
+  buzzerOnlyCount.value = 0;
   socket.emit('update-game', { sessionId, gameState: { ...store.$state, roundReset: true } });
 };
 
@@ -554,6 +558,8 @@ const nextRound = () => {
   questionSaved.value = false; // Reset the question saved flag
   showAvailableAnswers.value = false; // Hide the Available Answers section
   currentStep.value = 'manage'; // Reset to the Manage Question and Answers section
+  correctCount.value = 0;
+  buzzerOnlyCount.value = 0;
   updateGameState(store.$state); // Emit the updated game state for the next round
 };
 
@@ -614,6 +620,7 @@ const resetTimer = () => {
 };
 
 const handleCorrectGuess = (answerId) => {
+  correctCount.value++;
   if (!store.firstTeam) {
     const match = store.answers.find((a) => a.id === answerId);
     if (match && !store.guessedAnswers.includes(match.id)) {
@@ -731,9 +738,17 @@ const revealAllAnswers = () => {
 };
 
 const emitStrikeSound = () => {
+  buzzerOnlyCount.value++;
   console.log('emitStrikeSound called');
   socket.emit('play-strike-sound', { sessionId });
 };
+
+const showWhoStarts = computed(() => {
+  return (
+    correctCount.value >= 2 ||
+    (correctCount.value === 1 && buzzerOnlyCount.value >= 1)
+  );
+});
 
 const copySessionId = () => {
   if (sessionId) {
