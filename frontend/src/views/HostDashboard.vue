@@ -165,7 +165,7 @@
       Incorrect
     </button>
     <button 
-      v-if="answersSaved && multiplierSet && !store.roundOver" 
+      v-if="answersSaved && multiplierSet && !startingTeamSet && !store.roundOver" 
       @click="emitStrikeSound"
     >
       Incorrect (buzzer only)
@@ -726,7 +726,8 @@ const revealAllAnswers = () => {
 };
 
 const emitStrikeSound = () => {
-  socket.emit('play-strike-sound'); // Emit event to signal Team Display to play the strike sound
+  console.log('emitStrikeSound called');
+  socket.emit('play-strike-sound', { sessionId });
 };
 
 const copySessionId = () => {

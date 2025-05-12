@@ -135,8 +135,9 @@ const playDingSound = () => {
 
 // Function to play the "strike" sound
 const playStrikeSound = () => {
+  console.log('playStrikeSound called');
   const audio = new Audio('/sounds/strike.mp3'); // Path to the "strike" sound file
-  audio.play();
+  audio.play().catch(e => console.error("Error playing strike sound:", e));
 };
 
 // Watch for changes in guessed answers
@@ -190,6 +191,7 @@ onMounted(() => {
 
   // Listen for the "play-strike-sound" event from the backend
   socket.on('play-strike-sound', () => {
+    console.log('play-strike-sound event received');
     playStrikeSound();
   });
 
