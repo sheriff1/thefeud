@@ -12,30 +12,7 @@
       <h3>Game Controls</h3>
       <button @click="resetGame">Reset Game</button>
       <button @click="resetRound">Reset Round</button>
-      <button @click="nextRound">Next Round</button>
-      <!-- Set Score Multiplier Section -->
-      <div>
-        <h4>Set Score Multiplier</h4>
-        <p v-if="multiplierSet">Score Multiplier: {{ selectedMultiplier }}x</p>
-        <button
-          @click="setMultiplier(1)"
-          :disabled="multiplierSet"
-        >
-          1x
-        </button>
-        <button
-          @click="setMultiplier(2)"
-          :disabled="multiplierSet"
-        >
-          2x
-        </button>
-        <button
-          @click="setMultiplier(3)"
-          :disabled="multiplierSet"
-        >
-          3x
-        </button>
-      </div>
+      <button @click="nextRound" :disabled="!store.roundOver">Next Round</button>
 
       <!-- Who Starts Section -->
       <div>
@@ -57,110 +34,144 @@
 
     </div>
 
-    <!-- Team Names Section -->
-    <div class="team-names-container">
-      <h3>Team Names</h3>
-      <div>
-        <label for="team-a-name">Team A:</label>
-        <input
-          id="team-a-name"
-          type="text"
-          v-model="teamAName"
-          placeholder="Enter Team A Name"
-        />
-      </div>
-      <div>
-        <label for="team-b-name">Team B:</label>
-        <input
-          id="team-b-name"
-          type="text"
-          v-model="teamBName"
-          placeholder="Enter Team B Name"
-        />
-      </div>
-      <p v-if="!isTeamNamesUnique" class="error-message">
-        Team names must be unique.
-      </p>
-      <button @click="saveTeamNames" :disabled="!isTeamNamesUnique">Save Team Names</button>
+    <!-- Manage Question and Answers Section -->
+    <div class="container question-answers-container">
+  <h3>Manage Question and Answers</h3>
+
+  <!-- Manage Question and Answers Section -->
+  <template v-if="currentStep === 'manage'">
+    <!-- File Upload -->
+    <div>
+      <label for="file-upload">Upload CSV File:</label>
+      <input id="file-upload" type="file" @change="handleUpload" />
+
+      <!-- Download Template Button -->
+      <a
+        href="/answers/family-feud-template.csv"
+        download
+        class="download-template-button"
+      >
+        Download Template
+      </a>
     </div>
 
-    <!-- Manage Question and Answers Container -->
-    <div class="container question-answers-container">
-      <h3>Manage Question and Answers</h3>
+    <!-- Question Input -->
+    <div>
+      <h4>Question</h4>
+      <label for="question-input">Question:</label>
+      <input
+        id="question-input"
+        type="text"
+        v-model="questionInput"
+        :disabled="questionSaved"
+      />
+    </div>
 
-      <!-- File Upload -->
-      <div>
-        <label for="file-upload">Upload CSV File:</label>
-        <input id="file-upload" type="file" @change="handleUpload" />
-
-        <!-- Download Template Button -->
-        <a
-          href="/answers/family-feud-template.csv"
-          download
-          class="download-template-button"
-        >
-          Download Template
-        </a>
-      </div>
-
-      <!-- Question Input -->
-      <div>
-        <h4>Question</h4>
-        <label for="question-input">Question:</label>
-        <input
-          id="question-input"
-          type="text"
-          v-model="questionInput"
-          :disabled="questionSaved"
-        />
-      </div>
-
-      <!-- Answers Management -->
-      <div>
-        <h4>Answers</h4>
-        <div
-          v-for="(pair, index) in answerPairs"
-          :key="index"
-          class="answer-pair"
-        >
-          <label :for="'answer-' + index">Answer:</label>
-          <input
-            :id="'answer-' + index"
-            type="text"
-            v-model="pair.text"
-            :disabled="answersSaved"
-          />
-          <label :for="'points-' + index">Points:</label>
-          <input
-            :id="'points-' + index"
-            type="number"
-            v-model.number="pair.points"
-            :disabled="answersSaved"
-          />
-          <button
-            @click="removeAnswerPair(index)"
-            :disabled="answersSaved"
-          >
-            Remove
-          </button>
-        </div>
-        <button @click="addAnswerPair" :disabled="answersSaved || answerPairs.length >= 8">
-          Add Answer
-        </button>
-        <button @click="removeAllAnswers" :disabled="answersSaved || answerPairs.length === 0">
-          Remove All Answers
-        </button>
-      </div>
-
-      <!-- Save Both Question and Answers -->
-      <button
-        class="save-button"
-        @click="saveQuestionAndAnswers"
-        :disabled="questionSaved && answersSaved"
+    <!-- Answers Management -->
+    <div>
+      <h4>Answers</h4>
+      <div
+        v-for="(pair, index) in answerPairs"
+        :key="index"
+        class="answer-pair"
       >
-        Save Question and Answers
+        <label :for="'answer-' + index">Answer:</label>
+        <input
+          :id="'answer-' + index"
+          type="text"
+          v-model="pair.text"
+          :disabled="answersSaved"
+        />
+        <label :for="'points-' + index">Points:</label>
+        <input
+          :id="'points-' + index"
+          type="number"
+          v-model.number="pair.points"
+          :disabled="answersSaved"
+        />
+        <button
+          @click="removeAnswerPair(index)"
+          :disabled="answersSaved"
+        >
+          Remove
+        </button>
+      </div>
+      <button @click="addAnswerPair" :disabled="answersSaved || answerPairs.length >= 8">
+        Add Answer
+      </button>
+      <button @click="removeAllAnswers" :disabled="answersSaved || answerPairs.length === 0">
+        Remove All Answers
       </button>
     </div>
+
+    <!-- Save Both Question and Answers -->
+    <button
+      class="save-button"
+      @click="saveQuestionAndAnswers"
+      :disabled="questionSaved && answersSaved"
+    >
+      Save Question and Answers
+    </button>
+  </template>
+
+  <!-- Set Score Multiplier Section -->
+  <template v-if="currentStep === 'multiplier'">
+    <h4>Set Score Multiplier</h4>
+    <p v-if="multiplierSet">Score Multiplier: {{ selectedMultiplier }}x</p>
+    <button
+      @click="setMultiplier(1)"
+      :disabled="multiplierSet"
+    >
+      1x
+    </button>
+    <button
+      @click="setMultiplier(2)"
+      :disabled="multiplierSet"
+    >
+      2x
+    </button>
+    <button
+      @click="setMultiplier(3)"
+      :disabled="multiplierSet"
+    >
+      3x
+    </button>
+  </template>
+
+  <!-- Available Answers Section -->
+  <template v-if="currentStep === 'answers'">
+    <h4>Current Question:</h4>
+    <p>{{ store.question }}</p>
+    <h4>Available Answers</h4>
+    <ul>
+      <li v-for="answer in store.answers" :key="answer.id">
+        <span :style="{ textDecoration: store.guessedAnswers.includes(answer.id) ? 'line-through' : 'none' }">
+          {{ answer.text }} ({{ answer.points }} pts)
+        </span>
+        <!-- Correct Button: Only show if round is not over -->
+        <button
+          v-if="!store.guessedAnswers.includes(answer.id) && !store.roundOver"
+          @click="handleCorrectGuess(answer.id)"
+        >
+          Correct
+        </button>
+      </li>
+    </ul>
+    <!-- Incorrect Button -->
+    <button 
+      v-if="answersSaved && startingTeamSet && multiplierSet && !store.roundOver" 
+      @click="handleIncorrectGuess"
+    >
+      Incorrect
+    </button>
+    <button 
+      v-if="answersSaved && multiplierSet && !store.roundOver" 
+      @click="emitStrikeSound"
+    >
+      Incorrect (buzzer only)
+    </button>
+  </template>
+</div>
 
     <!-- Available Answers, Strikes, and Points Pool Container -->
     <div class="container game-info-container">
@@ -174,34 +185,8 @@
       
       <p>Current Round: {{ store.roundCounter }}</p>
       <p>Current Team: {{ store.teamNames[store.currentTeam] }}</p>
-      
       <p>Points Pool: {{ store.pointPool }}</p>
-
-      <!-- Hide Available Answers and Incorrect Button when the round is over -->
-      <template v-if="!store.roundOver">
-        <h4>Available Answers</h4>
-        <ul>
-          <li v-for="answer in store.answers" :key="answer.id">
-            <span :style="{ textDecoration: store.guessedAnswers.includes(answer.id) ? 'line-through' : 'none' }">
-              {{ answer.text }} ({{ answer.points }} pts)
-            </span>
-            <!-- Correct Button -->
-            <button
-              v-if="!store.guessedAnswers.includes(answer.id)"
-              @click="handleCorrectGuess(answer.id)"
-            >
-              Correct
-            </button>
-          </li>
-        </ul>
-        <!-- Incorrect Button -->
-        <button 
-          v-if="answersSaved && startingTeamSet && multiplierSet && !store.roundOver" 
-          @click="handleIncorrectGuess"
-        >
-          Incorrect
-        </button>
-      </template>
+      <p>Score Multiplier: {{ store.scoreMultiplier }}x</p>
 
       <!-- Reveal All Answers Button -->
       <button 
@@ -253,6 +238,29 @@
           max="3"
         />
       </div>
+      <h3>Team Names</h3>
+      <div>
+        <label for="team-a-name">Team A:</label>
+        <input
+          id="team-a-name"
+          type="text"
+          v-model="teamAName"
+          placeholder="Enter Team A Name"
+        />
+      </div>
+      <div>
+        <label for="team-b-name">Team B:</label>
+        <input
+          id="team-b-name"
+          type="text"
+          v-model="teamBName"
+          placeholder="Enter Team B Name"
+        />
+      </div>
+      <p v-if="!isTeamNamesUnique" class="error-message">
+        Team names must be unique.
+      </p>
+      <button @click="saveTeamNames" :disabled="!isTeamNamesUnique">Save Team Names</button>
     </div>
 
     <!-- Timer Container -->
@@ -318,8 +326,7 @@ onMounted(() => {
 
   // Listen for game state updates
   socket.on('game-updated', (updatedGameState) => {
-    console.log('Game state updated:', updatedGameState);
-    Object.assign(store.$state, updatedGameState); // Update the global store with the new game state
+    Object.assign(store.$state, updatedGameState);
 
     // Sync local variables with the updated global state
     teamAName.value = store.teamNames.A;
@@ -329,12 +336,18 @@ onMounted(() => {
     if (store.firstTeam) {
       startingTeam.value = store.firstTeam;
       startingTeamSet.value = true;
+    } else {
+      startingTeam.value = null;
+      startingTeamSet.value = false;
     }
 
     // Sync "Score Multiplier" state
     if (store.scoreMultiplier) {
       selectedMultiplier.value = store.scoreMultiplier;
       multiplierSet.value = true;
+    } else {
+      selectedMultiplier.value = null;
+      multiplierSet.value = false;
     }
   });
 
@@ -377,8 +390,8 @@ socket.on('connect_error', (error) => {
 const fileUploaded = ref(false);
 const startingTeam = ref(null); // Track the selected starting team
 const selectedMultiplier = ref(null); // Track the selected multiplier
-const startingTeamSet = ref(false);
-const multiplierSet = ref(false);
+const startingTeamSet = computed(() => !!store.firstTeam);
+const multiplierSet = computed(() => !!store.scoreMultiplier);
 const timerInput = ref(0);
 let timerInterval = null;
 
@@ -390,6 +403,8 @@ const previousRound = ref(store.roundCounter); // Track the previous round value
 const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
+const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
+const currentStep = ref('manage'); // Possible values: 'manage', 'multiplier', 'answers'
 
 const teamAName = ref('');
 const teamBName = ref('');
@@ -477,10 +492,12 @@ const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
   multiplierSet.value = true; // Disable the buttons
+  currentStep.value = 'answers'; // Show the Available Answers section
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const resetGame = () => {
+  stopTimer();
   store.resetGame();
   fileUploaded.value = false;
   startingTeamSet.value = false;
@@ -491,26 +508,39 @@ const resetGame = () => {
   answerPairs.value = []; // Clear the answer pairs completely
   questionInput.value = ''; // Reset the question input
   questionSaved.value = false; // Reset the question saved flag
+  showAvailableAnswers.value = false; // Hide the Available Answers section
+  currentStep.value = 'manage'; // Reset to the Manage Question and Answers section
   updateGameState(store.$state); // Emit the reset state to the Team Display
 };
 
 const resetRound = () => {
   stopTimer();
+
+  // Deduct awarded points from the team that received them, if any
+  if (store.pointsAwarded > 0 && store.winningTeam) {
+    store.teamScores[store.winningTeam] -= store.pointsAwarded;
+    // Ensure the score doesn't go negative
+    if (store.teamScores[store.winningTeam] < 0) {
+      store.teamScores[store.winningTeam] = 0;
+    }
+    store.pointsAwarded = 0; // Reset awarded points
+    store.winningTeam = null; // Reset winning team
+  }
+
   store.resetRound();
+  store.updateRoundCounter(previousRound.value);
   fileUploaded.value = false;
-  startingTeamSet.value = false;
-  multiplierSet.value = false;
-  startingTeam.value = null;
-  selectedMultiplier.value = null;
-  answersSaved.value = false; // Reset the answers saved flag
-  answerPairs.value = []; // Clear the answer pairs completely
-  questionInput.value = ''; // Reset the question input
-  questionSaved.value = false; // Reset the question saved flag
-  store.updateRoundCounter(previousRound.value); // Reset the round counter to the previous value
-  updateGameState(store.$state); // Emit the updated game state
+  answersSaved.value = false;
+  answerPairs.value = [];
+  questionInput.value = '';
+  questionSaved.value = false;
+  showAvailableAnswers.value = false;
+  currentStep.value = 'manage';
+  socket.emit('update-game', { sessionId, gameState: { ...store.$state, roundReset: true } });
 };
 
 const nextRound = () => {
+  stopTimer();
   previousRound.value = store.roundCounter; // Store the current round value
   store.nextRound(); // Advance to the next round
   fileUploaded.value = false;
@@ -522,6 +552,8 @@ const nextRound = () => {
   answerPairs.value = []; // Clear the answer pairs
   questionInput.value = ''; // Reset the question input
   questionSaved.value = false; // Reset the question saved flag
+  showAvailableAnswers.value = false; // Hide the Available Answers section
+  currentStep.value = 'manage'; // Reset to the Manage Question and Answers section
   updateGameState(store.$state); // Emit the updated game state for the next round
 };
 
@@ -658,6 +690,7 @@ const saveQuestionAndAnswers = () => {
   if (questionSaved.value && answersSaved.value) {
     store.incrementRoundCounter();
     updateGameState(store.$state); // Emit the updated game state
+    currentStep.value = 'multiplier'; // Show the Set Score Multiplier section
   }
 };
 
@@ -690,6 +723,10 @@ const revealAllAnswers = () => {
 
   store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed IDs to guessedAnswers
   updateGameState(store.$state); // Emit the updated game state
+};
+
+const emitStrikeSound = () => {
+  socket.emit('play-strike-sound'); // Emit event to signal Team Display to play the strike sound
 };
 
 const copySessionId = () => {
@@ -726,9 +763,9 @@ const copySessionId = () => {
 
 <style scoped>
 .container {
-  padding: 16px;
-  margin-bottom: 16px;
-  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem;
+  border-radius: 0.5rem;
   background-color: #f9f9f9;
 }
 

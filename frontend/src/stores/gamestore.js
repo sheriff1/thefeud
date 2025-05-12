@@ -162,6 +162,7 @@ export const useGameStore = defineStore('game', {
     resetGame() {
       this.teamNames = { A: 'Team A', B: 'Team B' }
       this.teamScores = { A: 0, B: 0 }
+      this.roundCounter = 0
       this.answers = []
       this.guessedAnswers = []
       this.currentTeam = 'A'
@@ -173,7 +174,6 @@ export const useGameStore = defineStore('game', {
       this.scoreMultiplier = null
       this.timer = 0
       this.timerRunning = false
-      this.roundCounter = 0
       this.roundOver = false
       this.question = ''
       this.pointsAwarded = 0

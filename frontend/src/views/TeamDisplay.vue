@@ -188,6 +188,11 @@ onMounted(() => {
     Object.assign(store.$state, newState); // Update the local store with the new game state
   });
 
+  // Listen for the "play-strike-sound" event from the backend
+  socket.on('play-strike-sound', () => {
+    playStrikeSound();
+  });
+
   // Handle connection errors
   socket.on('connect_error', (error) => {
     console.error('WebSocket connection error:', error);
