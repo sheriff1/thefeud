@@ -47,6 +47,13 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  socket.on('play-strike-sound', async ({ sessionId }) => {
+    // Broadcast to all other clients (except sender)
+    //socket.broadcast.emit('play-strike-sound');
+    // Or, if using rooms:
+    io.to(sessionId).emit('play-strike-sound');
+  });
+
   socket.on('join-session', async ({ sessionId }) => {
     console.log(`User ${socket.id} is joining session: ${sessionId}`);
     socket.join(sessionId);
