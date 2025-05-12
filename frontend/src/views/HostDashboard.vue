@@ -160,7 +160,7 @@
     <!-- Incorrect Button -->
     <button 
       v-if="answersSaved && startingTeamSet && multiplierSet && !store.roundOver" 
-      @click="handleIncorrectGuess"
+      @click="handleIncorrectAndStrike"
     >
       Incorrect
     </button>
@@ -575,6 +575,11 @@ const updateRoundCounter = (round) => {
 const updateScoreMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   updateGameState(store.$state); // Emit the updated game state
+};
+
+const handleIncorrectAndStrike = () => {
+  handleIncorrectGuess();
+  emitStrikeSound();
 };
 
 const setTimer = () => {

@@ -79,6 +79,12 @@
     <!-- Answers Section -->
     <div v-if="store.answers.length > 0" class="answers-container">
       <!-- Question Display -->
+      <transition name="fade-x">
+        <div v-if="showStrikeX" class="strike-x-overlay">
+          <span class="strike-x">X</span>
+        </div>
+      </transition>
+
       <div class="question-display">
         <h3>{{ store.question }}</h3>
       </div>
@@ -126,6 +132,7 @@ const sessionIdBoxState = ref(''); // Default state (no additional class)
 
 // Helper function to get the other team
 const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
+const showStrikeX = ref(false);
 
 // Function to play the "ding" sound
 const playDingSound = () => {
@@ -133,12 +140,19 @@ const playDingSound = () => {
   audio.play();
 };
 
-// Function to play the "strike" sound
 const playStrikeSound = () => {
-  console.log('playStrikeSound called');
-  const audio = new Audio('/sounds/strike.mp3'); // Path to the "strike" sound file
-  audio.play().catch(e => console.error("Error playing strike sound:", e));
+  const audio = new Audio('/sounds/strike.mp3');
+  audio.play();
+  // Show the X
+  showStrikeX.value = true;
+  setTimeout(() => {
+    showStrikeX.value = false;
+  }, 1200); // Show for 1.2 seconds
 };
+
+socket.on('play-strike-sound', () => {
+  playStrikeSound();
+});
 
 // Watch for changes in guessed answers
 watch(
@@ -594,5 +608,41 @@ hr {
 .session-id-box.error {
   background-color: red; /* Red for error */
   color: white;
+}
+
+.strike-x-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.strike-x {
+  font-size: 10vw;
+  color: #e53935;
+  font-weight: bold;
+  text-shadow: 0 0 30px #e53935, 0 0 10px #fff;
+  border: 8px solid #e53935;
+  border-radius: 16px;
+  padding: 2vw 4vw;
+  background: rgba(255,255,255,0.95);
+  box-shadow: 0 0 40px #e53935;
+}
+
+.fade-x-enter-active, .fade-x-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-x-enter-from, .fade-x-leave-to {
+  opacity: 0;
+}
+.fade-x-enter-to, .fade-x-leave-from {
+  opacity: 1;
 }
 </style>
