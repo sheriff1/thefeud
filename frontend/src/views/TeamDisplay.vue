@@ -1,121 +1,142 @@
 <template>
-  <button
-    class="session-id-box"
-    :class="sessionIdBoxState"
-    @click="copySessionId">
-    {{ sessionIdBoxText }}
-  </button>
-
-  <div class="gameboard-container">
-    <!-- Round Over Message -->
-    <div v-if="store.roundOver" class="round-over-message">
-      <h4>Round Over: </h4>
-      <p v-if="store.winningTeam && store.pointsAwarded > 0">
-        {{ store.teamNames[store.winningTeam] }} wins this round. 
-        They scored {{ store.pointsAwarded }} points!
-      </p>
-      <p v-else>No points were awarded this round.</p>
+  <div v-if="!hasJoined" class="join-team-form">
+    <h2>Join the Game</h2>
+    <input v-model="playerName" placeholder="Enter your name" />
+    <div>
+      <label>
+        <input type="radio" value="A" v-model="selectedTeam" />
+        Team {{ store.teamNames.A }}
+      </label>
+      <label>
+        <input type="radio" value="B" v-model="selectedTeam" />
+        Team {{ store.teamNames.B }}
+      </label>
     </div>
+    <button @click="joinTeam" :disabled="!playerName || !selectedTeam">Join</button>
+  </div>
 
-    <!-- Scoreboard Section -->
-    <div class="scoreboard">
-      <!-- Team Info -->
-      <div
-        class="team-info"
-        :class="{ active: store.currentTeam === team }"
-        v-for="(team, index) in ['A', 'B']"
-        :key="team"
-      >
-        <!-- Team Name and Score -->
-        <div class="team-header">
-          <span class="team-name">
-            <!-- Add crown emoji conditionally -->
-            <span v-if="store.teamScores[team] > store.teamScores[otherTeam(team)]">👑</span>
-            {{ store.teamNames[team].toUpperCase() }}
-          </span>
-          <span class="team-score">
-            <span class="divider"></span>
-            {{ store.teamScores[team] }}
-          </span>
-        </div>
+  <div v-else>
+    <button
+      class="session-id-box"
+      :class="sessionIdBoxState"
+      @click="copySessionId">
+      {{ sessionIdBoxText }}
+    </button>
 
-        <!-- Strikes -->
-        <div class="team-strikes">
-          <span
-            v-for="strike in (store.firstTeam === team ? 3 : 1)"
-            :key="team + '-' + strike"
-            class="strike-dot"
-            :class="{ active: strike <= store.teamStrikes[team] }"
-          ></span>
-        </div>
-        <div class="game-info-label">Strikes</div>
-      </div>
-    </div>
-
-    <!-- Game Info Container -->
-    <div class="game-info-container">
-      <!-- Round Counter -->
-      <div class="game-info-item">
-        <div class="game-info-value">{{ store.roundCounter }}</div>
-        <div class="game-info-label">Round</div>
-      </div>
-      <!-- Timer Display -->
-      <div class="game-info-item">
-        <div class="game-info-value">{{ store.timer }}</div>
-        <div class="game-info-label">Time Remaining</div>
-      </div>
-      <!-- Points Pool -->
-      <div class="game-info-item">
-        <div class="game-info-value">{{ store.pointPool }}</div>
-        <div class="game-info-label">Points Pool</div>
-      </div>
-      <!-- Score Multiplier -->
-      <div class="game-info-item">
-        <div class="game-info-value">x{{ store.scoreMultiplier }}</div>
-        <div class="game-info-label">Score Multiplier</div>
-      </div>
-    </div>
-
-    <!-- Answers Section -->
-    <div v-if="store.answers.length > 0" class="answers-container">
-      <!-- Question Display -->
-      <transition name="fade-x">
-        <div v-if="showStrikeX" class="strike-x-overlay">
-          <span class="strike-x">X</span>
-        </div>
-      </transition>
-
-      <div class="question-display">
-        <h3>{{ store.question }}</h3>
+    <div class="gameboard-container">
+      <!-- Round Over Message -->
+      <div v-if="store.roundOver" class="round-over-message">
+        <h4>Round Over: </h4>
+        <p v-if="store.winningTeam && store.pointsAwarded > 0">
+          {{ store.teamNames[store.winningTeam] }} wins this round. 
+          They scored {{ store.pointsAwarded }} points!
+        </p>
+        <p v-else>No points were awarded this round.</p>
       </div>
 
-      <!-- Answers Grid -->
-      <div class="answers-grid">
+      <!-- Scoreboard Section -->
+      <div class="scoreboard">
+        <!-- Team Info -->
         <div
-          v-for="(answer, index) in store.answers"
-          :key="answer.id"
-          class="answer-box"
+          class="team-info"
+          :class="{ active: store.currentTeam === team }"
+          v-for="(team, index) in ['A', 'B']"
+          :key="team"
         >
-          <!-- Hidden Answer (Blue Box) -->
-          <div
-            v-if="!store.guessedAnswers.includes(answer.id)"
-            class="blue-box"
-          >
-            <span class="answer-number-circle">{{ index + 1 }}</span>
+          <!-- Team Name and Score -->
+          <div class="team-header">
+            <span class="team-name">
+              <!-- Add crown emoji conditionally -->
+              <span v-if="store.teamScores[team] > store.teamScores[otherTeam(team)]">👑</span>
+              {{ store.teamNames[team].toUpperCase() }}
+            </span>
+            <span class="team-score">
+              <span class="divider"></span>
+              {{ store.teamScores[team] }}
+            </span>
           </div>
+          <!-- Team Members List -->
+          <ul class="team-members-list">
+            <li v-for="member in teamMembers[team]" :key="member">{{ member }}</li>
+          </ul>
+          <!-- Strikes -->
+          <div class="team-strikes">
+            <span
+              v-for="strike in (store.firstTeam === team ? 3 : 1)"
+              :key="team + '-' + strike"
+              class="strike-dot"
+              :class="{ active: strike <= store.teamStrikes[team] }"
+            ></span>
+          </div>
+          <div class="game-info-label">Strikes</div>
+        </div>
+      </div>
 
-          <!-- Revealed Answer with Flip Animation -->
+      <!-- Game Info Container -->
+      <div class="game-info-container">
+        <!-- Round Counter -->
+        <div class="game-info-item">
+          <div class="game-info-value">{{ store.roundCounter }}</div>
+          <div class="game-info-label">Round</div>
+        </div>
+        <!-- Timer Display -->
+        <div class="game-info-item">
+          <div class="game-info-value">{{ store.timer }}</div>
+          <div class="game-info-label">Time Remaining</div>
+        </div>
+        <!-- Points Pool -->
+        <div class="game-info-item">
+          <div class="game-info-value">{{ store.pointPool }}</div>
+          <div class="game-info-label">Points Pool</div>
+        </div>
+        <!-- Score Multiplier -->
+        <div class="game-info-item">
+          <div class="game-info-value">x{{ store.scoreMultiplier }}</div>
+          <div class="game-info-label">Score Multiplier</div>
+        </div>
+      </div>
+
+      <!-- Answers Section -->
+      <div v-if="store.answers.length > 0" class="answers-container">
+        <!-- Question Display -->
+        <transition name="fade-x">
+          <div v-if="showStrikeX" class="strike-x-overlay">
+            <span class="strike-x">X</span>
+          </div>
+        </transition>
+
+        <div class="question-display">
+          <h3>{{ store.question }}</h3>
+        </div>
+
+        <!-- Answers Grid -->
+        <div class="answers-grid">
           <div
-            v-else
-            class="revealed-answer flip-animation"
+            v-for="(answer, index) in store.answers"
+            :key="answer.id"
+            class="answer-box"
           >
-            <span class="answer-text">{{ answer.text.toUpperCase() }}</span>
-            <span class="answer-points-box">{{ answer.points }}</span>
+            <!-- Hidden Answer (Blue Box) -->
+            <div
+              v-if="!store.guessedAnswers.includes(answer.id)"
+              class="blue-box"
+            >
+              <span class="answer-number-circle">{{ index + 1 }}</span>
+            </div>
+
+            <!-- Revealed Answer with Flip Animation -->
+            <div
+              v-else
+              class="revealed-answer flip-animation"
+            >
+              <span class="answer-text">{{ answer.text.toUpperCase() }}</span>
+              <span class="answer-points-box">{{ answer.points }}</span>
+            </div>
           </div>
         </div>
       </div>
+      <p v-else class="no-answers-message">No answers available yet.</p>
     </div>
-    <p v-else class="no-answers-message">No answers available yet.</p>
   </div>
 </template>
 
@@ -129,6 +150,12 @@ const store = useGameStore();
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
+const playerName = ref('');
+const selectedTeam = ref('');
+const hasJoined = ref(false);
+
+// Store team members locally for display
+const teamMembers = ref({ A: [], B: [] });
 
 // Helper function to get the other team
 const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
@@ -148,6 +175,16 @@ const playStrikeSound = () => {
   setTimeout(() => {
     showStrikeX.value = false;
   }, 1200); // Show for 1.2 seconds
+};
+
+const joinTeam = () => {
+  if (!playerName.value.trim() || !selectedTeam.value) return;
+  socket.emit('join-team', {
+    sessionId,
+    name: playerName.value.trim(),
+    team: selectedTeam.value,
+  });
+  hasJoined.value = true;
 };
 
 socket.on('play-strike-sound', () => {
@@ -207,6 +244,10 @@ onMounted(() => {
   socket.on('play-strike-sound', () => {
     console.log('play-strike-sound event received');
     playStrikeSound();
+  });
+  
+  socket.on('team-members-updated', (members) => {
+    teamMembers.value = members;
   });
 
   // Handle connection errors
@@ -313,6 +354,15 @@ const copySessionId = () => {
   height: 100%;
   background-color: #ccc;
   margin-right: 8px;
+}
+
+/* Team Members List Styles */
+.team-members-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 /* Team Strikes Styles */

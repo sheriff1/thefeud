@@ -44,6 +44,8 @@ app.get('/', (req, res) => {
 });
 
 // WebSocket Communication
+const socketToPlayer = {};
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
@@ -58,6 +60,39 @@ io.on('connection', (socket) => {
     console.log(`User ${socket.id} is joining session: ${sessionId}`);
     socket.join(sessionId);
   });
+
+  socket.on('join-team', async ({ sessionId, name, team }) => {
+    try {
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      const sessionDoc = await sessionRef.get();
+      let members = { A: [], B: [] };
+
+      if (sessionDoc.exists && sessionDoc.data().teamMembers) {
+        members = sessionDoc.data().teamMembers;
+      }
+
+      // Prevent duplicates
+      if (!members[team].includes(name)) {
+        members[team].push(name);
+      }
+
+      // Update Firestore with new team members
+      await sessionRef.set({ teamMembers: members }, { merge: true });
+
+      // Broadcast updated team members to all clients in the session
+      io.to(sessionId).emit('team-members-updated', members);
+
+      socket.join(sessionId);
+
+      // Track player info for disconnect
+      socketToPlayer[socket.id] = { sessionId, name, team };
+    } catch (error) {
+      console.error('Error joining team:', error);
+      socket.emit('error', { message: 'Failed to join team' });
+    }
+  });
+
+  // Optionally: handle disconnects, etc.
 
   // Handle request for the current game state
   socket.on('get-current-state', async ({ sessionId }) => {
@@ -104,8 +139,32 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('A user disconnected:', socket.id);
+
+    const player = socketToPlayer[socket.id];
+    if (player) {
+      const { sessionId, name, team } = player;
+      try {
+        const sessionRef = db.collection('sessions').doc(sessionId);
+        const sessionDoc = await sessionRef.get();
+        if (sessionDoc.exists && sessionDoc.data().teamMembers) {
+          let members = sessionDoc.data().teamMembers;
+          // Remove player from their team
+          if (members[team]) {
+            members[team] = members[team].filter(memberName => memberName !== name);
+            // Update Firestore
+            await sessionRef.set({ teamMembers: members }, { merge: true });
+            // Broadcast updated team members
+            io.to(sessionId).emit('team-members-updated', members);
+          }
+        }
+      } catch (error) {
+        console.error('Error removing player on disconnect:', error);
+      }
+      // Remove from tracking
+      delete socketToPlayer[socket.id];
+    }
   });
 });
 
