@@ -53,3 +53,4 @@ frontend/dist-ssr/
 frontend/out/
 
 steps.md
+.DS_Store
