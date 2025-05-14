@@ -49,9 +49,10 @@ const socketToPlayer = {};
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
-  socket.on('buzz', ({ sessionId, name }) => {
+  socket.on('buzz', async ({ sessionId, name }) => {
     if (!buzzedPlayerName) {
       buzzedPlayerName = name;
+      await db.collection('sessions').doc(sessionId).set({ buzzedPlayer: name }, { merge: true });
       io.to(sessionId).emit('buzzed', { name });
     }
   });
@@ -143,6 +144,9 @@ io.on('connection', (socket) => {
       // Save the updated gameState to Firestore
       await db.collection('sessions').doc(sessionId).set(gameState, { merge: true });
       console.log(`Game state saved to Firestore for session: ${sessionId}`);
+
+      // When resetting round/game or next round
+      await db.collection('sessions').doc(sessionId).set({ buzzedPlayer: '' }, { merge: true });
 
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);

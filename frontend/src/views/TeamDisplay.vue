@@ -92,7 +92,7 @@
         :disabled="isBuzzerDisabled"
         @click="pressBuzzer"
       >
-        {{ hasBuzzed ? 'Buzzed!' : 'BUZZER' }}
+        {{ buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
       </button>
     </div>
       <!-- Game Info Container -->
@@ -275,15 +275,16 @@ onMounted(() => {
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState) => {
     console.log('Current game state received:', currentState);
-    Object.assign(store.$state, currentState); // Update the local store with the current game state
+    Object.assign(store.$state, currentState);
+    buzzedPlayer.value = currentState?.buzzedPlayer || '';
   });
 
   // Listen for game state updates
   socket.on('game-updated', (newState) => {
     console.log('Game state updated:', newState);
-    Object.assign(store.$state, newState); // Update the local store with the new game state
+    Object.assign(store.$state, newState);
+    buzzedPlayer.value = newState?.buzzedPlayer || '';
     hasBuzzed.value = false;
-    buzzedPlayer.value = '';
   });
 
   // Listen for the "play-strike-sound" event from the backend
