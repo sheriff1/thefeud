@@ -1,0 +1,12 @@
+{
+  "name": "family-feud-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
+    "dev": "concurrently \"cd backend && node index.js\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
