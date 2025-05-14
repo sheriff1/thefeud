@@ -289,6 +289,9 @@ import socket from '../utils/socket';
 
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
+const apiBase = import.meta.env.PROD
+  ? 'https://family-feud-backend-3df546793e25.herokuapp.com'
+  : '';
 
 onMounted(() => {
   if (!sessionId) {
@@ -356,7 +359,7 @@ onMounted(() => {
     alert('Failed to connect to the game session. Please try again.');
   });
 
-  fetch(`/api/create-session/${sessionId}`, { method: 'POST' });
+  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
 });
 
 // Update game state

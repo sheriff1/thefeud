@@ -42,8 +42,9 @@ export default {
     };
 
     // Create a new session and navigate to the Host Dashboard
-    const createSession = () => {
+    const createSession = async () => {
       const newSessionId = generateShortId(); // Generate a short session ID
+      await fetch(`${apiBase}/api/create-session/${newSessionId}`, { method: 'POST' });
       router.push(`/host?sessionId=${newSessionId}`);
     };
 
