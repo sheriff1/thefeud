@@ -26,6 +26,10 @@ import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique session IDs
 
+const apiBase = import.meta.env.PROD
+  ? 'https://family-feud-backend-3df546793e25.herokuapp.com/'
+  : '';
+
 export default {
   name: 'Home',
   setup() {
@@ -56,7 +60,7 @@ export default {
       }
       // Always use uppercase for backend check
       const response = await fetch(
-        `/api/session-exists/${id}`
+        `${apiBase}/api/session-exists/${id}`
       );
       const data = await response.json();
       if (data.exists) {
@@ -79,7 +83,7 @@ export default {
       }
       // Always use uppercase for backend check
       const response = await fetch(
-        `/api/session-exists/${id}`
+        `${apiBase}/api/session-exists/${id}`
       );
       const data = await response.json();
       if (data.exists) {
