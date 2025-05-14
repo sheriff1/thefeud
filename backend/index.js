@@ -148,11 +148,7 @@ io.on('connection', (socket) => {
     buzzedPlayerName = null; // Reset on round/game update
 
     try {
-      // Add 1 to the timer if it is present and is a number
-      if (typeof gameState.timer === 'number') {
-        gameState.timer += 1;
-      }
-      
+
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       gameState.expiryTime = new Date(Date.now() + expiryDuration); // Set expiry time 24 hours from now
