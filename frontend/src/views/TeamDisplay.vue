@@ -1,20 +1,27 @@
 <template>
-  <div v-if="!hasJoined" class="join-team-form">
-    <h2>Join the Game</h2>
-    <input v-model="playerName" placeholder="Enter your name" />
-    <div>
-      <label>
-        <input type="radio" value="A" v-model="selectedTeam" />
-        Team {{ store.teamNames.A }}
-      </label>
-      <label>
-        <input type="radio" value="B" v-model="selectedTeam" />
-        Team {{ store.teamNames.B }}
-      </label>
+  <!-- Join Team Dialog -->
+  <div v-if="!hasJoined" class="join-team-dialog-backdrop">
+    <div class="join-team-dialog">
+      <h2>Join the Game</h2>
+      <h3 class="left-align">Enter your name:</h3>
+      <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
+      <hr class="dialog-divider" />
+      <h3 class="left-align">Select your team:</h3>
+      <div class="radio-group">
+        <label
+          v-for="team in ['A', 'B']"
+          :key="team"
+          :class="['radio-option', { selected: selectedTeam === team }]"
+        >
+          <input type="radio" :value="team" v-model="selectedTeam" />
+          Team {{ store.teamNames[team] }}
+        </label>
+      </div>
+      <button @click="joinTeam" :disabled="!playerName || !selectedTeam">Join</button>
     </div>
-    <button @click="joinTeam" :disabled="!playerName || !selectedTeam">Join</button>
   </div>
 
+  <!-- Main Gameboard -->
   <div v-else>
     <button
       class="session-id-box"
@@ -55,20 +62,21 @@
               {{ store.teamScores[team] }}
             </span>
           </div>
-          <!-- Team Members List -->
-          <ul class="team-members-list">
-            <li v-for="member in teamMembers[team]" :key="member">{{ member }}</li>
-          </ul>
-          <!-- Strikes -->
-          <div class="team-strikes">
-            <span
-              v-for="strike in (store.firstTeam === team ? 3 : 1)"
-              :key="team + '-' + strike"
-              class="strike-dot"
-              :class="{ active: strike <= store.teamStrikes[team] }"
-            ></span>
+          <!-- Player names and strikes in the same row -->
+          <div class="team-row">
+            <ul class="team-members-list">
+              <li v-for="member in teamMembers[team]" :key="member"> 😎 {{ member }}</li>
+            </ul>
+            <div class="team-strikes">
+              <span
+                v-for="strike in (store.firstTeam === team ? 3 : 1)"
+                :key="team + '-' + strike"
+                class="strike-dot"
+                :class="{ active: strike <= store.teamStrikes[team] }"
+              ></span>
+              <span class="game-info-label">Strikes</span>
+            </div>
           </div>
-          <div class="game-info-label">Strikes</div>
         </div>
       </div>
 
@@ -310,7 +318,6 @@ const copySessionId = () => {
 
 /* Team Info Styles */
 .team-info {
-  text-align: center;
   border: 2px solid #ccc;
   padding: 16px;
   border-radius: 8px;
@@ -356,33 +363,43 @@ const copySessionId = () => {
   margin-right: 8px;
 }
 
-/* Team Members List Styles */
+/* Team Row Styles */
+.team-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
 .team-members-list {
   list-style: none;
   padding: 0;
-  margin: 8px 0;
+  margin: 0;
   font-size: 0.9rem;
   color: #555;
-}
-
-/* Team Strikes Styles */
-.team-strikes {
-  padding-bottom: 0.5rem;
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
+.team-strikes {
+  display: flex;
+  align-items: center;
+}
+
 .strike-dot {
-  width: 16px;
-  height: 16px;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  margin: 0 2px;
   border-radius: 50%;
-  background-color: #ccc; /* Inactive state */
-  transition: background-color 0.3s ease;
+  background: #eee;
+  vertical-align: middle;
+  transition: background 0.3s;
 }
 
 .strike-dot.active {
-  background-color: red; /* Active state */
+  background: #e53935;
 }
 
 /* Game Info Container Styles */
@@ -413,8 +430,8 @@ const copySessionId = () => {
 }
 
 .game-info-label {
+  margin-left: 8px;
   font-size: 0.9rem;
-  font-weight: normal;
   color: #555;
 }
 
@@ -694,5 +711,112 @@ hr {
 }
 .fade-x-enter-to, .fade-x-leave-from {
   opacity: 1;
+}
+
+.join-team-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.join-team-dialog {
+  background: #fff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.join-team-dialog input[type="text"] {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.join-team-dialog label {
+  margin-right: 1rem;
+  font-size: 1rem;
+}
+
+.join-team-dialog button {
+  margin-top: 1rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: none;
+  background: #007bff;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.join-team-dialog button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.full-width-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.left-align {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.5rem;
+}
+
+.dialog-divider {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 1rem 0;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #f9f9f9;
+  transition: border-color 0.2s, background 0.2s;
+  font-size: 1rem;
+}
+
+.radio-option.selected {
+  border-color: #007bff;
+  background: #e6f0ff;
+}
+
+.radio-option input[type="radio"] {
+  margin-right: 0.5rem;
 }
 </style>

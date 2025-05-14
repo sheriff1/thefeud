@@ -72,9 +72,9 @@ io.on('connection', (socket) => {
       }
 
       // Prevent duplicates
-      if (!members[team].includes(name)) {
-        members[team].push(name);
-      }
+      // if (!members[team].includes(name)) {
+      members[team].push(name);
+      // }
 
       // Update Firestore with new team members
       await sessionRef.set({ teamMembers: members }, { merge: true });
@@ -128,7 +128,7 @@ io.on('connection', (socket) => {
       gameState.expiryTime = new Date(Date.now() + expiryDuration); // Set expiry time 24 hours from now
 
       // Save the updated gameState to Firestore
-      await db.collection('sessions').doc(sessionId).set(gameState);
+      await db.collection('sessions').doc(sessionId).set(gameState, { merge: true });
       console.log(`Game state saved to Firestore for session: ${sessionId}`);
 
       // Broadcast the updated game state to all clients in the session
