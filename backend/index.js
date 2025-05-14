@@ -43,6 +43,22 @@ app.get('/', (req, res) => {
   res.send('Family Feud Backend is running!!!!');
 });
 
+app.get('/api/session-exists/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const sessionDoc = await db.collection('sessions').doc(sessionId).get();
+  res.json({ exists: sessionDoc.exists });
+});
+
+app.post('/api/create-session/:sessionId', async (req, res) => {
+  const { sessionId } = req.params;
+  const sessionRef = db.collection('sessions').doc(sessionId);
+  const sessionDoc = await sessionRef.get();
+  if (!sessionDoc.exists) {
+    await sessionRef.set({ createdAt: new Date() });
+  }
+  res.json({ ok: true });
+});
+
 // WebSocket Communication
 const socketToPlayer = {};
 

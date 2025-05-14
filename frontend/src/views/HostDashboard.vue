@@ -355,6 +355,8 @@ onMounted(() => {
     console.error('WebSocket connection error:', error);
     alert('Failed to connect to the game session. Please try again.');
   });
+
+  fetch(`/api/create-session/${sessionId}`, { method: 'POST' });
 });
 
 // Update game state

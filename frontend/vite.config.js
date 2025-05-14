@@ -22,6 +22,9 @@ export default defineConfig({
     ],
     headers: {
       'Cache-Control': 'no-store', // Disable caching
+    },
+    proxy: {
+      '/api': 'http://localhost:4000'
     }
   }
 })
