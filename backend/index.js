@@ -49,6 +49,13 @@ const socketToPlayer = {};
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
+  socket.on('buzz', ({ sessionId, name }) => {
+    if (!buzzedPlayerName) {
+      buzzedPlayerName = name;
+      io.to(sessionId).emit('buzzed', { name });
+    }
+  });
+
   socket.on('play-strike-sound', async ({ sessionId }) => {
     // Broadcast to all other clients (except sender)
     //socket.broadcast.emit('play-strike-sound');
@@ -121,8 +128,14 @@ io.on('connection', (socket) => {
 
     console.log(`Game state update received for session: ${sessionId}`);
     console.log('Game state:', gameState);
+    buzzedPlayerName = null; // Reset on round/game update
 
     try {
+      // Add 1 to the timer if it is present and is a number
+      if (typeof gameState.timer === 'number') {
+        gameState.timer += 1;
+      }
+      
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       gameState.expiryTime = new Date(Date.now() + expiryDuration); // Set expiry time 24 hours from now

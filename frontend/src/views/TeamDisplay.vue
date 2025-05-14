@@ -65,7 +65,13 @@
           <!-- Player names and strikes in the same row -->
           <div class="team-row">
             <ul class="team-members-list">
-              <li v-for="member in teamMembers[team]" :key="member"> 😎 {{ member }}</li>
+              <li
+                v-for="member in teamMembers[team]"
+                :key="member + Math.random()"
+                :class="{ buzzed: buzzedPlayer === member }"
+                >
+                😎 {{ member }}
+              </li>
             </ul>
             <div class="team-strikes">
               <span
@@ -79,7 +85,16 @@
           </div>
         </div>
       </div>
-
+    <!-- Buzzer Section -->
+    <div class="buzzer-container" v-if="isMultiplierSet">
+      <button
+        class="buzzer-button"
+        :disabled="isBuzzerDisabled"
+        @click="pressBuzzer"
+      >
+        {{ hasBuzzed ? 'Buzzed!' : 'BUZZER' }}
+      </button>
+    </div>
       <!-- Game Info Container -->
       <div class="game-info-container">
         <!-- Round Counter -->
@@ -149,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import { io } from 'socket.io-client';
 import socket from '../utils/socket';
@@ -161,6 +176,10 @@ const sessionIdBoxState = ref(''); // Default state (no additional class)
 const playerName = ref('');
 const selectedTeam = ref('');
 const hasJoined = ref(false);
+const hasBuzzed = ref(false);
+const buzzedPlayer = ref(''); // Name of the player who buzzed first
+const isBuzzerDisabled = computed(() => hasBuzzed.value || !!buzzedPlayer.value);
+const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 
 // Store team members locally for display
 const teamMembers = ref({ A: [], B: [] });
@@ -172,6 +191,11 @@ const showStrikeX = ref(false);
 // Function to play the "ding" sound
 const playDingSound = () => {
   const audio = new Audio('/sounds/ding.mp3'); // Path to the "ding" sound file
+  audio.play();
+};
+
+const playBuzzerSound = () => {
+  const audio = new Audio('/sounds/buzzer.mp3');
   audio.play();
 };
 
@@ -194,6 +218,18 @@ const joinTeam = () => {
   });
   hasJoined.value = true;
 };
+
+const pressBuzzer = () => {
+  if (!hasBuzzed.value) {
+    playBuzzerSound(); // Play buzzer sound when pressed
+    socket.emit('buzz', { sessionId, name: playerName.value });
+    hasBuzzed.value = true;
+  }
+};
+
+socket.on('buzzed', ({ name }) => {
+  buzzedPlayer.value = name;
+});
 
 socket.on('play-strike-sound', () => {
   playStrikeSound();
@@ -246,6 +282,8 @@ onMounted(() => {
   socket.on('game-updated', (newState) => {
     console.log('Game state updated:', newState);
     Object.assign(store.$state, newState); // Update the local store with the new game state
+    hasBuzzed.value = false;
+    buzzedPlayer.value = '';
   });
 
   // Listen for the "play-strike-sound" event from the backend
@@ -818,5 +856,38 @@ hr {
 
 .radio-option input[type="radio"] {
   margin-right: 0.5rem;
+}
+
+.buzzer-container {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0 1rem 0;
+}
+
+.buzzer-button {
+  background: #ff1744;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 50px;
+  padding: 1rem 3rem;
+  box-shadow: 0 4px 16px rgba(255,23,68,0.2);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.buzzer-button:disabled {
+  background: #ccc;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.team-members-list .buzzed {
+  background: #ffeb3b;
+  color: #d32f2f;
+  font-weight: bold;
+  border-radius: 6px;
+  padding: 0 8px;
 }
 </style>
