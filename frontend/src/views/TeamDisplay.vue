@@ -4,7 +4,11 @@
     <div class="join-team-dialog">
       <h2>Join the Game</h2>
       <h3 class="left-align">Enter your name:</h3>
-      <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
+      <input
+        v-model="playerName"
+        placeholder="Enter your name"
+        class="full-width-input"
+      />
       <hr class="dialog-divider" />
       <h3 class="left-align">Select your team:</h3>
       <div class="radio-group">
@@ -14,10 +18,12 @@
           :class="['radio-option', { selected: selectedTeam === team }]"
         >
           <input type="radio" :value="team" v-model="selectedTeam" />
-          Team {{ store.teamNames[team] }}
+          Team {{ store.teamNames[team] || team }}
         </label>
       </div>
-      <button @click="joinTeam" :disabled="!playerName || !selectedTeam">Join</button>
+      <button @click="joinTeam" :disabled="!playerName || !selectedTeam">
+        Join
+      </button>
     </div>
   </div>
 
@@ -26,17 +32,18 @@
     <button
       class="session-id-box"
       :class="sessionIdBoxState"
-      @click="copySessionId">
+      @click="copySessionId"
+    >
       {{ sessionIdBoxText }}
     </button>
 
     <div class="gameboard-container">
       <!-- Round Over Message -->
       <div v-if="store.roundOver" class="round-over-message">
-        <h4>Round Over: </h4>
+        <h4>Round Over:</h4>
         <p v-if="store.winningTeam && store.pointsAwarded > 0">
-          {{ store.teamNames[store.winningTeam] }} wins this round. 
-          They scored {{ store.pointsAwarded }} points!
+          {{ store.teamNames[store.winningTeam] }} wins this round. They scored
+          {{ store.pointsAwarded }} points!
         </p>
         <p v-else>No points were awarded this round.</p>
       </div>
@@ -53,9 +60,34 @@
           <!-- Team Name and Score -->
           <div class="team-header">
             <span class="team-name">
-              <!-- Add crown emoji conditionally -->
-              <span v-if="store.teamScores[team] > store.teamScores[otherTeam(team)]">👑</span>
-              {{ store.teamNames[team].toUpperCase() }}
+              <span v-if="editingTeam !== team">
+                <span
+                  v-if="
+                    store.teamScores[team] > store.teamScores[otherTeam(team)]
+                  "
+                  >👑</span
+                >
+                {{ store.teamNames[team].toUpperCase() || team.toUpperCase() }}
+                <button
+                  class="edit-team-btn"
+                  @click="startEditingTeamName(team)"
+                >
+                  ✏️
+                </button>
+              </span>
+              <span v-else>
+                <input
+                  v-model="editedTeamName"
+                  @keyup.enter="saveTeamName(team)"
+                  @blur="saveTeamName(team)"
+                  class="edit-team-input"
+                  maxlength="20"
+                  autofocus
+                />
+                <button class="save-team-btn" @click="saveTeamName(team)">
+                  💾
+                </button>
+              </span>
             </span>
             <span class="team-score">
               <span class="divider"></span>
@@ -69,13 +101,13 @@
                 v-for="member in teamMembers[team]"
                 :key="member + Math.random()"
                 :class="{ buzzed: buzzedPlayer === member }"
-                >
+              >
                 😎 {{ member }}
               </li>
             </ul>
             <div class="team-strikes">
               <span
-                v-for="strike in (store.firstTeam === team ? 3 : 1)"
+                v-for="strike in store.firstTeam === team ? 3 : 1"
                 :key="team + '-' + strike"
                 class="strike-dot"
                 :class="{ active: strike <= store.teamStrikes[team] }"
@@ -85,16 +117,16 @@
           </div>
         </div>
       </div>
-    <!-- Buzzer Section -->
-    <div class="buzzer-container" v-if="isMultiplierSet">
-      <button
-        class="buzzer-button"
-        :disabled="isBuzzerDisabled"
-        @click="pressBuzzer"
-      >
-        {{ buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
-      </button>
-    </div>
+      <!-- Buzzer Section -->
+      <div class="buzzer-container" v-if="isMultiplierSet">
+        <button
+          class="buzzer-button"
+          :disabled="isBuzzerDisabled"
+          @click="pressBuzzer"
+        >
+          {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
+        </button>
+      </div>
       <!-- Game Info Container -->
       <div class="game-info-container">
         <!-- Round Counter -->
@@ -148,10 +180,7 @@
             </div>
 
             <!-- Revealed Answer with Flip Animation -->
-            <div
-              v-else
-              class="revealed-answer flip-animation"
-            >
+            <div v-else class="revealed-answer flip-animation">
               <span class="answer-text">{{ answer.text.toUpperCase() }}</span>
               <span class="answer-points-box">{{ answer.points }}</span>
             </div>
@@ -164,43 +193,47 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useGameStore } from '../stores/gamestore';
-import { io } from 'socket.io-client';
-import socket from '../utils/socket';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useGameStore } from "../stores/gamestore";
+import { io } from "socket.io-client";
+import socket from "../utils/socket";
 
 const store = useGameStore();
-const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
+const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
-const sessionIdBoxState = ref(''); // Default state (no additional class)
-const playerName = ref('');
-const selectedTeam = ref('');
+const sessionIdBoxState = ref(""); // Default state (no additional class)
+const playerName = ref("");
+const selectedTeam = ref("");
 const hasJoined = ref(false);
 const hasBuzzed = ref(false);
-const buzzedPlayer = ref(''); // Name of the player who buzzed first
-const isBuzzerDisabled = computed(() => hasBuzzed.value || !!buzzedPlayer.value);
+const buzzedPlayer = ref(""); // Name of the player who buzzed first
+const isBuzzerDisabled = computed(
+  () => hasBuzzed.value || !!buzzedPlayer.value
+);
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
+const editingTeam = ref(null); // 'A' or 'B' or null
+const editedTeamName = ref("");
 
 // Store team members locally for display
 const teamMembers = ref({ A: [], B: [] });
 
 // Helper function to get the other team
-const otherTeam = (team) => (team === 'A' ? 'B' : 'A');
+const otherTeam = (team) => (team === "A" ? "B" : "A");
 const showStrikeX = ref(false);
 
 // Function to play the "ding" sound
 const playDingSound = () => {
-  const audio = new Audio('/sounds/ding.mp3'); // Path to the "ding" sound file
+  const audio = new Audio("/sounds/ding.mp3"); // Path to the "ding" sound file
   audio.play();
 };
 
 const playBuzzerSound = () => {
-  const audio = new Audio('/sounds/buzzer.mp3');
+  const audio = new Audio("/sounds/buzzer.mp3");
   audio.play();
 };
 
 const playStrikeSound = () => {
-  const audio = new Audio('/sounds/strike.mp3');
+  const audio = new Audio("/sounds/strike.mp3");
   audio.play();
   // Show the X
   showStrikeX.value = true;
@@ -211,7 +244,7 @@ const playStrikeSound = () => {
 
 const joinTeam = () => {
   if (!playerName.value.trim() || !selectedTeam.value) return;
-  socket.emit('join-team', {
+  socket.emit("join-team", {
     sessionId,
     name: playerName.value.trim(),
     team: selectedTeam.value,
@@ -222,17 +255,37 @@ const joinTeam = () => {
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
     playBuzzerSound(); // Play buzzer sound when pressed
-    socket.emit('buzz', { sessionId, name: playerName.value });
+    socket.emit("buzz", { sessionId, name: playerName.value });
     hasBuzzed.value = true;
   }
 };
 
-socket.on('buzzed', ({ name }) => {
+const startEditingTeamName = (team) => {
+  editingTeam.value = team;
+  editedTeamName.value = store.teamNames[team] || "";
+};
+
+const saveTeamName = (team) => {
+  if (editedTeamName.value.trim()) {
+    socket.emit("update-team-name", {
+      sessionId,
+      team,
+      name: editedTeamName.value.trim(),
+    });
+    editingTeam.value = null;
+  }
+};
+
+socket.on("buzzed", ({ name }) => {
   buzzedPlayer.value = name;
 });
 
-socket.on('play-strike-sound', () => {
+socket.on("play-strike-sound", () => {
   playStrikeSound();
+});
+
+socket.on("team-names-updated", (teamNames) => {
+  store.teamNames = { ...store.teamNames, ...teamNames };
 });
 
 // Watch for changes in guessed answers
@@ -262,45 +315,45 @@ watch(
 // Join a session and listen for updates
 onMounted(() => {
   if (!sessionId) {
-    alert('No session ID provided. Please join a valid session.');
+    alert("No session ID provided. Please join a valid session.");
     return;
   }
 
   // Join the session
-  socket.emit('join-session', { sessionId });
+  socket.emit("join-session", { sessionId });
 
   // Request the current game state from the backend
-  socket.emit('get-current-state', { sessionId });
+  socket.emit("get-current-state", { sessionId });
 
   // Listen for the current game state from the backend
-  socket.on('current-state', (currentState) => {
-    console.log('Current game state received:', currentState);
+  socket.on("current-state", (currentState) => {
+    console.log("Current game state received:", currentState);
     Object.assign(store.$state, currentState);
-    buzzedPlayer.value = currentState?.buzzedPlayer || '';
+    buzzedPlayer.value = currentState?.buzzedPlayer || "";
   });
 
   // Listen for game state updates
-  socket.on('game-updated', (newState) => {
-    console.log('Game state updated:', newState);
+  socket.on("game-updated", (newState) => {
+    store.teamNames = { ...store.teamNames, ...newState.teamNames };
     Object.assign(store.$state, newState);
-    buzzedPlayer.value = newState?.buzzedPlayer || '';
+    buzzedPlayer.value = newState?.buzzedPlayer || "";
     hasBuzzed.value = false;
   });
 
   // Listen for the "play-strike-sound" event from the backend
-  socket.on('play-strike-sound', () => {
-    console.log('play-strike-sound event received');
+  socket.on("play-strike-sound", () => {
+    console.log("play-strike-sound event received");
     playStrikeSound();
   });
-  
-  socket.on('team-members-updated', (members) => {
+
+  socket.on("team-members-updated", (members) => {
     teamMembers.value = members;
   });
 
   // Handle connection errors
-  socket.on('connect_error', (error) => {
-    console.error('WebSocket connection error:', error);
-    alert('Failed to connect to the game session. Please try again.');
+  socket.on("connect_error", (error) => {
+    console.error("WebSocket connection error:", error);
+    alert("Failed to connect to the game session. Please try again.");
   });
 });
 
@@ -311,34 +364,34 @@ onUnmounted(() => {
 
 const copySessionId = () => {
   if (sessionId) {
-    navigator.clipboard.writeText(sessionId)
+    navigator.clipboard
+      .writeText(sessionId)
       .then(() => {
         // Show "Copied" and turn the box green
-        sessionIdBoxText.value = 'Copied!';
-        sessionIdBoxState.value = 'copied';
+        sessionIdBoxText.value = "Copied!";
+        sessionIdBoxState.value = "copied";
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
+          sessionIdBoxState.value = "";
         }, 2000);
       })
       .catch((err) => {
-        console.error('Failed to copy session ID:', err);
+        console.error("Failed to copy session ID:", err);
 
         // Show "Error" and turn the box red
-        sessionIdBoxText.value = 'Error';
-        sessionIdBoxState.value = 'error';
+        sessionIdBoxText.value = "Error";
+        sessionIdBoxState.value = "error";
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
+          sessionIdBoxState.value = "";
         }, 2000);
       });
   }
 };
-
 </script>
 
 <style scoped>
@@ -722,7 +775,7 @@ hr {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255,0,0,0.1);
+  background: rgba(255, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -738,17 +791,20 @@ hr {
   border: 8px solid #e53935;
   border-radius: 16px;
   padding: 2vw 4vw;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 40px #e53935;
 }
 
-.fade-x-enter-active, .fade-x-leave-active {
+.fade-x-enter-active,
+.fade-x-leave-active {
   transition: opacity 0.5s;
 }
-.fade-x-enter-from, .fade-x-leave-to {
+.fade-x-enter-from,
+.fade-x-leave-to {
   opacity: 0;
 }
-.fade-x-enter-to, .fade-x-leave-from {
+.fade-x-enter-to,
+.fade-x-leave-from {
   opacity: 1;
 }
 
@@ -758,7 +814,7 @@ hr {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -769,7 +825,7 @@ hr {
   background: #fff;
   padding: 2rem 2.5rem;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   min-width: 320px;
   display: flex;
   flex-direction: column;
@@ -873,7 +929,7 @@ hr {
   border: none;
   border-radius: 50px;
   padding: 1rem 3rem;
-  box-shadow: 0 4px 16px rgba(255,23,68,0.2);
+  box-shadow: 0 4px 16px rgba(255, 23, 68, 0.2);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
 }
@@ -890,5 +946,22 @@ hr {
   font-weight: bold;
   border-radius: 6px;
   padding: 0 8px;
+}
+
+.edit-team-btn,
+.save-team-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 6px;
+  font-size: 1rem;
+}
+
+.edit-team-input {
+  font-size: 1.1rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+  width: 120px;
 }
 </style>

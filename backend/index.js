@@ -66,9 +66,12 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('buzz', async ({ sessionId, name }) => {
-    if (!buzzedPlayerName) {
-      buzzedPlayerName = name;
-      await db.collection('sessions').doc(sessionId).set({ buzzedPlayer: name }, { merge: true });
+    const sessionRef = db.collection('sessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+    const currentBuzzed = sessionDoc.data().buzzedPlayer;
+
+    if (!currentBuzzed) {
+      await sessionRef.set({ buzzedPlayer: name }, { merge: true });
       io.to(sessionId).emit('buzzed', { name });
     }
   });
@@ -143,28 +146,49 @@ io.on('connection', (socket) => {
       return;
     }
 
-    console.log(`Game state update received for session: ${sessionId}`);
-    console.log('Game state:', gameState);
-    buzzedPlayerName = null; // Reset on round/game update
-
     try {
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      const sessionDoc = await sessionRef.get();
+      const firestoreState = sessionDoc.data() || {};
+
+      // Merge critical fields from Firestore into the incoming gameState
+      gameState.teamNames = firestoreState.teamNames || { A: "Team A", B: "Team B" };
+      gameState.buzzedPlayer = firestoreState.buzzedPlayer || ""; // <-- preserve buzzedPlayer
 
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      gameState.expiryTime = new Date(Date.now() + expiryDuration); // Set expiry time 24 hours from now
+      gameState.expiryTime = new Date(Date.now() + expiryDuration);
 
       // Save the updated gameState to Firestore
-      await db.collection('sessions').doc(sessionId).set(gameState, { merge: true });
-      console.log(`Game state saved to Firestore for session: ${sessionId}`);
+      await sessionRef.set(gameState, { merge: true });
 
-      // When resetting round/game or next round
-      await db.collection('sessions').doc(sessionId).set({ buzzedPlayer: '' }, { merge: true });
+      // Optionally reset buzzedPlayer if this is a round/game reset
+      await sessionRef.set({ buzzedPlayer: '' }, { merge: true });
 
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);
     } catch (error) {
       console.error('Error updating game state:', error);
       socket.emit('error', { message: 'Failed to update game state' });
+    }
+  });
+
+  socket.on('update-team-name', async ({ sessionId, team, name }) => {
+    try {
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      const sessionDoc = await sessionRef.get();
+      const currentTeamNames = sessionDoc.data().teamNames || { A: "Team A", B: "Team B" };
+      const updatedTeamNames = { ...currentTeamNames, [team]: name };
+      await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
+
+      // Emit to all clients
+      io.to(sessionId).emit('team-names-updated', updatedTeamNames);
+
+      // Optionally, also update the game state and emit 'game-updated'
+      const currentState = (await sessionRef.get()).data();
+      io.to(sessionId).emit('game-updated', currentState);
+    } catch (error) {
+      console.error('Error updating team name:', error);
     }
   });
 
