@@ -242,6 +242,16 @@ const playStrikeSound = () => {
   }, 1200); // Show for 1.2 seconds
 };
 
+const playRoundOverSound = () => {
+  const audio = new Audio("/sounds/round-over.mp3");
+  audio.play();
+};
+
+const playNextRoundSound = () => {
+  const audio = new Audio("/sounds/next-round.mp3");
+  audio.play();
+};
+
 const joinTeam = () => {
   if (!playerName.value.trim() || !selectedTeam.value) return;
   socket.emit("join-team", {
@@ -254,7 +264,6 @@ const joinTeam = () => {
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
-    playBuzzerSound(); // Play buzzer sound when pressed
     socket.emit("buzz", { sessionId, name: playerName.value });
     hasBuzzed.value = true;
   }
@@ -325,6 +334,11 @@ onMounted(() => {
   // Request the current game state from the backend
   socket.emit("get-current-state", { sessionId });
 
+  socket.on("buzzed", ({ name }) => {
+    buzzedPlayer.value = name;
+    playBuzzerSound(); // <-- Make sure this is here!
+  });
+
   // Listen for the current game state from the backend
   socket.on("current-state", (currentState) => {
     console.log("Current game state received:", currentState);
@@ -354,6 +368,14 @@ onMounted(() => {
   socket.on("connect_error", (error) => {
     console.error("WebSocket connection error:", error);
     alert("Failed to connect to the game session. Please try again.");
+  });
+
+  socket.on("round-over", () => {
+    playRoundOverSound();
+  });
+  socket.on("next-round", () => {
+    console.log("next-round event received");
+    playNextRoundSound();
   });
 });
 
@@ -392,6 +414,9 @@ const copySessionId = () => {
       });
   }
 };
+
+// After setting roundOver to true
+socket.emit("round-over", { sessionId });
 </script>
 
 <style scoped>

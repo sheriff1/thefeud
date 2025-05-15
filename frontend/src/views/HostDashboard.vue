@@ -512,12 +512,19 @@ const isTeamNamesUnique = computed(() => {
 
 onMounted(() => {
   store.initSocket();
-  teamAName.value = store.teamNames.A;
-  teamBName.value = store.teamNames.B;
+
+  // Listen for team name updates from the backend
+  socket.on("team-names-updated", (teamNames) => {
+    store.teamNames = { ...store.teamNames, ...teamNames };
+    // Optionally, update local refs if you use them for input fields:
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+  });
 });
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
+  socket.off("team-names-updated");
   socket.removeAllListeners();
 });
 
@@ -643,7 +650,9 @@ const resetRound = () => {
 
 const nextRound = () => {
   stopTimer();
+  store.roundOver = false;
   previousRound.value = store.roundCounter; // Store the current round value
+
   store.nextRound(); // Advance to the next round
   fileUploaded.value = false;
   startingTeamSet.value = false;

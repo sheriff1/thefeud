@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
 
     if (!currentBuzzed) {
       await sessionRef.set({ buzzedPlayer: name }, { merge: true });
-      io.to(sessionId).emit('buzzed', { name });
+      io.to(sessionId).emit('buzzed', { name }); // <--- This emits to all clients in the session
     }
   });
 
@@ -151,9 +151,13 @@ io.on('connection', (socket) => {
       const sessionDoc = await sessionRef.get();
       const firestoreState = sessionDoc.data() || {};
 
+      // Get previous roundOver value
+      const prevRoundOver = !!firestoreState.roundOver;
+      const newRoundOver = !!gameState.roundOver;
+
       // Merge critical fields from Firestore into the incoming gameState
       gameState.teamNames = firestoreState.teamNames || { A: "Team A", B: "Team B" };
-      gameState.buzzedPlayer = firestoreState.buzzedPlayer || ""; // <-- preserve buzzedPlayer
+      gameState.buzzedPlayer = firestoreState.buzzedPlayer || "";
 
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -167,6 +171,18 @@ io.on('connection', (socket) => {
 
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);
+
+      // Emit "round-over" ONLY if transitioning from not over to over
+      if (!prevRoundOver && newRoundOver) {
+        console.log("Emitting  event");
+        io.to(sessionId).emit('round-over');
+      }
+
+      // Emit "next-round" ONLY if transitioning from over to not over
+      if (prevRoundOver && !newRoundOver) {
+        console.log("Emitting next-round event");
+        io.to(sessionId).emit('next-round');
+      }
     } catch (error) {
       console.error('Error updating game state:', error);
       socket.emit('error', { message: 'Failed to update game state' });
@@ -181,12 +197,10 @@ io.on('connection', (socket) => {
       const updatedTeamNames = { ...currentTeamNames, [team]: name };
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
 
-      // Emit to all clients
+      // Emit only the team-names-updated event
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
 
-      // Optionally, also update the game state and emit 'game-updated'
-      const currentState = (await sessionRef.get()).data();
-      io.to(sessionId).emit('game-updated', currentState);
+      // Do NOT emit 'game-updated' here
     } catch (error) {
       console.error('Error updating team name:', error);
     }
