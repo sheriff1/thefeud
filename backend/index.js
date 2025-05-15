@@ -24,6 +24,7 @@ const allowedOrigins = [
   'http://localhost:5173', // Local development
   'https://family-feud-eta.vercel.app', // Deployed frontend
   'https://familyfeud.sheriffjolaoso.com', // Deployed custom domain
+  'https://ff.sheriffjolaoso.com', // Deployed custom domain
 ];
 
 const io = new Server(server, {
