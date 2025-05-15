@@ -18,7 +18,7 @@
           :class="['radio-option', { selected: selectedTeam === team }]"
         >
           <input type="radio" :value="team" v-model="selectedTeam" />
-          Team {{ store.teamNames[team] || team }}
+          {{ store.teamNames[team] || team }}
         </label>
       </div>
       <button @click="joinTeam" :disabled="!playerName || !selectedTeam">
@@ -29,13 +29,23 @@
 
   <!-- Main Gameboard -->
   <div v-else>
-    <button
-      class="session-id-box"
-      :class="sessionIdBoxState"
-      @click="copySessionId"
-    >
-      {{ sessionIdBoxText }}
-    </button>
+    <div class="floating-buttons">
+      <button
+        class="session-id-box"
+        :class="sessionIdBoxState"
+        @click="copySessionId"
+      >
+        {{ sessionIdBoxText }}
+      </button>
+      <button
+        class="mute-btn"
+        :class="{ muted: isMuted }"
+        @click="toggleMute"
+        :aria-pressed="isMuted"
+      >
+        {{ isMuted ? "🔇 Mute" : "🔊 Sound" }}
+      </button>
+    </div>
 
     <div class="gameboard-container">
       <!-- Round Over Message -->
@@ -213,6 +223,11 @@ const isBuzzerDisabled = computed(
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const editingTeam = ref(null); // 'A' or 'B' or null
 const editedTeamName = ref("");
+const isMuted = ref(false); // Mute state
+
+function toggleMute() {
+  isMuted.value = !isMuted.value;
+}
 
 // Store team members locally for display
 const teamMembers = ref({ A: [], B: [] });
@@ -223,31 +238,39 @@ const showStrikeX = ref(false);
 
 // Function to play the "ding" sound
 const playDingSound = () => {
+  if (isMuted.value) return;
   const audio = new Audio("/sounds/ding.mp3"); // Path to the "ding" sound file
   audio.play();
 };
 
 const playBuzzerSound = () => {
+  if (isMuted.value) return;
   const audio = new Audio("/sounds/buzzer.mp3");
   audio.play();
 };
 
 const playStrikeSound = () => {
-  const audio = new Audio("/sounds/strike.mp3");
-  audio.play();
   // Show the X
   showStrikeX.value = true;
   setTimeout(() => {
     showStrikeX.value = false;
   }, 1200); // Show for 1.2 seconds
+  if (isMuted.value) {
+    return;
+  } else {
+    const audio = new Audio("/sounds/strike.mp3");
+    audio.play();
+  }
 };
 
 const playRoundOverSound = () => {
+  if (isMuted.value) return;
   const audio = new Audio("/sounds/round-over.mp3");
   audio.play();
 };
 
 const playNextRoundSound = () => {
+  if (isMuted.value) return;
   const audio = new Audio("/sounds/next-round.mp3");
   audio.play();
 };
@@ -285,9 +308,9 @@ const saveTeamName = (team) => {
   }
 };
 
-socket.on("buzzed", ({ name }) => {
-  buzzedPlayer.value = name;
-});
+// socket.on("buzzed", ({ name }) => {
+//   buzzedPlayer.value = name;
+// });
 
 socket.on("play-strike-sound", () => {
   playStrikeSound();
@@ -764,7 +787,6 @@ hr {
 }
 
 .session-id-box {
-  position: fixed;
   bottom: 16px;
   right: 16px;
   background-color: black;
@@ -988,5 +1010,36 @@ hr {
   border-radius: 4px;
   border: 1px solid #aaa;
   width: 120px;
+}
+
+.floating-buttons {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.mute-btn {
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.mute-btn:hover {
+  opacity: 1;
+}
+
+.mute-btn.muted {
+  background-color: gray;
 }
 </style>
