@@ -43,7 +43,7 @@
         @click="toggleMute"
         :aria-pressed="isMuted"
       >
-        {{ isMuted ? "🔇 Mute" : "🔊 Sound" }}
+        {{ isMuted ? "🔇 Sound Off" : "🔊 Sound On" }}
       </button>
     </div>
 
@@ -60,27 +60,25 @@
 
       <!-- Scoreboard Section -->
       <div class="scoreboard">
-        <!-- Team Info -->
-        <div
-          class="team-info"
-          :class="{ active: store.currentTeam === team }"
-          v-for="(team, index) in ['A', 'B']"
-          :key="team"
-        >
+        <!-- Team A Info -->
+        <div class="team-info" :class="{ active: store.currentTeam === 'A' }">
           <!-- Team Name and Score -->
+          <span class="team-score">
+            {{ store.teamScores["A"] }}
+          </span>
           <div class="team-header">
             <span class="team-name">
-              <span v-if="editingTeam !== team">
+              <span v-if="editingTeam !== 'A'">
                 <span
                   v-if="
-                    store.teamScores[team] > store.teamScores[otherTeam(team)]
+                    store.teamScores['A'] > store.teamScores[otherTeam('A')]
                   "
                   >👑</span
                 >
-                {{ store.teamNames[team].toUpperCase() || team.toUpperCase() }}
+                {{ store.teamNames["A"].toUpperCase() || team.toUpperCase() }}
                 <button
                   class="edit-team-btn"
-                  @click="startEditingTeamName(team)"
+                  @click="startEditingTeamName('A')"
                 >
                   ✏️
                 </button>
@@ -88,27 +86,23 @@
               <span v-else>
                 <input
                   v-model="editedTeamName"
-                  @keyup.enter="saveTeamName(team)"
-                  @blur="saveTeamName(team)"
+                  @keyup.enter="saveTeamName('A')"
+                  @blur="saveTeamName('A')"
                   class="edit-team-input"
                   maxlength="20"
                   autofocus
                 />
-                <button class="save-team-btn" @click="saveTeamName(team)">
+                <button class="save-team-btn" @click="saveTeamName('A')">
                   💾
                 </button>
               </span>
-            </span>
-            <span class="team-score">
-              <span class="divider"></span>
-              {{ store.teamScores[team] }}
             </span>
           </div>
           <!-- Player names and strikes in the same row -->
           <div class="team-row">
             <ul class="team-members-list">
               <li
-                v-for="member in teamMembers[team]"
+                v-for="member in teamMembers['A']"
                 :key="member + Math.random()"
                 :class="{ buzzed: buzzedPlayer === member }"
               >
@@ -117,87 +111,154 @@
             </ul>
             <div class="team-strikes">
               <span
-                v-for="strike in store.firstTeam === team ? 3 : 1"
-                :key="team + '-' + strike"
+                v-for="strike in store.firstTeam === 'A' ? 3 : 1"
+                :key="'A-' + strike"
                 class="strike-dot"
-                :class="{ active: strike <= store.teamStrikes[team] }"
+                :class="{ active: strike <= store.teamStrikes['A'] }"
+              ></span>
+              <span class="game-info-label">Strikes</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answers & Game Info Section -->
+        <div class="center-info">
+          <!-- Buzzer Section -->
+          <div class="buzzer-container" v-if="isMultiplierSet">
+            <button
+              class="buzzer-button"
+              :disabled="isBuzzerDisabled"
+              @click="pressBuzzer"
+            >
+              {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
+            </button>
+          </div>
+          <!-- Answers Section -->
+          <div v-if="store.answers.length > 0" class="answers-container">
+            <!-- Question Display -->
+            <transition name="fade-x">
+              <div v-if="showStrikeX" class="strike-x-overlay">
+                <span class="strike-x">X</span>
+              </div>
+            </transition>
+
+            <div class="question-display">
+              <h3>{{ store.question }}</h3>
+            </div>
+
+            <!-- Answers Grid -->
+            <div class="answers-grid">
+              <div
+                v-for="(answer, index) in store.answers"
+                :key="answer.id"
+                class="answer-box"
+              >
+                <!-- Hidden Answer (Blue Box) -->
+                <div
+                  v-if="!store.guessedAnswers.includes(answer.id)"
+                  class="blue-box"
+                >
+                  <span class="answer-number-circle">{{ index + 1 }}</span>
+                </div>
+
+                <!-- Revealed Answer with Flip Animation -->
+                <div v-else class="revealed-answer flip-animation">
+                  <span class="answer-text">{{
+                    answer.text.toUpperCase()
+                  }}</span>
+                  <span class="answer-points-box">{{ answer.points }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-else class="no-answers-message">No answers available yet.</p>
+
+          <!-- Game Info Container -->
+          <div class="game-info-container">
+            <!-- Round Counter -->
+            <div class="game-info-item">
+              <div class="game-info-value">{{ store.roundCounter }}</div>
+              <div class="game-info-label">Round</div>
+            </div>
+            <!-- Timer Display -->
+            <div class="game-info-item">
+              <div class="game-info-value">{{ store.timer }}</div>
+              <div class="game-info-label">Time Remaining</div>
+            </div>
+            <!-- Points Pool -->
+            <div class="game-info-item">
+              <div class="game-info-value">{{ store.pointPool }}</div>
+              <div class="game-info-label">Points Pool</div>
+            </div>
+            <!-- Score Multiplier -->
+            <div class="game-info-item">
+              <div class="game-info-value">x{{ store.scoreMultiplier }}</div>
+              <div class="game-info-label">Score Multiplier</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team B Info -->
+        <div class="team-info" :class="{ active: store.currentTeam === 'B' }">
+          <!-- Team Name and Score -->
+          <div class="team-header">
+            <span class="team-score">
+              {{ store.teamScores["B"] }}
+            </span>
+            <span class="team-name">
+              <span v-if="editingTeam !== 'B'">
+                <span
+                  v-if="
+                    store.teamScores['B'] > store.teamScores[otherTeam('B')]
+                  "
+                  >👑</span
+                >
+                {{ store.teamNames["B"].toUpperCase() || team.toUpperCase() }}
+                <button
+                  class="edit-team-btn"
+                  @click="startEditingTeamName('B')"
+                >
+                  ✏️
+                </button>
+              </span>
+              <span v-else>
+                <input
+                  v-model="editedTeamName"
+                  @keyup.enter="saveTeamName('B')"
+                  @blur="saveTeamName('B')"
+                  class="edit-team-input"
+                  maxlength="20"
+                  autofocus
+                />
+                <button class="save-team-btn" @click="saveTeamName('B')">
+                  💾
+                </button>
+              </span>
+            </span>
+          </div>
+          <!-- Player names and strikes in the same row -->
+          <div class="team-row">
+            <ul class="team-members-list">
+              <li
+                v-for="member in teamMembers['B']"
+                :key="member + Math.random()"
+                :class="{ buzzed: buzzedPlayer === member }"
+              >
+                😎 {{ member }}
+              </li>
+            </ul>
+            <div class="team-strikes">
+              <span
+                v-for="strike in store.firstTeam === 'B' ? 3 : 1"
+                :key="'B-' + strike"
+                class="strike-dot"
+                :class="{ active: strike <= store.teamStrikes['B'] }"
               ></span>
               <span class="game-info-label">Strikes</span>
             </div>
           </div>
         </div>
       </div>
-      <!-- Buzzer Section -->
-      <div class="buzzer-container" v-if="isMultiplierSet">
-        <button
-          class="buzzer-button"
-          :disabled="isBuzzerDisabled"
-          @click="pressBuzzer"
-        >
-          {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
-        </button>
-      </div>
-      <!-- Game Info Container -->
-      <div class="game-info-container">
-        <!-- Round Counter -->
-        <div class="game-info-item">
-          <div class="game-info-value">{{ store.roundCounter }}</div>
-          <div class="game-info-label">Round</div>
-        </div>
-        <!-- Timer Display -->
-        <div class="game-info-item">
-          <div class="game-info-value">{{ store.timer }}</div>
-          <div class="game-info-label">Time Remaining</div>
-        </div>
-        <!-- Points Pool -->
-        <div class="game-info-item">
-          <div class="game-info-value">{{ store.pointPool }}</div>
-          <div class="game-info-label">Points Pool</div>
-        </div>
-        <!-- Score Multiplier -->
-        <div class="game-info-item">
-          <div class="game-info-value">x{{ store.scoreMultiplier }}</div>
-          <div class="game-info-label">Score Multiplier</div>
-        </div>
-      </div>
-
-      <!-- Answers Section -->
-      <div v-if="store.answers.length > 0" class="answers-container">
-        <!-- Question Display -->
-        <transition name="fade-x">
-          <div v-if="showStrikeX" class="strike-x-overlay">
-            <span class="strike-x">X</span>
-          </div>
-        </transition>
-
-        <div class="question-display">
-          <h3>{{ store.question }}</h3>
-        </div>
-
-        <!-- Answers Grid -->
-        <div class="answers-grid">
-          <div
-            v-for="(answer, index) in store.answers"
-            :key="answer.id"
-            class="answer-box"
-          >
-            <!-- Hidden Answer (Blue Box) -->
-            <div
-              v-if="!store.guessedAnswers.includes(answer.id)"
-              class="blue-box"
-            >
-              <span class="answer-number-circle">{{ index + 1 }}</span>
-            </div>
-
-            <!-- Revealed Answer with Flip Animation -->
-            <div v-else class="revealed-answer flip-animation">
-              <span class="answer-text">{{ answer.text.toUpperCase() }}</span>
-              <span class="answer-points-box">{{ answer.points }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <p v-else class="no-answers-message">No answers available yet.</p>
     </div>
   </div>
 </template>
@@ -451,19 +512,28 @@ socket.emit("round-over", { sessionId });
 /* Scoreboard Styles */
 .scoreboard {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: center;
+  align-items: stretch;
+  gap: 1rem; /* 1rem gap between all 3 sections */
   margin-bottom: 16px;
 }
 
 /* Team Info Styles */
 .team-info {
+  width: 25vw;
+  min-width: 220px;
+  max-width: 400px;
+  flex-shrink: 0;
   border: 2px solid #ccc;
-  padding: 16px;
+  padding: 8px; /* Reduced from 16px */
   border-radius: 8px;
-  width: 40%;
   background-color: #f9f9f9;
   transition: box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 25%; /* Add this line to set a fixed, halved height */
+  box-sizing: border-box;
 }
 
 .team-info.active {
@@ -474,26 +544,26 @@ socket.emit("round-over", { sessionId });
 /* Team Header Styles */
 .team-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   font-size: 1.5rem;
   font-weight: bold;
   color: #333;
   margin-bottom: 16px;
+  text-align: center;
 }
 
 .team-name {
-  flex: 1;
-  text-align: left;
+  font-size: 1.1rem;
+  text-align: center;
 }
 
 .team-score {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
+  font-size: 6rem;
   font-weight: bold;
   color: #007bff;
+  text-align: center;
 }
 
 .divider {
@@ -650,6 +720,7 @@ hr {
 
 /* Answers Section Styles */
 .answers-container {
+  width: 90%;
   display: flex;
   flex-direction: column; /* Stack the question and answers vertically */
   gap: 16px; /* Space between the question and the answers grid */
@@ -1041,5 +1112,14 @@ hr {
 
 .mute-btn.muted {
   background-color: gray;
+}
+
+.center-info {
+  width: 50vw; /* 50% of viewport width */
+  flex-shrink: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>
