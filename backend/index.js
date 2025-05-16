@@ -236,6 +236,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('get-team-members', async ({ sessionId }) => {
+    const sessionRef = db.collection('sessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+    const data = sessionDoc.data() || {};
+    // Assuming you store team members as { A: [...], B: [...] }
+    socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
+  });
+
   socket.on('disconnect', async () => {
     console.log('A user disconnected:', socket.id);
 
