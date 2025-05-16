@@ -65,9 +65,12 @@ app.post('/api/create-session/:sessionId', async (req, res) => {
 
 app.get('/api/answers-library', (req, res) => {
   const answersDir = path.join(__dirname, '../frontend/public/answers');
+  console.log('Looking for answers in:', answersDir);
   fs.readdir(answersDir, (err, files) => {
-    if (err) return res.status(500).json({ error: 'Failed to list files' });
-    // Only return .csv files
+    if (err) {
+      console.error('Failed to list files:', err);
+      return res.status(500).json({ error: 'Failed to list files' });
+    }
     const csvFiles = files.filter(f => f.endsWith('.csv'));
     res.json(csvFiles);
   });
