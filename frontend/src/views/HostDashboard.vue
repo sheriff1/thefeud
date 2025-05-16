@@ -51,6 +51,26 @@
           <div>
             <label for="file-upload">Upload CSV File:</label>
             <input id="file-upload" type="file" @change="handleUpload" />
+            <button class="btn" @click="fetchLibraryFiles">
+              Select from library
+            </button>
+          </div>
+
+          <!-- Library Dialog -->
+          <div v-if="showLibraryDialog" class="library-dialog-backdrop">
+            <div class="library-dialog">
+              <h4>Select a Question Set</h4>
+              <ul>
+                <li v-for="file in libraryFiles" :key="file">
+                  <button class="btn" @click="loadLibraryFile(file)">
+                    {{ file }}
+                  </button>
+                </li>
+              </ul>
+              <button class="btn" @click="showLibraryDialog = false">
+                Cancel
+              </button>
+            </div>
           </div>
 
           <!-- Question Input -->
@@ -376,6 +396,8 @@ import socket from "../utils/socket";
 
 const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
 const store = useGameStore();
+const showLibraryDialog = ref(false);
+const libraryFiles = ref([]);
 const apiBase = import.meta.env.PROD
   ? "https://family-feud-backend-3df546793e25.herokuapp.com"
   : "";
@@ -887,6 +909,40 @@ const copySessionId = () => {
       });
   }
 };
+
+const fetchLibraryFiles = async () => {
+  const res = await fetch(`${apiBase}/api/answers-library`);
+  libraryFiles.value = await res.json();
+  showLibraryDialog.value = true;
+};
+
+// Load and parse the selected CSV file
+const loadLibraryFile = async (filename) => {
+  const res = await fetch(`/answers/${filename}`);
+  const csvText = await res.text();
+  Papa.parse(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      const data = results.data;
+      if (data.length > 0) {
+        questionInput.value = data[0].Question || "";
+        answerPairs.value = data.map((row) => ({
+          id: uuidv4(),
+          text: row.Answer || "",
+          points: parseInt(row.Points, 10) || 0,
+        }));
+      } else {
+        alert("The selected CSV file is empty or invalid.");
+      }
+      showLibraryDialog.value = false;
+    },
+    error: (error) => {
+      alert("Failed to parse the selected CSV file.");
+      showLibraryDialog.value = false;
+    },
+  });
+};
 </script>
 
 <style scoped>
@@ -1110,5 +1166,32 @@ button {
   flex: 1 1 180px; /* Inputs take remaining space */
   min-width: 0;
   padding: 6px 8px;
+}
+
+.library-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.library-dialog {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  min-width: 300px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+.library-dialog ul {
+  list-style: none;
+  padding: 0;
+}
+.library-dialog li {
+  margin-bottom: 1rem;
 }
 </style>

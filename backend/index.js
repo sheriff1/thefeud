@@ -5,6 +5,8 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -58,6 +60,16 @@ app.post('/api/create-session/:sessionId', async (req, res) => {
     await sessionRef.set({ createdAt: new Date() });
   }
   res.json({ ok: true });
+});
+
+app.get('/api/answers-library', (req, res) => {
+  const answersDir = path.join(__dirname, '../frontend/public/answers');
+  fs.readdir(answersDir, (err, files) => {
+    if (err) return res.status(500).json({ error: 'Failed to list files' });
+    // Only return .csv files
+    const csvFiles = files.filter(f => f.endsWith('.csv'));
+    res.json(csvFiles);
+  });
 });
 
 // WebSocket Communication
