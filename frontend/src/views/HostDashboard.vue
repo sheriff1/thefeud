@@ -1185,12 +1185,23 @@ button {
   padding: 2rem;
   border-radius: 12px;
   min-width: 300px;
+  max-width: 90vw;
+  /* Set height to 60% of viewport height */
+  height: 60vh;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
 }
+
 .library-dialog ul {
   list-style: none;
   padding: 0;
+  margin: 0;
+  /* Make the list scrollable if it overflows */
+  overflow-y: auto;
+  flex: 1 1 auto;
 }
+
 .library-dialog li {
   margin-bottom: 1rem;
 }
