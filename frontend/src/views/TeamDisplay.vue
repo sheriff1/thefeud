@@ -1,29 +1,31 @@
 <template>
   <!-- Join Team Dialog -->
-  <div v-if="!hasJoined" class="join-team-dialog-backdrop">
-    <div class="join-team-dialog">
-      <h2>Join the Game</h2>
-      <h3 class="left-align">Enter your name:</h3>
-      <input
-        v-model="playerName"
-        placeholder="Enter your name"
-        class="full-width-input"
-      />
-      <hr class="dialog-divider" />
-      <h3 class="left-align">Select your team:</h3>
-      <div class="radio-group">
-        <label
-          v-for="team in ['A', 'B']"
-          :key="team"
-          :class="['radio-option', { selected: selectedTeam === team }]"
-        >
-          <input type="radio" :value="team" v-model="selectedTeam" />
-          {{ store.teamNames[team] || team }}
-        </label>
+  <div v-if="!isSpectator && !selectedTeam">
+    <div v-if="!hasJoined" class="join-team-dialog-backdrop">
+      <div class="join-team-dialog">
+        <h2>Join the Game</h2>
+        <h3 class="left-align">Enter your name:</h3>
+        <input
+          v-model="playerName"
+          placeholder="Enter your name"
+          class="full-width-input"
+        />
+        <hr class="dialog-divider" />
+        <h3 class="left-align">Select your team:</h3>
+        <div class="radio-group">
+          <label
+            v-for="team in ['A', 'B']"
+            :key="team"
+            :class="['radio-option', { selected: selectedTeam === team }]"
+          >
+            <input type="radio" :value="team" v-model="selectedTeam" />
+            {{ store.teamNames[team] || team }}
+          </label>
+        </div>
+        <button @click="joinTeam" :disabled="!playerName || !selectedTeam">
+          Join
+        </button>
       </div>
-      <button @click="joinTeam" :disabled="!playerName || !selectedTeam">
-        Join
-      </button>
     </div>
   </div>
 
@@ -288,6 +290,13 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import socket from "../utils/socket";
+
+defineProps({
+  isSpectator: {
+    type: Boolean,
+    default: false,
+  },
+});
 
 const store = useGameStore();
 const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
