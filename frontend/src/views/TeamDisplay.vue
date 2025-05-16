@@ -1,7 +1,7 @@
 <template>
   <!-- Join Team Dialog -->
-  <div v-if="!isSpectator && !selectedTeam">
-    <div v-if="!hasJoined" class="join-team-dialog-backdrop">
+  <div v-if="!isSpectator && !hasJoined">
+    <div class="join-team-dialog-backdrop">
       <div class="join-team-dialog">
         <h2>Join the Game</h2>
         <h3 class="left-align">Enter your name:</h3>
