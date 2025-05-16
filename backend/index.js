@@ -63,9 +63,12 @@ app.post('/api/create-session/:sessionId', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Serve static files
+app.use('/answers', express.static(path.join(__dirname, 'answers')));
+
+// List files
 app.get('/api/answers-library', (req, res) => {
-  const answersDir = path.join(__dirname, '../frontend/public/answers');
-  console.log('Looking for answers in:', answersDir);
+  const answersDir = path.join(__dirname, 'answers');
   fs.readdir(answersDir, (err, files) => {
     if (err) {
       console.error('Failed to list files:', err);
