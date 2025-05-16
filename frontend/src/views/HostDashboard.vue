@@ -279,7 +279,6 @@
       <!-- Score and Manual Score Override Container -->
       <!-- In the Score Management section, update each <label> to wrap the label text in a <span class="info-key">: -->
 
-      <!-- filepath: /Users/sheriffjolaoso/Documents/dev/liveProjects/family-feud/frontend/src/views/HostDashboard.vue -->
       <div class="container score-container">
         <h3>Score Management</h3>
         <div class="form-row">
@@ -398,9 +397,7 @@ const sessionId = new URLSearchParams(window.location.search).get("sessionId"); 
 const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
-const apiBase = import.meta.env.PROD
-  ? "https://family-feud-backend-3df546793e25.herokuapp.com"
-  : "";
+const apiBase = import.meta.env.VITE_API_BASE || "";
 
 onMounted(() => {
   if (!sessionId) {

@@ -1,40 +1,34 @@
 <template>
-    <div class="home-container">
-      <h1>Welcome to The Feud!</h1>
-      <p>Select an option to get started:</p>
-  
-      <div class="actions">
-        <!-- Create a new session -->
-        <button @click="createSession">Create a New Session</button>
-  
-        <!-- Join an existing session -->
-        <div class="join-session">
-          <input
-            v-model="sessionId"
-            type="text"
-            placeholder="Enter Session ID"
-          />
-          <button @click="joinAsHost">Join as Host</button>
-          <button @click="joinAsTeam">Join as a Team Member</button>
-        </div>
+  <div class="home-container">
+    <h1>Welcome to The Feud!</h1>
+    <p>Select an option to get started:</p>
+
+    <div class="actions">
+      <!-- Create a new session -->
+      <button @click="createSession">Create a New Session</button>
+
+      <!-- Join an existing session -->
+      <div class="join-session">
+        <input v-model="sessionId" type="text" placeholder="Enter Session ID" />
+        <button @click="joinAsHost">Join as Host</button>
+        <button @click="joinAsTeam">Join as a Team Member</button>
       </div>
     </div>
+  </div>
 </template>
 
 <script>
-import { ref } from 'vue'; // Import ref from Vue
-import { useRouter } from 'vue-router';
-import { v4 as uuidv4 } from 'uuid'; // For generating unique session IDs
+import { ref } from "vue"; // Import ref from Vue
+import { useRouter } from "vue-router";
+import { v4 as uuidv4 } from "uuid"; // For generating unique session IDs
 
-const apiBase = import.meta.env.PROD
-  ? 'https://family-feud-backend-3df546793e25.herokuapp.com'
-  : '';
+const apiBase = import.meta.env.VITE_API_BASE || "";
 
 export default {
-  name: 'Home',
+  name: "Home",
   setup() {
     const router = useRouter();
-    const sessionId = ref(''); // Define sessionId as a reactive variable
+    const sessionId = ref(""); // Define sessionId as a reactive variable
 
     // Generate a short ID
     const generateShortId = () => {
@@ -44,7 +38,9 @@ export default {
     // Create a new session and navigate to the Host Dashboard
     const createSession = async () => {
       const newSessionId = generateShortId(); // Generate a short session ID
-      await fetch(`${apiBase}/api/create-session/${newSessionId}`, { method: 'POST' });
+      await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
+        method: "POST",
+      });
       router.push(`/host?sessionId=${newSessionId}`);
     };
 
@@ -52,22 +48,20 @@ export default {
     const joinAsHost = async () => {
       const id = sessionId.value.trim().toUpperCase();
       if (!isValidSessionId(id)) {
-        alert('Invalid Session ID format.');
+        alert("Invalid Session ID format.");
         return;
       }
       if (!sessionId.value.trim()) {
-        alert('Please enter a valid Session ID.');
+        alert("Please enter a valid Session ID.");
         return;
       }
       // Always use uppercase for backend check
-      const response = await fetch(
-        `${apiBase}/api/session-exists/${id}`
-      );
+      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
       const data = await response.json();
       if (data.exists) {
         router.push(`/host?sessionId=${id}`);
       } else {
-        alert('Session does not exist. Please check the Session ID.');
+        alert("Session does not exist. Please check the Session ID.");
       }
     };
 
@@ -75,22 +69,20 @@ export default {
     const joinAsTeam = async () => {
       const id = sessionId.value.trim().toUpperCase();
       if (!isValidSessionId(id)) {
-        alert('Invalid Session ID format.');
+        alert("Invalid Session ID format.");
         return;
       }
       if (!sessionId.value.trim()) {
-        alert('Please enter a valid Session ID.');
+        alert("Please enter a valid Session ID.");
         return;
       }
       // Always use uppercase for backend check
-      const response = await fetch(
-        `${apiBase}/api/session-exists/${id}`
-      );
+      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
       const data = await response.json();
       if (data.exists) {
         router.push(`/team?sessionId=${id}`);
       } else {
-        alert('Session does not exist. Please check the Session ID.');
+        alert("Session does not exist. Please check the Session ID.");
       }
     };
 

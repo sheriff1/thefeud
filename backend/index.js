@@ -22,12 +22,9 @@ const db = admin.firestore();
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  'http://localhost:5173', // Local development
-  'https://family-feud-eta.vercel.app', // Deployed frontend
-  'https://familyfeud.sheriffjolaoso.com', // Deployed custom domain
-  'https://ff.sheriffjolaoso.com', // Deployed custom domain
-];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173'];
 
 const io = new Server(server, {
   cors: {
