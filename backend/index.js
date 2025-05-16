@@ -159,10 +159,30 @@ io.on('connection', (socket) => {
       // Merge critical fields from Firestore into the incoming gameState
       gameState.teamNames = firestoreState.teamNames || { A: "Team A", B: "Team B" };
       gameState.buzzedPlayer = firestoreState.buzzedPlayer || "";
+      gameState.startingTeamSet = typeof gameState.startingTeamSet === 'boolean'
+      ? gameState.startingTeamSet
+      : firestoreState.startingTeamSet || false;
 
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       gameState.expiryTime = new Date(Date.now() + expiryDuration);
+
+      // Emit "round-over" ONLY if transitioning from not over to over
+      if (!prevRoundOver && newRoundOver) {
+        console.log("Emitting round-over event");
+        io.to(sessionId).emit('round-over');
+      }
+
+      // Emit "next-round" ONLY if transitioning from over to not over
+      if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
+        console.log("Emitting next-round event");
+        io.to(sessionId).emit('next-round');
+      }
+
+      // --- Reset the flag here, after logic that depends on it ---
+      if (gameState.roundReset) {
+        gameState.roundReset = false;
+    }
 
       // Save the updated gameState to Firestore
       await sessionRef.set(gameState, { merge: true });
@@ -173,17 +193,6 @@ io.on('connection', (socket) => {
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);
 
-      // Emit "round-over" ONLY if transitioning from not over to over
-      if (!prevRoundOver && newRoundOver) {
-        console.log("Emitting  event");
-        io.to(sessionId).emit('round-over');
-      }
-
-      // Emit "next-round" ONLY if transitioning from over to not over
-      if (prevRoundOver && !newRoundOver) {
-        console.log("Emitting next-round event");
-        io.to(sessionId).emit('next-round');
-      }
     } catch (error) {
       console.error('Error updating game state:', error);
       socket.emit('error', { message: 'Failed to update game state' });
@@ -204,6 +213,26 @@ io.on('connection', (socket) => {
       // Do NOT emit 'game-updated' here
     } catch (error) {
       console.error('Error updating team name:', error);
+    }
+  });
+
+  // When the starting team is set (add this in your relevant socket handler)
+  socket.on('set-starting-team', async ({ sessionId, startingTeam }) => {
+    try {
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      // Set startingTeam and startingTeamSet to true
+      await sessionRef.set(
+        { startingTeam, startingTeamSet: true },
+        { merge: true }
+      );
+      // Fetch the updated state
+      const sessionDoc = await sessionRef.get();
+      const gameState = sessionDoc.data();
+      // Broadcast the updated game state to all clients
+      io.to(sessionId).emit('game-updated', gameState);
+    } catch (error) {
+      console.error('Error setting starting team:', error);
+      socket.emit('error', { message: 'Failed to set starting team' });
     }
   });
 

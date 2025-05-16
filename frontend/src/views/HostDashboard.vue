@@ -368,7 +368,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useGameStore } from "../stores/gamestore";
+import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import Papa from "papaparse";
 import { v4 as uuidv4 } from "uuid";
@@ -403,13 +403,13 @@ onMounted(() => {
     // Sync "Who Starts" state
     if (store.firstTeam) {
       startingTeam.value = store.firstTeam;
-      startingTeamSet.value = true;
+      //startingTeamSet.value = true;
     }
 
     // Sync "Score Multiplier" state
     if (store.scoreMultiplier) {
       selectedMultiplier.value = store.scoreMultiplier;
-      multiplierSet.value = true;
+      //multiplierSet.value = true;
     }
   });
 
@@ -424,19 +424,19 @@ onMounted(() => {
     // Sync "Who Starts" state
     if (store.firstTeam) {
       startingTeam.value = store.firstTeam;
-      startingTeamSet.value = true;
+      //startingTeamSet.value = true;
     } else {
       startingTeam.value = null;
-      startingTeamSet.value = false;
+      //startingTeamSet.value = false;
     }
 
     // Sync "Score Multiplier" state
     if (store.scoreMultiplier) {
       selectedMultiplier.value = store.scoreMultiplier;
-      multiplierSet.value = true;
+      //multiplierSet.value = true;
     } else {
       selectedMultiplier.value = null;
-      multiplierSet.value = false;
+      //multiplierSet.value = false;
     }
   });
 
@@ -588,14 +588,14 @@ const handleUpload = (event) => {
 const setStartingTeam = (team) => {
   store.setStartingTeam(team);
   startingTeam.value = team; // Set the selected starting team
-  startingTeamSet.value = true; // Disable the buttons
+  store.startingTeamSet = true;
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
-  multiplierSet.value = true; // Disable the buttons
+  //multiplierSet.value = true; // Disable the buttons
   currentStep.value = "answers"; // Show the Available Answers section
   updateGameState(store.$state); // Emit the updated game state
 };
@@ -604,8 +604,8 @@ const resetGame = () => {
   stopTimer();
   store.resetGame();
   fileUploaded.value = false;
-  startingTeamSet.value = false;
-  multiplierSet.value = false;
+  //startingTeamSet.value = false;
+  //multiplierSet.value = false;
   startingTeam.value = null;
   selectedMultiplier.value = null;
   answersSaved.value = false; // Reset the answers saved flag
@@ -655,8 +655,8 @@ const nextRound = () => {
 
   store.nextRound(); // Advance to the next round
   fileUploaded.value = false;
-  startingTeamSet.value = false;
-  multiplierSet.value = false;
+  //startingTeamSet.value = false;
+  //multiplierSet.value = false;
   startingTeam.value = null;
   selectedMultiplier.value = null;
   answersSaved.value = false; // Reset the answers saved flag

@@ -23,6 +23,7 @@ export const useGameStore = defineStore('game', {
     question: '', // New property to store the question
     pointsAwarded: 0, // New property to store awarded points
     winningTeam: null, // New property to store the winning team
+    startingTeamSet: false,
   }),
 
   actions: {
@@ -30,6 +31,9 @@ export const useGameStore = defineStore('game', {
       socket.on("gameState", (newState) => {
         Object.assign(this, newState)
       })
+      socket.on("game-updated", (gameState) => {
+        Object.assign(this.$state, gameState);
+      });
     },
 
     uploadAnswers(answerList) {
@@ -178,6 +182,7 @@ export const useGameStore = defineStore('game', {
       this.question = ''
       this.pointsAwarded = 0
       this.winningTeam = null
+      this.startingTeamSet = false
       this.syncToServer() // Ensure the reset state is synced with the Team Display
     },
 
@@ -197,6 +202,7 @@ export const useGameStore = defineStore('game', {
       this.question = ''
       this.pointsAwarded = 0
       this.winningTeam = null
+      this.startingTeamSet = false
       this.syncToServer()
     },
 
@@ -216,6 +222,7 @@ export const useGameStore = defineStore('game', {
       this.question = ''
       this.pointsAwarded = 0
       this.winningTeam = null
+      this.startingTeamSet = false
       this.syncToServer()
     },
 

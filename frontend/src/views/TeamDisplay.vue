@@ -119,12 +119,13 @@
               <span class="game-info-label">Strikes</span>
             </div>
           </div>
-        </div>
-
-        <!-- Answers & Game Info Section -->
-        <div class="center-info">
           <!-- Buzzer Section -->
-          <div class="buzzer-container" v-if="isMultiplierSet">
+          <div
+            class="buzzer-container"
+            v-if="
+              isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet
+            "
+          >
             <button
               class="buzzer-button"
               :disabled="isBuzzerDisabled"
@@ -133,6 +134,10 @@
               {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
             </button>
           </div>
+        </div>
+
+        <!-- Answers & Game Info Section -->
+        <div class="center-info">
           <!-- Answers Section -->
           <div v-if="store.answers.length > 0" class="answers-container">
             <!-- Question Display -->
@@ -257,6 +262,21 @@
               <span class="game-info-label">Strikes</span>
             </div>
           </div>
+          <!-- Buzzer Section -->
+          <div
+            class="buzzer-container"
+            v-if="
+              isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet
+            "
+          >
+            <button
+              class="buzzer-button"
+              :disabled="isBuzzerDisabled"
+              @click="pressBuzzer"
+            >
+              {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -265,7 +285,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useGameStore } from "../stores/gamestore";
+import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import socket from "../utils/socket";
 
@@ -504,6 +524,7 @@ socket.emit("round-over", { sessionId });
 </script>
 
 <style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
 /* Root Container Styles */
 .gameboard-container {
   padding: 4rem; /* Add padding around the perimeter */
@@ -550,7 +571,6 @@ socket.emit("round-over", { sessionId });
   font-size: 1.5rem;
   font-weight: bold;
   color: #333;
-  margin-bottom: 16px;
   text-align: center;
 }
 
@@ -564,6 +584,8 @@ socket.emit("round-over", { sessionId });
   font-weight: bold;
   color: #007bff;
   text-align: center;
+  font-family: "Bebas Neue", Arial, sans-serif;
+  line-height: 90%;
 }
 
 .divider {
@@ -726,7 +748,7 @@ hr {
   gap: 16px; /* Space between the question and the answers grid */
   margin-top: 16px;
   padding: 16px;
-  background-color: #f4f4f4;
+  background-color: #e0f3ff;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -803,10 +825,12 @@ hr {
   background-color: #003f83;
   color: white;
   border-radius: 8px;
-  padding: 0 12px;
-  font-size: 1.2rem;
+  padding-left: 12px;
+  font-size: 2rem;
   font-weight: bold;
   text-align: left;
+  font-family: "Bebas Neue", Arial, sans-serif;
+  overflow: hidden;
 }
 
 /* Flip Animation */
@@ -815,22 +839,35 @@ hr {
 }
 
 .answer-text {
-  flex: 1;
-  text-transform: uppercase;
-  font-size: 1.2rem;
+  flex: 1 1 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(1rem, 2.5vw, 2.2rem); /* Responsive font size */
+  font-family: "Bebas Neue", Arial, sans-serif;
   font-weight: bold;
   color: white;
+  text-transform: uppercase;
 }
 
 .answer-points-box {
   background-color: #007bff;
   color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  border: 2px solid white;
-  font-size: 1.2rem;
+  border-left: 4px solid #fff;
+  font-size: 2.2rem;
   font-weight: bold;
   text-align: center;
+  min-width: 40px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 8px 8px 0;
+  margin-left: 12px;
+  padding: 0 16px;
+  height: 100%;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.08);
 }
 
 /* No Answers Message Styles */
@@ -1045,11 +1082,16 @@ hr {
   font-size: 2rem;
   font-weight: bold;
   border: none;
-  border-radius: 50px;
-  padding: 1rem 3rem;
+  border-radius: 50%; /* Make it a circle */
+  width: 150px; /* Set width and height to be equal */
+  height: 150px;
   box-shadow: 0 4px 16px rgba(255, 23, 68, 0.2);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0; /* Remove extra padding */
 }
 
 .buzzer-button:disabled {
