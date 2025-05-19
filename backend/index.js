@@ -26,8 +26,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
-console.log('Allowed origins:', allowedOrigins);
-
 // Express CORS
 app.use(cors({
   origin: function (origin, callback) {
@@ -163,7 +161,8 @@ io.on('connection', (socket) => {
 
   // Handle request for the current game state
   socket.on('get-current-state', async ({ sessionId }) => {
-    console.log(`Fetching current state for session: ${sessionId}`);
+    console.log(`Ferrrrtching current state for session: ${sessionId}`);
+    console.log('Allowed origins:', allowedOrigins);
     try {
       const sessionDoc = await db.collection('sessions').doc(sessionId).get();
       if (sessionDoc.exists) {
