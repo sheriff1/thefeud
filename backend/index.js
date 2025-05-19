@@ -35,7 +35,10 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 app.use(express.json());
 app.use('/answers', express.static(path.join(__dirname, '../frontend/public/answers')));
 
