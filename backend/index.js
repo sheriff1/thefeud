@@ -25,7 +25,14 @@ const server = http.createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
+  
+console.log('Allowed origins:', allowedOrigins);
 
+// Middleware
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
@@ -34,11 +41,7 @@ const io = new Server(server, {
   },
 });
 
-// Middleware
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
+
 app.use(express.json());
 app.use('/answers', express.static(path.join(__dirname, '../frontend/public/answers')));
 
