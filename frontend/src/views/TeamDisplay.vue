@@ -95,28 +95,12 @@
           />
 
           <!-- Game Info Container -->
-          <div class="game-info-container">
-            <!-- Round Counter -->
-            <div class="game-info-item">
-              <div class="game-info-value">{{ store.roundCounter }}</div>
-              <div class="game-info-label">Round</div>
-            </div>
-            <!-- Timer Display -->
-            <div class="game-info-item">
-              <div class="game-info-value">{{ store.timer }}</div>
-              <div class="game-info-label">Time Remaining</div>
-            </div>
-            <!-- Points Pool -->
-            <div class="game-info-item">
-              <div class="game-info-value">{{ store.pointPool }}</div>
-              <div class="game-info-label">Points Pool</div>
-            </div>
-            <!-- Score Multiplier -->
-            <div class="game-info-item">
-              <div class="game-info-value">x{{ store.scoreMultiplier }}</div>
-              <div class="game-info-label">Score Multiplier</div>
-            </div>
-          </div>
+          <GameInfo
+            :roundCounter="store.roundCounter"
+            :timer="store.timer"
+            :pointPool="store.pointPool"
+            :scoreMultiplier="store.scoreMultiplier"
+          />
         </div>
 
         <!-- Team B Info -->
@@ -152,6 +136,7 @@ import { io } from "socket.io-client";
 import socket from "../utils/socket";
 import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
 import AnswersBoard from "@/components/teamDisplay/AnswersBoard.vue";
+import GameInfo from "@/components/teamDisplay/GameInfo.vue";
 
 defineProps({
   isSpectator: {
@@ -411,32 +396,6 @@ socket.emit("round-over", { sessionId });
   height: 100%;
   background-color: #ccc;
   margin-right: 8px;
-}
-/* Game Info Container Styles */
-.game-info-container {
-  display: flex; /* Use flexbox for horizontal layout */
-  justify-content: space-around; /* Space out the items evenly */
-  align-items: center; /* Align items vertically in the center */
-  margin-top: 16px;
-  padding: 16px;
-  background-color: #f4f4f4;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-/* Game Info Item Styles */
-.game-info-item {
-  display: flex;
-  flex-direction: column; /* Stack value and label vertically */
-  align-items: center; /* Center align the content */
-  margin: 0 16px; /* Add horizontal spacing between items */
-}
-
-.game-info-value {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #007bff;
 }
 
 hr {
