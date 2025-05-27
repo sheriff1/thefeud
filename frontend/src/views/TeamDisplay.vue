@@ -63,80 +63,26 @@
       <!-- Scoreboard Section -->
       <div class="scoreboard">
         <!-- Team A Info -->
-        <div class="team-info" :class="{ active: store.currentTeam === 'A' }">
-          <!-- Team Name and Score -->
-          <span class="team-score">
-            {{ store.teamScores["A"] }}
-          </span>
-          <div class="team-header">
-            <span class="team-name">
-              <span v-if="editingTeam !== 'A'">
-                <span
-                  v-if="
-                    store.teamScores['A'] > store.teamScores[otherTeam('A')]
-                  "
-                  >👑</span
-                >
-                {{ store.teamNames["A"].toUpperCase() || team.toUpperCase() }}
-                <button
-                  class="edit-team-btn"
-                  @click="startEditingTeamName('A')"
-                >
-                  ✏️
-                </button>
-              </span>
-              <span v-else>
-                <input
-                  v-model="editedTeamName"
-                  @keyup.enter="saveTeamName('A')"
-                  @blur="saveTeamName('A')"
-                  class="edit-team-input"
-                  maxlength="20"
-                  autofocus
-                />
-                <button class="save-team-btn" @click="saveTeamName('A')">
-                  💾
-                </button>
-              </span>
-            </span>
-          </div>
-          <!-- Player names and strikes in the same row -->
-          <div class="team-row">
-            <ul class="team-members-list">
-              <li
-                v-for="member in teamMembers['A']"
-                :key="member + Math.random()"
-                :class="{ buzzed: buzzedPlayer === member }"
-              >
-                😎 {{ member }}
-              </li>
-            </ul>
-            <div class="team-strikes">
-              <span
-                v-for="strike in store.firstTeam === 'A' ? 3 : 1"
-                :key="'A-' + strike"
-                class="strike-dot"
-                :class="{ active: strike <= store.teamStrikes['A'] }"
-              ></span>
-              <span class="game-info-label">Strikes</span>
-            </div>
-          </div>
-          <!-- Buzzer Section -->
-          <div
-            class="buzzer-container"
-            v-if="
-              isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet
-            "
-          >
-            <button
-              class="buzzer-button"
-              :disabled="isBuzzerDisabled"
-              @click="pressBuzzer"
-            >
-              {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
-            </button>
-          </div>
-        </div>
+        <TeamPanel
+          team="A"
+          :teamName="store.teamNames['A']"
+          :score="store.teamScores['A']"
+          :members="teamMembers['A']"
+          :strikes="store.teamStrikes['A']"
+          :strikeCount="store.firstTeam === 'A' ? 3 : 1"
+          :buzzedPlayer="buzzedPlayer"
+          :active="store.currentTeam === 'A'"
+          :editing="editingTeam === 'A'"
+          :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
+          :showBuzzer="
+            isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet
+          "
+          :buzzerDisabled="isBuzzerDisabled"
+          :initialEditedName="editedTeamName"
+          @edit-team="startEditingTeamName"
+          @save-team="({ team, name }) => saveTeamName(team, name)"
+          @buzz="pressBuzzer"
+        />
 
         <!-- Answers & Game Info Section -->
         <div class="center-info">
@@ -206,80 +152,26 @@
         </div>
 
         <!-- Team B Info -->
-        <div class="team-info" :class="{ active: store.currentTeam === 'B' }">
-          <!-- Team Name and Score -->
-          <div class="team-header">
-            <span class="team-score">
-              {{ store.teamScores["B"] }}
-            </span>
-            <span class="team-name">
-              <span v-if="editingTeam !== 'B'">
-                <span
-                  v-if="
-                    store.teamScores['B'] > store.teamScores[otherTeam('B')]
-                  "
-                  >👑</span
-                >
-                {{ store.teamNames["B"].toUpperCase() || team.toUpperCase() }}
-                <button
-                  class="edit-team-btn"
-                  @click="startEditingTeamName('B')"
-                >
-                  ✏️
-                </button>
-              </span>
-              <span v-else>
-                <input
-                  v-model="editedTeamName"
-                  @keyup.enter="saveTeamName('B')"
-                  @blur="saveTeamName('B')"
-                  class="edit-team-input"
-                  maxlength="20"
-                  autofocus
-                />
-                <button class="save-team-btn" @click="saveTeamName('B')">
-                  💾
-                </button>
-              </span>
-            </span>
-          </div>
-          <!-- Player names and strikes in the same row -->
-          <div class="team-row">
-            <ul class="team-members-list">
-              <li
-                v-for="member in teamMembers['B']"
-                :key="member + Math.random()"
-                :class="{ buzzed: buzzedPlayer === member }"
-              >
-                😎 {{ member }}
-              </li>
-            </ul>
-            <div class="team-strikes">
-              <span
-                v-for="strike in store.firstTeam === 'B' ? 3 : 1"
-                :key="'B-' + strike"
-                class="strike-dot"
-                :class="{ active: strike <= store.teamStrikes['B'] }"
-              ></span>
-              <span class="game-info-label">Strikes</span>
-            </div>
-          </div>
-          <!-- Buzzer Section -->
-          <div
-            class="buzzer-container"
-            v-if="
-              isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet
-            "
-          >
-            <button
-              class="buzzer-button"
-              :disabled="isBuzzerDisabled"
-              @click="pressBuzzer"
-            >
-              {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
-            </button>
-          </div>
-        </div>
+        <TeamPanel
+          team="B"
+          :teamName="store.teamNames['B']"
+          :score="store.teamScores['B']"
+          :members="teamMembers['B']"
+          :strikes="store.teamStrikes['B']"
+          :strikeCount="store.firstTeam === 'B' ? 3 : 1"
+          :buzzedPlayer="buzzedPlayer"
+          :active="store.currentTeam === 'B'"
+          :editing="editingTeam === 'B'"
+          :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
+          :showBuzzer="
+            isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet
+          "
+          :buzzerDisabled="isBuzzerDisabled"
+          :initialEditedName="editedTeamName"
+          @edit-team="startEditingTeamName"
+          @save-team="({ team, name }) => saveTeamName(team, name)"
+          @buzz="pressBuzzer"
+        />
       </div>
     </div>
   </div>
@@ -290,6 +182,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import socket from "../utils/socket";
+import TeamPanel from "@/components/TeamPanel.vue";
 
 defineProps({
   isSpectator: {
@@ -387,20 +280,16 @@ const startEditingTeamName = (team) => {
   editedTeamName.value = store.teamNames[team] || "";
 };
 
-const saveTeamName = (team) => {
-  if (editedTeamName.value.trim()) {
+function saveTeamName(team, name) {
+  if (name && name.trim()) {
     socket.emit("update-team-name", {
       sessionId,
       team,
-      name: editedTeamName.value.trim(),
+      name: name.trim(),
     });
     editingTeam.value = null;
   }
-};
-
-// socket.on("buzzed", ({ name }) => {
-//   buzzedPlayer.value = name;
-// });
+}
 
 socket.on("play-strike-sound", () => {
   playStrikeSound();
@@ -548,101 +437,12 @@ socket.emit("round-over", { sessionId });
   margin-bottom: 16px;
 }
 
-/* Team Info Styles */
-.team-info {
-  width: 25vw;
-  min-width: 220px;
-  max-width: 400px;
-  flex-shrink: 0;
-  border: 2px solid #ccc;
-  padding: 8px; /* Reduced from 16px */
-  border-radius: 8px;
-  background-color: #f9f9f9;
-  transition: box-shadow 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 25%; /* Add this line to set a fixed, halved height */
-  box-sizing: border-box;
-}
-
-.team-info.active {
-  box-shadow: 0 0 15px 5px rgba(0, 123, 255, 0.7);
-  border-color: #007bff;
-}
-
-/* Team Header Styles */
-.team-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-  text-align: center;
-}
-
-.team-name {
-  font-size: 1.1rem;
-  text-align: center;
-}
-
-.team-score {
-  font-size: 6rem;
-  font-weight: bold;
-  color: #007bff;
-  text-align: center;
-  font-family: "Bebas Neue", Arial, sans-serif;
-  line-height: 90%;
-}
-
 .divider {
   width: 2px;
   height: 100%;
   background-color: #ccc;
   margin-right: 8px;
 }
-
-/* Team Row Styles */
-.team-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.team-members-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.9rem;
-  color: #555;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.team-strikes {
-  display: flex;
-  align-items: center;
-}
-
-.strike-dot {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  margin: 0 2px;
-  border-radius: 50%;
-  background: #eee;
-  vertical-align: middle;
-  transition: background 0.3s;
-}
-
-.strike-dot.active {
-  background: #e53935;
-}
-
 /* Game Info Container Styles */
 .game-info-container {
   display: flex; /* Use flexbox for horizontal layout */
@@ -668,12 +468,6 @@ socket.emit("round-over", { sessionId });
   font-size: 2rem;
   font-weight: bold;
   color: #007bff;
-}
-
-.game-info-label {
-  margin-left: 8px;
-  font-size: 0.9rem;
-  color: #555;
 }
 
 hr {
@@ -1077,61 +871,6 @@ hr {
 
 .radio-option input[type="radio"] {
   margin-right: 0.5rem;
-}
-
-.buzzer-container {
-  display: flex;
-  justify-content: center;
-  margin: 2rem 0 1rem 0;
-}
-
-.buzzer-button {
-  background: #ff1744;
-  color: #fff;
-  font-size: 2rem;
-  font-weight: bold;
-  border: none;
-  border-radius: 50%; /* Make it a circle */
-  width: 150px; /* Set width and height to be equal */
-  height: 150px;
-  box-shadow: 0 4px 16px rgba(255, 23, 68, 0.2);
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0; /* Remove extra padding */
-}
-
-.buzzer-button:disabled {
-  background: #ccc;
-  color: #fff;
-  cursor: not-allowed;
-}
-
-.team-members-list .buzzed {
-  background: #ffeb3b;
-  color: #d32f2f;
-  font-weight: bold;
-  border-radius: 6px;
-  padding: 0 8px;
-}
-
-.edit-team-btn,
-.save-team-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  margin-left: 6px;
-  font-size: 1rem;
-}
-
-.edit-team-input {
-  font-size: 1.1rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #aaa;
-  width: 120px;
 }
 
 .floating-buttons {
