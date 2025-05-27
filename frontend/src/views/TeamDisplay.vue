@@ -182,7 +182,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import socket from "../utils/socket";
-import TeamPanel from "@/components/TeamPanel.vue";
+import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
 
 defineProps({
   isSpectator: {
