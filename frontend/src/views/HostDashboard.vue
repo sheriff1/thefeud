@@ -1,13 +1,11 @@
 <template>
-  <button
-    class="session-id-box"
-    :class="sessionIdBoxState"
-    @click="copySessionId"
-  >
-    {{ sessionIdBoxText }}
-  </button>
-
   <div>
+    <FloatingButton
+      :label="sessionIdBoxText"
+      :onClick="copySessionId"
+      className="session-id-box"
+      :state="sessionIdBoxState"
+    />
     <!-- Reset Game and Reset Round Container -->
     <div class="container reset-container">
       <h3>Game Controls</h3>
@@ -392,6 +390,7 @@ import { io } from "socket.io-client";
 import Papa from "papaparse";
 import { v4 as uuidv4 } from "uuid";
 import socket from "../utils/socket";
+import FloatingButton from "../components/teamDisplay/FloatingButton.vue";
 
 const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
 const store = useGameStore();

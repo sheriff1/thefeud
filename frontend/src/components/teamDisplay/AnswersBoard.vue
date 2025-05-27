@@ -204,4 +204,42 @@ watch(
     opacity: 1;
   }
 }
+.strike-x-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.strike-x {
+  font-size: 10vw;
+  color: #e53935;
+  font-weight: bold;
+  text-shadow: 0 0 30px #e53935, 0 0 10px #fff;
+  border: 8px solid #e53935;
+  border-radius: 16px;
+  padding: 2vw 4vw;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 40px #e53935;
+}
+
+.fade-x-enter-active,
+.fade-x-leave-active {
+  transition: opacity 0.5s;
+}
+.fade-x-enter-from,
+.fade-x-leave-to {
+  opacity: 0;
+}
+.fade-x-enter-to,
+.fade-x-leave-from {
+  opacity: 1;
+}
 </style>

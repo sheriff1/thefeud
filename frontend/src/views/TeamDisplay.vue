@@ -32,21 +32,19 @@
   <!-- Main Gameboard -->
   <div v-else>
     <div class="floating-buttons">
-      <button
-        class="session-id-box"
-        :class="sessionIdBoxState"
-        @click="copySessionId"
-      >
-        {{ sessionIdBoxText }}
-      </button>
-      <button
-        class="mute-btn"
-        :class="{ muted: isMuted }"
-        @click="toggleMute"
-        :aria-pressed="isMuted"
-      >
-        {{ isMuted ? "🔇 Sound Off" : "🔊 Sound On" }}
-      </button>
+      <FloatingButton
+        :label="sessionIdBoxText"
+        :onClick="copySessionId"
+        className="session-id-box"
+        :state="sessionIdBoxState"
+      />
+      <FloatingButton
+        :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
+        :onClick="toggleMute"
+        className="mute-btn"
+        :state="isMuted ? 'muted' : ''"
+        :ariaPressed="isMuted"
+      />
     </div>
 
     <div class="gameboard-container">
@@ -137,6 +135,7 @@ import socket from "../utils/socket";
 import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
 import AnswersBoard from "@/components/teamDisplay/AnswersBoard.vue";
 import GameInfo from "@/components/teamDisplay/GameInfo.vue";
+import FloatingButton from "@/components/teamDisplay/FloatingButton.vue";
 
 defineProps({
   isSpectator: {
@@ -471,75 +470,6 @@ hr {
   gap: 16px;
 }
 
-.session-id-box {
-  bottom: 16px;
-  right: 16px;
-  background-color: black;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  opacity: 0.7; /* Default opacity */
-  transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transition for hover and color changes */
-  border: none;
-  cursor: pointer; /* Make it clear that it's clickable */
-}
-
-.session-id-box:hover {
-  opacity: 1; /* Fully opaque on hover */
-}
-
-.session-id-box.copied {
-  background-color: green; /* Green for success */
-  color: white;
-}
-
-.session-id-box.error {
-  background-color: red; /* Red for error */
-  color: white;
-}
-
-.strike-x-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(255, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  pointer-events: none;
-}
-
-.strike-x {
-  font-size: 10vw;
-  color: #e53935;
-  font-weight: bold;
-  text-shadow: 0 0 30px #e53935, 0 0 10px #fff;
-  border: 8px solid #e53935;
-  border-radius: 16px;
-  padding: 2vw 4vw;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 40px #e53935;
-}
-
-.fade-x-enter-active,
-.fade-x-leave-active {
-  transition: opacity 0.5s;
-}
-.fade-x-enter-from,
-.fade-x-leave-to {
-  opacity: 0;
-}
-.fade-x-enter-to,
-.fade-x-leave-from {
-  opacity: 1;
-}
-
 .join-team-dialog-backdrop {
   position: fixed;
   top: 0;
@@ -647,6 +577,15 @@ hr {
   margin-right: 0.5rem;
 }
 
+.center-info {
+  width: 50vw; /* 50% of viewport width */
+  flex-shrink: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
 .floating-buttons {
   position: fixed;
   bottom: 16px;
@@ -655,35 +594,5 @@ hr {
   flex-direction: row;
   gap: 8px;
   z-index: 1000;
-}
-
-.mute-btn {
-  background-color: black;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  opacity: 0.7;
-  transition: opacity 0.3s ease, background-color 0.3s ease;
-  border: none;
-  cursor: pointer;
-}
-
-.mute-btn:hover {
-  opacity: 1;
-}
-
-.mute-btn.muted {
-  background-color: gray;
-}
-
-.center-info {
-  width: 50vw; /* 50% of viewport width */
-  flex-shrink: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 </style>
