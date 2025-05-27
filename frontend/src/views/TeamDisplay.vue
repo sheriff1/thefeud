@@ -86,45 +86,13 @@
 
         <!-- Answers & Game Info Section -->
         <div class="center-info">
-          <!-- Answers Section -->
-          <div v-if="store.answers.length > 0" class="answers-container">
-            <!-- Question Display -->
-            <transition name="fade-x">
-              <div v-if="showStrikeX" class="strike-x-overlay">
-                <span class="strike-x">X</span>
-              </div>
-            </transition>
-
-            <div class="question-display">
-              <h3>{{ store.question }}</h3>
-            </div>
-
-            <!-- Answers Grid -->
-            <div class="answers-grid">
-              <div
-                v-for="(answer, index) in store.answers"
-                :key="answer.id"
-                class="answer-box"
-              >
-                <!-- Hidden Answer (Blue Box) -->
-                <div
-                  v-if="!store.guessedAnswers.includes(answer.id)"
-                  class="blue-box"
-                >
-                  <span class="answer-number-circle">{{ index + 1 }}</span>
-                </div>
-
-                <!-- Revealed Answer with Flip Animation -->
-                <div v-else class="revealed-answer flip-animation">
-                  <span class="answer-text">{{
-                    answer.text.toUpperCase()
-                  }}</span>
-                  <span class="answer-points-box">{{ answer.points }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p v-else class="no-answers-message">No answers available yet.</p>
+          <AnswersBoard
+            :answers="store.answers"
+            :question="store.question"
+            :guessedAnswers="store.guessedAnswers"
+            :showStrikeX="showStrikeX"
+            @strikeX="showStrikeX = false"
+          />
 
           <!-- Game Info Container -->
           <div class="game-info-container">
@@ -183,6 +151,7 @@ import { useGameStore } from "@/stores/gamestore";
 import { io } from "socket.io-client";
 import socket from "../utils/socket";
 import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
+import AnswersBoard from "@/components/teamDisplay/AnswersBoard.vue";
 
 defineProps({
   isSpectator: {
@@ -541,160 +510,6 @@ hr {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
-}
-
-/* Answers Section Styles */
-.answers-container {
-  width: 90%;
-  display: flex;
-  flex-direction: column; /* Stack the question and answers vertically */
-  gap: 16px; /* Space between the question and the answers grid */
-  margin-top: 16px;
-  padding: 16px;
-  background-color: #e0f3ff;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Question Display Styles */
-.question-display {
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-}
-
-/* Answers Grid Styles */
-.answers-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(4, auto); /* 4 rows to force 4 items per column */
-  grid-auto-flow: column;
-  gap: 1rem;
-}
-
-/* Answer Box Styles */
-.answer-box {
-  width: 100%;
-  height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  background-color: #007bff;
-  color: white;
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.answer-box:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-/* Blue Box for Hidden Answers */
-.blue-box {
-  width: 100%;
-  height: 100%;
-  background-color: #007bff;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.answer-number-circle {
-  width: 40px;
-  height: 40px;
-  background-color: white;
-  color: #007bff;
-  font-size: 1.5rem;
-  font-weight: bold;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Revealed Answer Styles */
-.revealed-answer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  height: 100%;
-  background-color: #003f83;
-  color: white;
-  border-radius: 8px;
-  padding-left: 12px;
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: left;
-  font-family: "Bebas Neue", Arial, sans-serif;
-  overflow: hidden;
-}
-
-/* Flip Animation */
-.flip-animation {
-  animation: flipIn 0.6s ease-in-out;
-}
-
-.answer-text {
-  flex: 1 1 0;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: clamp(1rem, 2.5vw, 2.2rem); /* Responsive font size */
-  font-family: "Bebas Neue", Arial, sans-serif;
-  font-weight: bold;
-  color: white;
-  text-transform: uppercase;
-}
-
-.answer-points-box {
-  background-color: #007bff;
-  color: white;
-  border-left: 4px solid #fff;
-  font-size: 2.2rem;
-  font-weight: bold;
-  text-align: center;
-  min-width: 40px;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0 8px 8px 0;
-  margin-left: 12px;
-  padding: 0 16px;
-  height: 100%;
-  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.08);
-}
-
-/* No Answers Message Styles */
-.no-answers-message {
-  text-align: center;
-  font-size: 16px;
-  color: #666;
-  margin-top: 16px;
-}
-
-/* Keyframe Animation for Vertical Flip */
-@keyframes flipIn {
-  0% {
-    transform: rotateX(90deg);
-    opacity: 0;
-  }
-  50% {
-    transform: rotateX(-10deg);
-    opacity: 0.5;
-  }
-  100% {
-    transform: rotateX(0deg);
-    opacity: 1;
-  }
 }
 
 .session-id-box {
