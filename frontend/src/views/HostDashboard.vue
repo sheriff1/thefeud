@@ -7,14 +7,13 @@
       :state="sessionIdBoxState"
     />
     <!-- Reset Game and Reset Round Container -->
-    <div class="container reset-container">
-      <h3>Game Controls</h3>
-      <button class="btn" @click="resetGame">Reset Game</button>
-      <button class="btn" @click="resetRound">Reset Round</button>
-      <button class="btn" @click="nextRound" :disabled="!store.roundOver">
-        Next Round
-      </button>
-    </div>
+
+    <GameStatusMgr
+      :resetGame="resetGame"
+      :resetRound="resetRound"
+      :nextRound="nextRound"
+      :roundOver="store.roundOver"
+    />
 
     <div class="flex-row">
       <!-- Manage Question and Answers Section -->
@@ -391,6 +390,7 @@ import Papa from "papaparse";
 import { v4 as uuidv4 } from "uuid";
 import socket from "../utils/socket";
 import FloatingButton from "../components/teamDisplay/FloatingButton.vue";
+import GameStatusMgr from "@/components/hostDashboard/GameStatusMgr.vue";
 
 const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
 const store = useGameStore();
@@ -934,16 +934,12 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<style>
 .container {
   padding: 1rem;
   margin: 1rem;
   border-radius: 0.5rem;
   background-color: #f9f9f9;
-}
-
-.reset-container {
-  background-color: #ffe6e6;
 }
 
 .settings-container {
