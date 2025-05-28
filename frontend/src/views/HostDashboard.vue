@@ -811,7 +811,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 .container {
   padding: 1rem;
   margin: 1rem;
