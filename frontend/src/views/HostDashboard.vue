@@ -397,74 +397,33 @@ const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
 const apiBase = import.meta.env.VITE_API_BASE || "";
+const fileUploaded = ref(false);
+const startingTeam = ref(null); // Track the selected starting team
+const selectedMultiplier = ref(null); // Track the selected multiplier
+const startingTeamSet = computed(() => !!store.firstTeam);
+const multiplierSet = computed(() => !!store.scoreMultiplier);
+const timerInput = ref(0);
+let timerInterval = null;
+const answerPairs = ref([]); // Initialize with an empty array
+const answersSaved = ref(false); // Track if answers have been saved
+const questionInput = ref(""); // Track the question input
+const questionSaved = ref(false); // Track if the question has been saved
+const previousRound = ref(store.roundCounter); // Track the previous round value
+const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
+const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
+const sessionIdBoxState = ref(""); // Default state (no additional class)
+const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
+const currentStep = ref("manage"); // Possible values: 'manage', 'multiplier', 'answers'
+const teamAName = ref("");
+const teamBName = ref("");
+const correctCount = ref(0);
+const buzzerOnlyCount = ref(0);
 
-onMounted(() => {
-  if (!sessionId) {
-    alert("No session ID provided. Please join a valid session.");
-    return;
-  }
-  // Join the session
-  socket.emit("join-session", { sessionId });
-
-  // Request the current game state from the backend
-  socket.emit("get-current-state", { sessionId });
-
-  // Listen for the current game state from the backend
-  socket.on("current-state", (currentState) => {
-    console.log("Current game state received:", currentState);
-    Object.assign(store.$state, currentState); // Update the global store with the current game state
-
-    // Sync local variables with the global state
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
-
-    // Sync "Who Starts" state
-    if (store.firstTeam) {
-      startingTeam.value = store.firstTeam;
-      //startingTeamSet.value = true;
-    }
-
-    // Sync "Score Multiplier" state
-    if (store.scoreMultiplier) {
-      selectedMultiplier.value = store.scoreMultiplier;
-      //multiplierSet.value = true;
-    }
-  });
-
-  // Listen for game state updates
-  socket.on("game-updated", (updatedGameState) => {
-    Object.assign(store.$state, updatedGameState);
-
-    // Sync local variables with the updated global state
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
-
-    // Sync "Who Starts" state
-    if (store.firstTeam) {
-      startingTeam.value = store.firstTeam;
-      //startingTeamSet.value = true;
-    } else {
-      startingTeam.value = null;
-      //startingTeamSet.value = false;
-    }
-
-    // Sync "Score Multiplier" state
-    if (store.scoreMultiplier) {
-      selectedMultiplier.value = store.scoreMultiplier;
-      //multiplierSet.value = true;
-    } else {
-      selectedMultiplier.value = null;
-      //multiplierSet.value = false;
-    }
-  });
-
-  // Handle connection errors
-  socket.on("connect_error", (error) => {
-    console.error("WebSocket connection error:", error);
-    alert("Failed to connect to the game session. Please try again.");
-  });
-
-  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: "POST" });
+const isTeamNamesUnique = computed(() => {
+  return (
+    teamAName.value.trim().toLowerCase() !==
+    teamBName.value.trim().toLowerCase()
+  );
 });
 
 // Update game state
@@ -479,72 +438,6 @@ const updateGameState = (gameState) => {
 
   socket.emit("update-game", { sessionId, gameState });
 };
-
-// Listen for game state updates
-socket.on("game-updated", (updatedGameState) => {
-  console.log("Game state updated:", updatedGameState);
-});
-
-// Handle errors
-socket.on("error", (error) => {
-  console.error("Error from backend:", error.message);
-  alert(`Error: ${error.message}`);
-});
-
-// Handle connection errors
-socket.on("connect_error", (error) => {
-  console.error("WebSocket connection error:", error);
-});
-
-const fileUploaded = ref(false);
-const startingTeam = ref(null); // Track the selected starting team
-const selectedMultiplier = ref(null); // Track the selected multiplier
-const startingTeamSet = computed(() => !!store.firstTeam);
-const multiplierSet = computed(() => !!store.scoreMultiplier);
-const timerInput = ref(0);
-let timerInterval = null;
-
-const answerPairs = ref([]); // Initialize with an empty array
-const answersSaved = ref(false); // Track if answers have been saved
-const questionInput = ref(""); // Track the question input
-const questionSaved = ref(false); // Track if the question has been saved
-const previousRound = ref(store.roundCounter); // Track the previous round value
-const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
-const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
-const sessionIdBoxState = ref(""); // Default state (no additional class)
-const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
-const currentStep = ref("manage"); // Possible values: 'manage', 'multiplier', 'answers'
-
-const teamAName = ref("");
-const teamBName = ref("");
-
-const correctCount = ref(0);
-const buzzerOnlyCount = ref(0);
-
-const isTeamNamesUnique = computed(() => {
-  return (
-    teamAName.value.trim().toLowerCase() !==
-    teamBName.value.trim().toLowerCase()
-  );
-});
-
-onMounted(() => {
-  store.initSocket();
-
-  // Listen for team name updates from the backend
-  socket.on("team-names-updated", (teamNames) => {
-    store.teamNames = { ...store.teamNames, ...teamNames };
-    // Optionally, update local refs if you use them for input fields:
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
-  });
-});
-
-// Clean up listeners when the component is unmounted
-onUnmounted(() => {
-  socket.off("team-names-updated");
-  socket.removeAllListeners();
-});
 
 const emitGameState = () => {
   // Check if the team names have changed
@@ -939,6 +832,106 @@ const loadLibraryFile = async (filename) => {
     },
   });
 };
+
+// Listen for game state updates
+socket.on("game-updated", (updatedGameState) => {
+  console.log("Game state updated:", updatedGameState);
+});
+
+// Handle errors
+socket.on("error", (error) => {
+  console.error("Error from backend:", error.message);
+  alert(`Error: ${error.message}`);
+});
+
+// Handle connection errors
+socket.on("connect_error", (error) => {
+  console.error("WebSocket connection error:", error);
+});
+
+onMounted(() => {
+  store.initSocket();
+
+  // Listen for team name updates from the backend
+  socket.on("team-names-updated", (teamNames) => {
+    store.teamNames = { ...store.teamNames, ...teamNames };
+    // Optionally, update local refs if you use them for input fields:
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+  });
+  if (!sessionId) {
+    alert("No session ID provided. Please join a valid session.");
+    return;
+  }
+  // Join the session
+  socket.emit("join-session", { sessionId });
+
+  // Request the current game state from the backend
+  socket.emit("get-current-state", { sessionId });
+
+  // Listen for the current game state from the backend
+  socket.on("current-state", (currentState) => {
+    console.log("Current game state received:", currentState);
+    Object.assign(store.$state, currentState); // Update the global store with the current game state
+
+    // Sync local variables with the global state
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+
+    // Sync "Who Starts" state
+    if (store.firstTeam) {
+      startingTeam.value = store.firstTeam;
+      //startingTeamSet.value = true;
+    }
+
+    // Sync "Score Multiplier" state
+    if (store.scoreMultiplier) {
+      selectedMultiplier.value = store.scoreMultiplier;
+      //multiplierSet.value = true;
+    }
+  });
+
+  // Listen for game state updates
+  socket.on("game-updated", (updatedGameState) => {
+    Object.assign(store.$state, updatedGameState);
+
+    // Sync local variables with the updated global state
+    teamAName.value = store.teamNames.A;
+    teamBName.value = store.teamNames.B;
+
+    // Sync "Who Starts" state
+    if (store.firstTeam) {
+      startingTeam.value = store.firstTeam;
+      //startingTeamSet.value = true;
+    } else {
+      startingTeam.value = null;
+      //startingTeamSet.value = false;
+    }
+
+    // Sync "Score Multiplier" state
+    if (store.scoreMultiplier) {
+      selectedMultiplier.value = store.scoreMultiplier;
+      //multiplierSet.value = true;
+    } else {
+      selectedMultiplier.value = null;
+      //multiplierSet.value = false;
+    }
+  });
+
+  // Handle connection errors
+  socket.on("connect_error", (error) => {
+    console.error("WebSocket connection error:", error);
+    alert("Failed to connect to the game session. Please try again.");
+  });
+
+  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: "POST" });
+});
+
+// Clean up listeners when the component is unmounted
+onUnmounted(() => {
+  socket.off("team-names-updated");
+  socket.removeAllListeners();
+});
 </script>
 
 <style scoped>
