@@ -19,7 +19,7 @@ const props = defineProps({
 import { ref, watch } from "vue";
 const emit = defineEmits(["click"]);
 
-const buttonState = ref(props.state || "default");
+const buttonState = ref(props.state);
 watch(
   () => props.state,
   (newState) => {
@@ -36,7 +36,8 @@ function handleClick() {
 </script>
 
 <style scoped>
-.mute-btn {
+.mute-btn,
+.session-id-box {
   background-color: black;
   color: white;
   padding: 8px 16px;
@@ -55,22 +56,6 @@ function handleClick() {
 
 .mute-btn.muted {
   background-color: gray;
-}
-
-.session-id-box {
-  bottom: 16px;
-  right: 16px;
-  background-color: black;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-  opacity: 0.7; /* Default opacity */
-  transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transition for hover and color changes */
-  border: none;
-  cursor: pointer; /* Make it clear that it's clickable */
 }
 
 .session-id-box:hover {

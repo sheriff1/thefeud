@@ -17,219 +17,39 @@
 
     <div class="flex-row">
       <!-- Manage Question and Answers Section -->
-      <div class="container question-answers-container">
-        <h3>Manage Question and Answers</h3>
-
-        <!-- Who Starts Section -->
-        <div v-if="showWhoStarts">
-          <h4>Who Starts?</h4>
-          <p v-if="startingTeamSet">
-            Starting Team: {{ store.teamNames[startingTeam] }}
-          </p>
-          <button
-            class="btn"
-            @click="setStartingTeam('A')"
-            :disabled="startingTeamSet"
-          >
-            {{ store.teamNames.A }}
-          </button>
-          <button
-            class="btn"
-            @click="setStartingTeam('B')"
-            :disabled="startingTeamSet"
-          >
-            {{ store.teamNames.B }}
-          </button>
-        </div>
-
-        <!-- Manage Question and Answers Section -->
-        <template v-if="currentStep === 'manage'">
-          <!-- File Upload -->
-          <div>
-            <label for="file-upload">Upload CSV File:</label>
-            <input id="file-upload" type="file" @change="handleUpload" />
-            <button class="btn" @click="fetchLibraryFiles">
-              Select from library
-            </button>
-          </div>
-
-          <!-- Library Dialog -->
-          <div v-if="showLibraryDialog" class="library-dialog-backdrop">
-            <div class="library-dialog">
-              <h4>Select a Question Set</h4>
-              <ul>
-                <li v-for="file in libraryFiles" :key="file">
-                  <button class="btn" @click="loadLibraryFile(file)">
-                    {{ file }}
-                  </button>
-                </li>
-              </ul>
-              <button class="btn" @click="showLibraryDialog = false">
-                Cancel
-              </button>
-            </div>
-          </div>
-
-          <!-- Question Input -->
-          <div>
-            <h4>Question</h4>
-            <label for="question-input">Question:</label>
-            <input
-              id="question-input"
-              type="text"
-              v-model="questionInput"
-              :disabled="questionSaved"
-            />
-          </div>
-
-          <!-- Answers Management -->
-          <div>
-            <h4>Answers</h4>
-            <div v-if="answerPairs.length === 0" class="no-answers-message">
-              No answers added yet. Upload CSV or press "Add Answer" below
-            </div>
-            <div
-              v-for="(pair, index) in answerPairs"
-              :key="index"
-              class="answer-pair"
-            >
-              <label :for="'answer-' + index">Answer:</label>
-              <input
-                :id="'answer-' + index"
-                type="text"
-                v-model="pair.text"
-                :disabled="answersSaved"
-              />
-              <label :for="'points-' + index">Points:</label>
-              <input
-                :id="'points-' + index"
-                type="number"
-                v-model.number="pair.points"
-                :disabled="answersSaved"
-              />
-              <button
-                class="btn"
-                @click="removeAnswerPair(index)"
-                :disabled="answersSaved"
-              >
-                Remove
-              </button>
-            </div>
-            <button
-              class="btn success"
-              @click="addAnswerPair"
-              :disabled="answersSaved || answerPairs.length >= 8"
-            >
-              Add Answer
-            </button>
-            <button
-              class="btn"
-              @click="removeAllAnswers"
-              :disabled="answersSaved || answerPairs.length === 0"
-            >
-              Remove All Answers
-            </button>
-          </div>
-
-          <!-- Save Both Question and Answers -->
-          <button
-            class="btn primary"
-            @click="saveQuestionAndAnswers"
-            :disabled="questionSaved && answersSaved"
-          >
-            Save Question and Answers
-          </button>
-          <!-- Download Template Button -->
-          <a href="/answers/family-feud-template.csv" download class="btn">
-            Download Template
-          </a>
-        </template>
-
-        <!-- Set Score Multiplier Section -->
-        <template v-if="currentStep === 'multiplier'">
-          <h4>Set Score Multiplier</h4>
-          <p v-if="multiplierSet">
-            Score Multiplier: {{ selectedMultiplier }}x
-          </p>
-          <button
-            class="btn"
-            @click="setMultiplier(1)"
-            :disabled="multiplierSet"
-          >
-            1x
-          </button>
-          <button
-            class="btn"
-            @click="setMultiplier(2)"
-            :disabled="multiplierSet"
-          >
-            2x
-          </button>
-          <button
-            class="btn"
-            @click="setMultiplier(3)"
-            :disabled="multiplierSet"
-          >
-            3x
-          </button>
-        </template>
-
-        <!-- Available Answers Section -->
-        <template v-if="currentStep === 'answers'">
-          <h4>Current Question:</h4>
-          <p>{{ store.question }}</p>
-          <h4>Available Answers</h4>
-          <ul>
-            <li v-for="answer in store.answers" :key="answer.id">
-              <span
-                :style="{
-                  textDecoration: store.guessedAnswers.includes(answer.id)
-                    ? 'line-through'
-                    : 'none',
-                }"
-              >
-                {{ answer.text }} ({{ answer.points }} pts)
-              </span>
-              <!-- Correct Button: Only show if round is not over -->
-              <button
-                class="btn"
-                v-if="
-                  !store.guessedAnswers.includes(answer.id) && !store.roundOver
-                "
-                @click="handleCorrectGuess(answer.id)"
-              >
-                Correct
-              </button>
-            </li>
-          </ul>
-          <!-- Incorrect Button -->
-          <button
-            class="btn"
-            v-if="
-              answersSaved &&
-              startingTeamSet &&
-              multiplierSet &&
-              !store.roundOver
-            "
-            @click="handleIncorrectAndStrike"
-          >
-            Incorrect
-          </button>
-          <button
-            class="btn"
-            v-if="
-              answersSaved &&
-              multiplierSet &&
-              !startingTeamSet &&
-              !store.roundOver
-            "
-            @click="emitStrikeSound"
-          >
-            Incorrect (buzzer only)
-          </button>
-        </template>
-      </div>
-
+      <QuestionAndAnswersMgr
+        v-model:questionInput="questionInput"
+        :showWhoStarts="showWhoStarts"
+        :startingTeamSet="startingTeamSet"
+        :startingTeam="startingTeam"
+        :teamNames="store.teamNames"
+        :setStartingTeam="setStartingTeam"
+        :currentStep="currentStep"
+        :handleUpload="handleUpload"
+        :fetchLibraryFiles="fetchLibraryFiles"
+        :showLibraryDialog="showLibraryDialog"
+        :libraryFiles="libraryFiles"
+        :loadLibraryFile="loadLibraryFile"
+        :questionSaved="questionSaved"
+        :answerPairs="answerPairs"
+        :answersSaved="answersSaved"
+        :removeAnswerPair="removeAnswerPair"
+        :addAnswerPair="addAnswerPair"
+        :removeAllAnswers="removeAllAnswers"
+        :saveQuestionAndAnswers="saveQuestionAndAnswers"
+        :selectedMultiplier="selectedMultiplier"
+        :multiplierSet="multiplierSet"
+        :setMultiplier="setMultiplier"
+        :question="question"
+        :answers="answers"
+        :guessedAnswers="guessedAnswers"
+        :roundOver="store.roundOver"
+        :handleCorrectGuess="handleCorrectGuess"
+        :handleIncorrectAndStrike="handleIncorrectAndStrike"
+        :emitStrikeSound="emitStrikeSound"
+        :revealAllAnswers="revealAllAnswers"
+        :setShowLibraryDialog="setShowLibraryDialog"
+      />
       <!-- Available Answers, Strikes, and Points Pool Container -->
       <div class="container game-info-container">
         <h3>Active Game Info</h3>
@@ -385,12 +205,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useGameStore } from "@/stores/gamestore";
-import { io } from "socket.io-client";
 import Papa from "papaparse";
 import { v4 as uuidv4 } from "uuid";
 import socket from "../utils/socket";
 import FloatingButton from "../components/teamDisplay/FloatingButton.vue";
 import GameStatusMgr from "@/components/hostDashboard/GameStatusMgr.vue";
+import QuestionAndAnswersMgr from "@/components/hostDashboard/QuestionAndAnswersMgr.vue";
 
 const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
 const store = useGameStore();
@@ -418,7 +238,9 @@ const teamAName = ref("");
 const teamBName = ref("");
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
-
+const question = ref(""); // or whatever initial value/type you use
+const answers = computed(() => store.answers || []); // Use store's answers
+const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
 const isTeamNamesUnique = computed(() => {
   return (
     teamAName.value.trim().toLowerCase() !==
@@ -506,25 +328,42 @@ const setStartingTeam = (team) => {
 const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
-  //multiplierSet.value = true; // Disable the buttons
+  multiplierSet.value = true; // Disable the buttons
   currentStep.value = "answers"; // Show the Available Answers section
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const resetGame = () => {
   stopTimer();
+
+  // Always reset these, not just conditionally
+  store.roundOver = false;
+  store.strikes = 0;
+  store.pointPool = 0;
+  store.guessedAnswers = [];
+  store.pointsAwarded = 0;
+  store.winningTeam = null;
+
   store.resetGame();
+
+  // Reset all local refs
   fileUploaded.value = false;
-  //startingTeamSet.value = false;
-  //multiplierSet.value = false;
-  startingTeam.value = null;
   selectedMultiplier.value = null;
-  answersSaved.value = false; // Reset the answers saved flag
-  answerPairs.value = []; // Clear the answer pairs completely
-  questionInput.value = ""; // Reset the question input
-  questionSaved.value = false; // Reset the question saved flag
-  showAvailableAnswers.value = false; // Hide the Available Answers section
-  currentStep.value = "manage"; // Reset to the Manage Question and Answers section
+  store.scoreMultiplier = null;
+  answersSaved.value = false;
+  answerPairs.value = [];
+  questionInput.value = "";
+  questionSaved.value = false;
+  showAvailableAnswers.value = false;
+  currentStep.value = "manage";
+  correctCount.value = 0;
+  buzzerOnlyCount.value = 0;
+  previousRound.value = 0; // Store the current round value
+
+  socket.emit("update-game", {
+    sessionId,
+    gameState: { ...store.$state, roundReset: true },
+  });
   updateGameState(store.$state); // Emit the reset state to the Team Display
 };
 
@@ -542,9 +381,21 @@ const resetRound = () => {
     store.winningTeam = null; // Reset winning team
   }
 
+  // Always reset these, not just conditionally
+  store.roundOver = false;
+  store.strikes = 0;
+  store.pointPool = 0;
+  store.guessedAnswers = [];
+  store.pointsAwarded = 0;
+  store.winningTeam = null;
+
   store.resetRound();
   store.updateRoundCounter(previousRound.value);
+
+  // Reset all local refs
   fileUploaded.value = false;
+  selectedMultiplier.value = null;
+  store.scoreMultiplier = null;
   answersSaved.value = false;
   answerPairs.value = [];
   questionInput.value = "";
@@ -553,6 +404,7 @@ const resetRound = () => {
   currentStep.value = "manage";
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
+
   socket.emit("update-game", {
     sessionId,
     gameState: { ...store.$state, roundReset: true },
@@ -561,24 +413,39 @@ const resetRound = () => {
 
 const nextRound = () => {
   stopTimer();
-  store.roundOver = false;
-  previousRound.value = store.roundCounter; // Store the current round value
 
+  // Reset round-specific store state
+  store.roundOver = false;
+  store.strikes = 0;
+  store.pointPool = 0;
+  store.guessedAnswers = [];
+  store.pointsAwarded = 0;
+  store.winningTeam = null;
+
+  // Advance to the next round in the store
+  previousRound.value = store.roundCounter; // Store the current round value
   store.nextRound(); // Advance to the next round
+
+  // Reset all local refs
   fileUploaded.value = false;
-  //startingTeamSet.value = false;
-  //multiplierSet.value = false;
   startingTeam.value = null;
   selectedMultiplier.value = null;
-  answersSaved.value = false; // Reset the answers saved flag
-  answerPairs.value = []; // Clear the answer pairs
-  questionInput.value = ""; // Reset the question input
-  questionSaved.value = false; // Reset the question saved flag
-  showAvailableAnswers.value = false; // Hide the Available Answers section
-  currentStep.value = "manage"; // Reset to the Manage Question and Answers section
+  store.scoreMultiplier = null;
+  answersSaved.value = false;
+  answerPairs.value = [];
+  questionInput.value = "";
+  questionSaved.value = false;
+  showAvailableAnswers.value = false;
+  currentStep.value = "manage";
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
-  updateGameState(store.$state); // Emit the updated game state for the next round
+
+  // Emit the updated game state for the next round
+  socket.emit("update-game", {
+    sessionId,
+    gameState: { ...store.$state, nextRound: true },
+  });
+  updateGameState(store.$state);
 };
 
 const updateTeamScore = (team, score) => {
@@ -699,6 +566,7 @@ const removeAllAnswers = () => {
 const saveQuestionAndAnswers = () => {
   if (questionInput.value.trim()) {
     store.uploadQuestion(questionInput.value.trim());
+    question.value = questionInput.value.trim(); // <-- Set the active question
     questionSaved.value = true;
   } else {
     alert("Please enter a valid question.");
@@ -799,11 +667,20 @@ const copySessionId = () => {
   }
 };
 
+function handleFetchLibraryFiles() {
+  fetchLibraryFiles();
+  showLibraryDialog.value = true;
+}
+
 const fetchLibraryFiles = async () => {
   const res = await fetch(`${apiBase}/api/answers-library`);
   libraryFiles.value = await res.json();
   showLibraryDialog.value = true;
 };
+
+function setShowLibraryDialog(value) {
+  showLibraryDialog.value = value;
+}
 
 // Load and parse the selected CSV file
 const loadLibraryFile = async (filename) => {
@@ -973,46 +850,6 @@ onUnmounted(() => {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.question-answers-container {
-  background-color: #e6e6ff;
-  margin-bottom: 16px;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.question-answers-container h3 {
-  margin-top: 0;
-}
-
-.answer-pair {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-/* Responsive: Stack fields vertically on small screens */
-@media (max-width: 600px) {
-  .answer-pair {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 4px;
-  }
-  .answer-pair input,
-  .answer-pair label,
-  .answer-pair button {
-    width: 100%;
-    min-width: 0;
-  }
-}
-
-.answer-pair input {
-  padding: 4px;
-  width: 150px;
-}
-
 button {
   padding: 4px 8px;
   cursor: pointer;
@@ -1123,13 +960,6 @@ button {
   background-color: #007f3d;
 }
 
-.no-answers-message {
-  color: #555;
-  font-size: 1rem;
-  margin-bottom: 12px;
-  font-style: italic;
-}
-
 .info-key {
   font-weight: bold;
 }
@@ -1151,43 +981,5 @@ button {
   flex: 1 1 180px; /* Inputs take remaining space */
   min-width: 0;
   padding: 6px 8px;
-}
-
-.library-dialog-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-.library-dialog {
-  background: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  min-width: 300px;
-  max-width: 90vw;
-  /* Set height to 60% of viewport height */
-  height: 60vh;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-}
-
-.library-dialog ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  /* Make the list scrollable if it overflows */
-  overflow-y: auto;
-  flex: 1 1 auto;
-}
-
-.library-dialog li {
-  margin-bottom: 1rem;
 }
 </style>

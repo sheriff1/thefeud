@@ -12,13 +12,13 @@
       <FloatingButton
         :label="sessionIdBoxText"
         :onClick="copySessionId"
-        className="session-id-box"
+        class="session-id-box"
         :state="sessionIdBoxState"
       />
       <FloatingButton
         :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
         :onClick="toggleMute"
-        className="mute-btn"
+        class="mute-btn"
         :state="isMuted ? 'muted' : ''"
         :ariaPressed="isMuted"
       />
