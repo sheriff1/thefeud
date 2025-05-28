@@ -8,7 +8,7 @@ const routes = [
   { path: '/', component: Home }, // Home page
   { path: '/host', component: HostDashboard }, // Host Dashboard
   { path: '/team', component: TeamDisplay }, // Team Display
-  { path: '/spectator', component: Spectator }
+  { path: '/spectator', component: Spectator },
 ];
 
 const router = createRouter({

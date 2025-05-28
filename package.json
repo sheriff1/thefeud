@@ -4,11 +4,21 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
-    "dev": "concurrently \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.js\" \"cd frontend && npm run dev\""
+    "dev": "concurrently \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.js\" \"cd frontend && npm run dev\"",
+    "lint": "eslint --ext .js,.vue frontend/src backend",
+    "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
+    "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\""
   },
   "devDependencies": {
+    "@eslint/js": "^9.27.0",
     "concurrently": "^9.1.2",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "eslint": "^9.27.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "eslint-plugin-vue": "^10.1.0",
+    "globals": "^16.2.0",
+    "prettier": "^3.5.3"
   },
   "dependencies": {
     "vue": "^3.5.15"

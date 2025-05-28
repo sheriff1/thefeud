@@ -25,19 +25,21 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : ['http://localhost:5173'];
 
 // Express CORS
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      console.log('Allowed origins:', allowedOrigins);
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.log('Allowed origins:', allowedOrigins);
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  }),
+);
 
 // Socket.IO CORS
 const io = new Server(server, {
@@ -90,7 +92,7 @@ app.get('/api/answers-library', (req, res) => {
       console.error('Failed to list files:', err);
       return res.status(500).json({ error: 'Failed to list files' });
     }
-    const csvFiles = files.filter(f => f.endsWith('.csv'));
+    const csvFiles = files.filter((f) => f.endsWith('.csv'));
     res.json(csvFiles);
   });
 });
@@ -193,11 +195,12 @@ io.on('connection', (socket) => {
       const newRoundOver = !!gameState.roundOver;
 
       // Merge critical fields from Firestore into the incoming gameState
-      gameState.teamNames = firestoreState.teamNames || { A: "Team A", B: "Team B" };
-      gameState.buzzedPlayer = firestoreState.buzzedPlayer || "";
-      gameState.startingTeamSet = typeof gameState.startingTeamSet === 'boolean'
-      ? gameState.startingTeamSet
-      : firestoreState.startingTeamSet || false;
+      gameState.teamNames = firestoreState.teamNames || { A: 'Team A', B: 'Team B' };
+      gameState.buzzedPlayer = firestoreState.buzzedPlayer || '';
+      gameState.startingTeamSet =
+        typeof gameState.startingTeamSet === 'boolean'
+          ? gameState.startingTeamSet
+          : firestoreState.startingTeamSet || false;
 
       // Add expiryTime to the gameState object
       const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -205,20 +208,20 @@ io.on('connection', (socket) => {
 
       // Emit "round-over" ONLY if transitioning from not over to over
       if (!prevRoundOver && newRoundOver) {
-        console.log("Emitting round-over event");
+        console.log('Emitting round-over event');
         io.to(sessionId).emit('round-over');
       }
 
       // Emit "next-round" ONLY if transitioning from over to not over
       if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
-        console.log("Emitting next-round event");
+        console.log('Emitting next-round event');
         io.to(sessionId).emit('next-round');
       }
 
       // --- Reset the flag here, after logic that depends on it ---
       if (gameState.roundReset) {
         gameState.roundReset = false;
-    }
+      }
 
       // Save the updated gameState to Firestore
       await sessionRef.set(gameState, { merge: true });
@@ -228,7 +231,6 @@ io.on('connection', (socket) => {
 
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('game-updated', gameState);
-
     } catch (error) {
       console.error('Error updating game state:', error);
       socket.emit('error', { message: 'Failed to update game state' });
@@ -239,7 +241,7 @@ io.on('connection', (socket) => {
     try {
       const sessionRef = db.collection('sessions').doc(sessionId);
       const sessionDoc = await sessionRef.get();
-      const currentTeamNames = sessionDoc.data().teamNames || { A: "Team A", B: "Team B" };
+      const currentTeamNames = sessionDoc.data().teamNames || { A: 'Team A', B: 'Team B' };
       const updatedTeamNames = { ...currentTeamNames, [team]: name };
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
 
@@ -257,10 +259,7 @@ io.on('connection', (socket) => {
     try {
       const sessionRef = db.collection('sessions').doc(sessionId);
       // Set startingTeam and startingTeamSet to true
-      await sessionRef.set(
-        { startingTeam, startingTeamSet: true },
-        { merge: true }
-      );
+      await sessionRef.set({ startingTeam, startingTeamSet: true }, { merge: true });
       // Fetch the updated state
       const sessionDoc = await sessionRef.get();
       const gameState = sessionDoc.data();
@@ -293,7 +292,7 @@ io.on('connection', (socket) => {
           let members = sessionDoc.data().teamMembers;
           // Remove player from their team
           if (members[team]) {
-            members[team] = members[team].filter(memberName => memberName !== name);
+            members[team] = members[team].filter((memberName) => memberName !== name);
             // Update Firestore
             await sessionRef.set({ teamMembers: members }, { merge: true });
             // Broadcast updated team members
