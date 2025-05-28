@@ -12,13 +12,13 @@
       <FloatingButton
         :label="sessionIdBoxText"
         :onClick="copySessionId"
-        class="session-id-box"
+        className="session-id-box"
         :state="sessionIdBoxState"
       />
       <FloatingButton
         :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
         :onClick="toggleMute"
-        class="mute-btn"
+        className="mute-btn"
         :state="isMuted ? 'muted' : ''"
         :ariaPressed="isMuted"
       />
@@ -241,13 +241,15 @@ function saveTeamName(team, name) {
   }
 }
 
-function joinTeam({ playerName, selectedTeam }) {
-  if (!playerName.trim() || !selectedTeam) return;
+function joinTeam({ playerName: name, selectedTeam: team }) {
+  if (!name.trim() || !team) return;
   socket.emit("join-team", {
     sessionId,
-    name: playerName.trim(),
-    team: selectedTeam,
+    name: name.trim(),
+    team,
   });
+  playerName.value = name.trim(); // <-- Ensure this line is present
+  selectedTeam.value = team;
   hasJoined.value = true;
 }
 
