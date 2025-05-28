@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
-    "dev": "concurrently \"cd backend && node index.js\" \"cd frontend && npm run dev\""
+    "dev": "concurrently \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.js\" \"cd frontend && npm run dev\""
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3"
   }
 }

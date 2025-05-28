@@ -20,10 +20,8 @@
 <script>
 import { ref } from "vue"; // Import ref from Vue
 import { useRouter } from "vue-router";
-import { v4 as uuidv4 } from "uuid"; // For generating unique session IDs
 
 const apiBase = import.meta.env.VITE_API_BASE || "";
-
 export default {
   name: "Home",
   setup() {

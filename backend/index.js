@@ -7,10 +7,8 @@ const admin = require('firebase-admin');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
-
 // Load environment variables
 dotenv.config();
-
 // Initialize Firebase
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 admin.initializeApp({
@@ -56,7 +54,6 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-
 
 app.use(express.json());
 app.use('/answers', express.static(path.join(__dirname, '../frontend/public/answers')));
