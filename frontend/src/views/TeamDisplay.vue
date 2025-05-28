@@ -1,33 +1,10 @@
 <template>
   <!-- Join Team Dialog -->
-  <div v-if="!isSpectator && !hasJoined">
-    <div class="join-team-dialog-backdrop">
-      <div class="join-team-dialog">
-        <h2>Join the Game</h2>
-        <h3 class="left-align">Enter your name:</h3>
-        <input
-          v-model="playerName"
-          placeholder="Enter your name"
-          class="full-width-input"
-        />
-        <hr class="dialog-divider" />
-        <h3 class="left-align">Select your team:</h3>
-        <div class="radio-group">
-          <label
-            v-for="team in ['A', 'B']"
-            :key="team"
-            :class="['radio-option', { selected: selectedTeam === team }]"
-          >
-            <input type="radio" :value="team" v-model="selectedTeam" />
-            {{ store.teamNames[team] || team }}
-          </label>
-        </div>
-        <button @click="joinTeam" :disabled="!playerName || !selectedTeam">
-          Join
-        </button>
-      </div>
-    </div>
-  </div>
+  <JoinTeamDialog
+    v-if="!isSpectator && !hasJoined"
+    :teamNames="store.teamNames"
+    @joinTeam="joinTeam"
+  />
 
   <!-- Main Gameboard -->
   <div v-else>
@@ -133,13 +110,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useGameStore } from "@/stores/gamestore";
-import { io } from "socket.io-client";
 import socket from "../utils/socket";
 import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
 import AnswersBoard from "@/components/teamDisplay/AnswersBoard.vue";
 import GameInfo from "@/components/teamDisplay/GameInfo.vue";
 import FloatingButton from "@/components/teamDisplay/FloatingButton.vue";
 import Banner from "@/components/teamDisplay/Banner.vue";
+import JoinTeamDialog from "@/components/teamDisplay/JoinTeamDialog.vue";
 
 defineProps({
   isSpectator: {
@@ -215,15 +192,15 @@ const playNextRoundSound = () => {
   audio.play();
 };
 
-const joinTeam = () => {
-  if (!playerName.value.trim() || !selectedTeam.value) return;
+function joinTeam({ playerName, selectedTeam }) {
+  if (!playerName.trim() || !selectedTeam) return;
   socket.emit("join-team", {
     sessionId,
-    name: playerName.value.trim(),
-    team: selectedTeam.value,
+    name: playerName.trim(),
+    team: selectedTeam,
   });
   hasJoined.value = true;
-};
+}
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
@@ -394,152 +371,10 @@ socket.emit("round-over", { sessionId });
   margin-bottom: 16px;
 }
 
-.divider {
-  width: 2px;
-  height: 100%;
-  background-color: #ccc;
-  margin-right: 8px;
-}
-
-hr {
-  display: none; /* Remove horizontal lines since items are now horizontal */
-}
-
-/* Points Pool Styles */
-.points-pool {
-  margin-bottom: 8px;
-  font-size: 18px;
-  font-weight: bold;
-}
-
 /* Score Multiplier Styles */
 .score-multiplier {
   font-size: 16px;
   font-weight: bold;
-}
-
-/* Strikes Styles */
-.strikes {
-  color: red;
-  font-weight: bold;
-  font-size: 1.5rem;
-  letter-spacing: 4px;
-}
-
-/* Team Display Styles */
-.team-display {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.join-team-dialog-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.join-team-dialog {
-  background: #fff;
-  padding: 2rem 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.join-team-dialog input[type="text"] {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  font-size: 1rem;
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.join-team-dialog label {
-  margin-right: 1rem;
-  font-size: 1rem;
-}
-
-.join-team-dialog button {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #007bff;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.join-team-dialog button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.full-width-input {
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-}
-
-.left-align {
-  width: 100%;
-  text-align: left;
-  margin-bottom: 0.5rem;
-}
-
-.dialog-divider {
-  width: 100%;
-  border: none;
-  border-top: 1px solid #ddd;
-  margin: 1rem 0;
-}
-
-.radio-group {
-  display: flex;
-  gap: 1rem;
-  width: 100%;
-  margin-bottom: 1rem;
-}
-
-.radio-option {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  cursor: pointer;
-  background: #f9f9f9;
-  transition: border-color 0.2s, background 0.2s;
-  font-size: 1rem;
-}
-
-.radio-option.selected {
-  border-color: #007bff;
-  background: #e6f0ff;
-}
-
-.radio-option input[type="radio"] {
-  margin-right: 0.5rem;
 }
 
 .center-info {

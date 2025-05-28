@@ -178,6 +178,7 @@ function save() {
   align-items: center;
   min-width: 60px;
 }
+
 .strike-dot {
   display: inline-block;
   width: 16px;
