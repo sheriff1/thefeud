@@ -141,19 +141,10 @@ const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const editingTeam = ref(null); // 'A' or 'B' or null
 const editedTeamName = ref("");
 const isMuted = ref(false); // Mute state
-
-function toggleMute() {
-  isMuted.value = !isMuted.value;
-}
-
-// Store team members locally for display
-const teamMembers = ref({ A: [], B: [] });
-
-// Helper function to get the other team
-const otherTeam = (team) => (team === "A" ? "B" : "A");
+const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
+const otherTeam = (team) => (team === "A" ? "B" : "A"); // Helper function to get the other team
 const showStrikeX = ref(false);
 
-// Function to play the "ding" sound
 const playDingSound = () => {
   if (isMuted.value) return;
   const audio = new Audio("/sounds/ding.mp3"); // Path to the "ding" sound file
@@ -192,16 +183,6 @@ const playNextRoundSound = () => {
   audio.play();
 };
 
-function joinTeam({ playerName, selectedTeam }) {
-  if (!playerName.trim() || !selectedTeam) return;
-  socket.emit("join-team", {
-    sessionId,
-    name: playerName.trim(),
-    team: selectedTeam,
-  });
-  hasJoined.value = true;
-}
-
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
     socket.emit("buzz", { sessionId, name: playerName.value });
@@ -214,6 +195,41 @@ const startEditingTeamName = (team) => {
   editedTeamName.value = store.teamNames[team] || "";
 };
 
+const copySessionId = () => {
+  if (sessionId) {
+    navigator.clipboard
+      .writeText(sessionId)
+      .then(() => {
+        // Show "Copied" and turn the box green
+        sessionIdBoxText.value = "Copied!";
+        sessionIdBoxState.value = "copied";
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = "";
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error("Failed to copy session ID:", err);
+
+        // Show "Error" and turn the box red
+        sessionIdBoxText.value = "Error";
+        sessionIdBoxState.value = "error";
+
+        // Revert back to the original state after 2 seconds
+        setTimeout(() => {
+          sessionIdBoxText.value = `Session ID: ${sessionId}`;
+          sessionIdBoxState.value = "";
+        }, 2000);
+      });
+  }
+};
+
+function toggleMute() {
+  isMuted.value = !isMuted.value;
+}
+
 function saveTeamName(team, name) {
   if (name && name.trim()) {
     socket.emit("update-team-name", {
@@ -225,6 +241,16 @@ function saveTeamName(team, name) {
   }
 }
 
+function joinTeam({ playerName, selectedTeam }) {
+  if (!playerName.trim() || !selectedTeam) return;
+  socket.emit("join-team", {
+    sessionId,
+    name: playerName.trim(),
+    team: selectedTeam,
+  });
+  hasJoined.value = true;
+}
+
 socket.on("play-strike-sound", () => {
   playStrikeSound();
 });
@@ -232,6 +258,8 @@ socket.on("play-strike-sound", () => {
 socket.on("team-names-updated", (teamNames) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
 });
+
+socket.emit("round-over", { sessionId });
 
 // Watch for changes in guessed answers
 watch(
@@ -319,40 +347,6 @@ onMounted(() => {
 onUnmounted(() => {
   socket.removeAllListeners();
 });
-
-const copySessionId = () => {
-  if (sessionId) {
-    navigator.clipboard
-      .writeText(sessionId)
-      .then(() => {
-        // Show "Copied" and turn the box green
-        sessionIdBoxText.value = "Copied!";
-        sessionIdBoxState.value = "copied";
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error("Failed to copy session ID:", err);
-
-        // Show "Error" and turn the box red
-        sessionIdBoxText.value = "Error";
-        sessionIdBoxState.value = "error";
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
-        }, 2000);
-      });
-  }
-};
-
-// After setting roundOver to true
-socket.emit("round-over", { sessionId });
 </script>
 
 <style scoped>
@@ -369,12 +363,6 @@ socket.emit("round-over", { sessionId });
   align-items: stretch;
   gap: 1rem; /* 1rem gap between all 3 sections */
   margin-bottom: 16px;
-}
-
-/* Score Multiplier Styles */
-.score-multiplier {
-  font-size: 16px;
-  font-weight: bold;
 }
 
 .center-info {
