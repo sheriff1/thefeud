@@ -137,19 +137,15 @@
       </div>
 
       <!-- Timer Container -->
-      <div class="container timer-container">
-        <h3>Timer</h3>
-        <label for="timer-input">Set Timer (seconds):</label>
-        <input id="timer-input" type="number" v-model.number="timerInput" @change="setTimer" />
-        <div>
-          <p>Current Timer: {{ store.timer }} seconds</p>
-          <p v-if="store.timerRunning">Timer is running...</p>
-          <p v-else>Timer is stopped.</p>
-          <button class="btn" @click="startTimer">Start</button>
-          <button class="btn" @click="stopTimer">Stop</button>
-          <button class="btn" @click="resetTimer">Reset</button>
-        </div>
-      </div>
+      <TimerMgr
+        v-model:timerInput="timerInput"
+        :timerRunning="store.timerRunning"
+        :timer="store.timer"
+        :startTimer="startTimer"
+        :stopTimer="stopTimer"
+        :resetTimer="resetTimer"
+        :setTimer="setTimer"
+      />
     </div>
   </div>
 </template>
@@ -164,6 +160,7 @@ import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import GameStatusMgr from '@/components/hostDashboard/GameStatusMgr.vue';
 import QuestionAndAnswersMgr from '@/components/hostDashboard/QuestionAndAnswersMgr.vue';
 import ActiveGameInfoMgr from '@/components/hostDashboard/ActiveGameInfoMgr.vue';
+import TimerMgr from '@/components/hostDashboard/TimerMgr.vue';
 
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
