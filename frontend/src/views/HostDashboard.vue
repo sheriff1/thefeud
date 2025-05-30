@@ -51,45 +51,18 @@
         :setShowLibraryDialog="setShowLibraryDialog"
       />
       <!-- Available Answers, Strikes, and Points Pool Container -->
-      <div class="container game-info-container">
-        <h3>Active Game Info</h3>
 
-        <!-- Team Strike Counts -->
-        <p>
-          <span class="info-key">{{ store.teamNames.A }} Strikes:</span>
-          {{ store.teamStrikes.A }}
-        </p>
-        <p>
-          <span class="info-key">{{ store.teamNames.B }} Strikes:</span>
-          {{ store.teamStrikes.B }}
-        </p>
-        <p>
-          <span class="info-key">{{ store.teamNames.A }} Score:</span>
-          {{ store.teamScores.A }}
-        </p>
-        <p>
-          <span class="info-key">{{ store.teamNames.B }} Score:</span>
-          {{ store.teamScores.B }}
-        </p>
-
-        <p>
-          <span class="info-key">Current Round:</span> {{ store.roundCounter }}
-        </p>
-        <p>
-          <span class="info-key">Current Team:</span>
-          {{ store.teamNames[store.currentTeam] }}
-        </p>
-        <p><span class="info-key">Points Pool:</span> {{ store.pointPool }}</p>
-        <p>
-          <span class="info-key">Score Multiplier:</span>
-          {{ store.scoreMultiplier }}x
-        </p>
-
-        <!-- Reveal All Answers Button -->
-        <button class="btn" v-if="store.roundOver" @click="revealAllAnswers">
-          Reveal All Answers
-        </button>
-      </div>
+      <ActiveGameInfoMgr
+        :teamNames="store.teamNames"
+        :teamStrikes="store.teamStrikes"
+        :teamScores="store.teamScores"
+        :roundCounter="store.roundCounter"
+        :currentTeam="store.currentTeam"
+        :pointPool="store.pointPool"
+        :roundOver="store.roundOver"
+        :scoreMultiplier="store.scoreMultiplier"
+        :revealAllAnswers="revealAllAnswers"
+      />
     </div>
 
     <div class="flex-row">
@@ -149,32 +122,16 @@
           <label for="team-a-name">
             <span class="info-key">Team A:</span>
           </label>
-          <input
-            id="team-a-name"
-            type="text"
-            v-model="teamAName"
-            placeholder="Enter Team A Name"
-          />
+          <input id="team-a-name" type="text" v-model="teamAName" placeholder="Enter Team A Name" />
         </div>
         <div class="form-row">
           <label for="team-b-name">
             <span class="info-key">Team B:</span>
           </label>
-          <input
-            id="team-b-name"
-            type="text"
-            v-model="teamBName"
-            placeholder="Enter Team B Name"
-          />
+          <input id="team-b-name" type="text" v-model="teamBName" placeholder="Enter Team B Name" />
         </div>
-        <p v-if="!isTeamNamesUnique" class="error-message">
-          Team names must be unique.
-        </p>
-        <button
-          class="btn"
-          @click="saveTeamNames"
-          :disabled="!isTeamNamesUnique"
-        >
+        <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
+        <button class="btn" @click="saveTeamNames" :disabled="!isTeamNamesUnique">
           Save Team Names
         </button>
       </div>
@@ -183,12 +140,7 @@
       <div class="container timer-container">
         <h3>Timer</h3>
         <label for="timer-input">Set Timer (seconds):</label>
-        <input
-          id="timer-input"
-          type="number"
-          v-model.number="timerInput"
-          @change="setTimer"
-        />
+        <input id="timer-input" type="number" v-model.number="timerInput" @change="setTimer" />
         <div>
           <p>Current Timer: {{ store.timer }} seconds</p>
           <p v-if="store.timerRunning">Timer is running...</p>
@@ -203,20 +155,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import { useGameStore } from "@/stores/gamestore";
-import Papa from "papaparse";
-import { v4 as uuidv4 } from "uuid";
-import socket from "../utils/socket";
-import FloatingButton from "../components/teamDisplay/FloatingButton.vue";
-import GameStatusMgr from "@/components/hostDashboard/GameStatusMgr.vue";
-import QuestionAndAnswersMgr from "@/components/hostDashboard/QuestionAndAnswersMgr.vue";
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useGameStore } from '@/stores/gamestore';
+import Papa from 'papaparse';
+import { v4 as uuidv4 } from 'uuid';
+import socket from '../utils/socket';
+import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
+import GameStatusMgr from '@/components/hostDashboard/GameStatusMgr.vue';
+import QuestionAndAnswersMgr from '@/components/hostDashboard/QuestionAndAnswersMgr.vue';
+import ActiveGameInfoMgr from '@/components/hostDashboard/ActiveGameInfoMgr.vue';
 
-const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
+const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
-const apiBase = import.meta.env.VITE_API_BASE || "";
+const apiBase = import.meta.env.VITE_API_BASE || '';
 const fileUploaded = ref(false);
 const startingTeam = ref(null); // Track the selected starting team
 const selectedMultiplier = ref(null); // Track the selected multiplier
@@ -226,39 +179,36 @@ const timerInput = ref(0);
 let timerInterval = null;
 const answerPairs = ref([]); // Initialize with an empty array
 const answersSaved = ref(false); // Track if answers have been saved
-const questionInput = ref(""); // Track the question input
+const questionInput = ref(''); // Track the question input
 const questionSaved = ref(false); // Track if the question has been saved
 const previousRound = ref(store.roundCounter); // Track the previous round value
 const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
-const sessionIdBoxState = ref(""); // Default state (no additional class)
+const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
-const currentStep = ref("manage"); // Possible values: 'manage', 'multiplier', 'answers'
-const teamAName = ref("");
-const teamBName = ref("");
+const currentStep = ref('manage'); // Possible values: 'manage', 'multiplier', 'answers'
+const teamAName = ref('');
+const teamBName = ref('');
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
-const question = ref(""); // or whatever initial value/type you use
+const question = ref(''); // or whatever initial value/type you use
 const answers = computed(() => store.answers || []); // Use store's answers
 const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
 const isTeamNamesUnique = computed(() => {
-  return (
-    teamAName.value.trim().toLowerCase() !==
-    teamBName.value.trim().toLowerCase()
-  );
+  return teamAName.value.trim().toLowerCase() !== teamBName.value.trim().toLowerCase();
 });
 
 // Update game state
 const updateGameState = (gameState) => {
-  console.log("Session ID:", sessionId);
-  console.log("Game State:", gameState);
+  console.log('Session ID:', sessionId);
+  console.log('Game State:', gameState);
 
   if (!sessionId) {
-    alert("YERRRR Session ID is missing. Cannot update game state.");
+    alert('YERRRR Session ID is missing. Cannot update game state.');
     return;
   }
 
-  socket.emit("update-game", { sessionId, gameState });
+  socket.emit('update-game', { sessionId, gameState });
 };
 
 const emitGameState = () => {
@@ -267,23 +217,23 @@ const emitGameState = () => {
     previousTeamNames.value.A !== store.teamNames.A ||
     previousTeamNames.value.B !== store.teamNames.B
   ) {
-    socket.emit("update-game", { teamNames: { ...store.teamNames } }); // Emit only the team names
+    socket.emit('update-game', { teamNames: { ...store.teamNames } }); // Emit only the team names
     previousTeamNames.value = { ...store.teamNames }; // Update the previous team names
   }
 
   // Emit the full game state if both question and answers are saved
   if (questionSaved.value && answersSaved.value) {
-    socket.emit("update-game", { ...store.$state });
+    socket.emit('update-game', { ...store.$state });
   }
 
   // Emit the game state when the game is reset
   if (!questionSaved.value && !answersSaved.value) {
-    socket.emit("update-game", { ...store.$state, reset: true }); // Include a reset flag
+    socket.emit('update-game', { ...store.$state, reset: true }); // Include a reset flag
   }
 
   // Emit the game state when the round is reset
   if (store.roundOver === false && store.pointPool === 0) {
-    socket.emit("update-game", { ...store.$state, roundReset: true }); // Include a round reset flag
+    socket.emit('update-game', { ...store.$state, roundReset: true }); // Include a round reset flag
   }
 };
 
@@ -299,21 +249,21 @@ const handleUpload = (event) => {
 
       if (data.length > 0) {
         // Use the first entry's question
-        questionInput.value = data[0].Question || "";
+        questionInput.value = data[0].Question || '';
 
         // Populate the answers and points, assigning unique IDs
         answerPairs.value = data.map((row) => ({
           id: uuidv4(), // Assign a unique ID
-          text: row.Answer || "",
+          text: row.Answer || '',
           points: parseInt(row.Points, 10) || 0,
         }));
       } else {
-        alert("The uploaded CSV file is empty or invalid.");
+        alert('The uploaded CSV file is empty or invalid.');
       }
     },
     error: (error) => {
-      console.error("Error parsing CSV:", error);
-      alert("Failed to parse the CSV file. Please check the format.");
+      console.error('Error parsing CSV:', error);
+      alert('Failed to parse the CSV file. Please check the format.');
     },
   });
 };
@@ -329,7 +279,7 @@ const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
   multiplierSet.value = true; // Disable the buttons
-  currentStep.value = "answers"; // Show the Available Answers section
+  currentStep.value = 'answers'; // Show the Available Answers section
   updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -352,15 +302,15 @@ const resetGame = () => {
   store.scoreMultiplier = null;
   answersSaved.value = false;
   answerPairs.value = [];
-  questionInput.value = "";
+  questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = "manage";
+  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
   previousRound.value = 0; // Store the current round value
 
-  socket.emit("update-game", {
+  socket.emit('update-game', {
     sessionId,
     gameState: { ...store.$state, roundReset: true },
   });
@@ -398,14 +348,14 @@ const resetRound = () => {
   store.scoreMultiplier = null;
   answersSaved.value = false;
   answerPairs.value = [];
-  questionInput.value = "";
+  questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = "manage";
+  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
-  socket.emit("update-game", {
+  socket.emit('update-game', {
     sessionId,
     gameState: { ...store.$state, roundReset: true },
   });
@@ -433,15 +383,15 @@ const nextRound = () => {
   store.scoreMultiplier = null;
   answersSaved.value = false;
   answerPairs.value = [];
-  questionInput.value = "";
+  questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = "manage";
+  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
   // Emit the updated game state for the next round
-  socket.emit("update-game", {
+  socket.emit('update-game', {
     sessionId,
     gameState: { ...store.$state, nextRound: true },
   });
@@ -549,9 +499,9 @@ const handleIncorrectGuess = () => {
 
 const addAnswerPair = () => {
   if (answerPairs.value.length < 8) {
-    answerPairs.value.push({ id: uuidv4(), text: "", points: 0 });
+    answerPairs.value.push({ id: uuidv4(), text: '', points: 0 });
   } else {
-    alert("You can only add up to 8 answers.");
+    alert('You can only add up to 8 answers.');
   }
 };
 
@@ -560,7 +510,7 @@ const removeAnswerPair = (index) => {
 };
 
 const removeAllAnswers = () => {
-  answerPairs.value = [{ text: "", points: 0 }]; // Reset to one empty pair
+  answerPairs.value = [{ text: '', points: 0 }]; // Reset to one empty pair
 };
 
 const saveQuestionAndAnswers = () => {
@@ -569,26 +519,24 @@ const saveQuestionAndAnswers = () => {
     question.value = questionInput.value.trim(); // <-- Set the active question
     questionSaved.value = true;
   } else {
-    alert("Please enter a valid question.");
+    alert('Please enter a valid question.');
     return;
   }
 
-  const validAnswers = answerPairs.value.filter(
-    (pair) => pair.text.trim() && !isNaN(pair.points)
-  );
+  const validAnswers = answerPairs.value.filter((pair) => pair.text.trim() && !isNaN(pair.points));
 
   if (validAnswers.length > 0) {
     store.uploadAnswers(validAnswers);
     answersSaved.value = true;
   } else {
-    alert("Please provide at least one valid answer with points.");
+    alert('Please provide at least one valid answer with points.');
     return;
   }
 
   if (questionSaved.value && answersSaved.value) {
     store.incrementRoundCounter();
     updateGameState(store.$state); // Emit the updated game state
-    currentStep.value = "multiplier"; // Show the Set Score Multiplier section
+    currentStep.value = 'multiplier'; // Show the Set Score Multiplier section
   }
 };
 
@@ -597,12 +545,12 @@ const saveTeamNames = () => {
   const trimmedTeamBName = teamBName.value.trim();
 
   if (!trimmedTeamAName || !trimmedTeamBName) {
-    alert("Both team names are required.");
+    alert('Both team names are required.');
     return;
   }
 
   if (trimmedTeamAName.toLowerCase() === trimmedTeamBName.toLowerCase()) {
-    alert("Team names must be unique.");
+    alert('Team names must be unique.');
     return;
   }
 
@@ -625,15 +573,12 @@ const revealAllAnswers = () => {
 
 const emitStrikeSound = () => {
   buzzerOnlyCount.value++;
-  console.log("emitStrikeSound called");
-  socket.emit("play-strike-sound", { sessionId });
+  console.log('emitStrikeSound called');
+  socket.emit('play-strike-sound', { sessionId });
 };
 
 const showWhoStarts = computed(() => {
-  return (
-    correctCount.value >= 2 ||
-    (correctCount.value === 1 && buzzerOnlyCount.value >= 1)
-  );
+  return correctCount.value >= 2 || (correctCount.value === 1 && buzzerOnlyCount.value >= 1);
 });
 
 const copySessionId = () => {
@@ -642,26 +587,26 @@ const copySessionId = () => {
       .writeText(sessionId)
       .then(() => {
         // Show "Copied" and turn the box green
-        sessionIdBoxText.value = "Copied!";
-        sessionIdBoxState.value = "copied";
+        sessionIdBoxText.value = 'Copied!';
+        sessionIdBoxState.value = 'copied';
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
+          sessionIdBoxState.value = '';
         }, 2000);
       })
       .catch((err) => {
-        console.error("Failed to copy session ID:", err);
+        console.error('Failed to copy session ID:', err);
 
         // Show "Error" and turn the box red
-        sessionIdBoxText.value = "Error";
-        sessionIdBoxState.value = "error";
+        sessionIdBoxText.value = 'Error';
+        sessionIdBoxState.value = 'error';
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
+          sessionIdBoxState.value = '';
         }, 2000);
       });
   }
@@ -692,63 +637,63 @@ const loadLibraryFile = async (filename) => {
     complete: (results) => {
       const data = results.data;
       if (data.length > 0) {
-        questionInput.value = data[0].Question || "";
+        questionInput.value = data[0].Question || '';
         answerPairs.value = data.map((row) => ({
           id: uuidv4(),
-          text: row.Answer || "",
+          text: row.Answer || '',
           points: parseInt(row.Points, 10) || 0,
         }));
       } else {
-        alert("The selected CSV file is empty or invalid.");
+        alert('The selected CSV file is empty or invalid.');
       }
       showLibraryDialog.value = false;
     },
     error: (error) => {
-      alert("Failed to parse the selected CSV file.");
+      alert('Failed to parse the selected CSV file.');
       showLibraryDialog.value = false;
     },
   });
 };
 
 // Listen for game state updates
-socket.on("game-updated", (updatedGameState) => {
-  console.log("Game state updated:", updatedGameState);
+socket.on('game-updated', (updatedGameState) => {
+  console.log('Game state updated:', updatedGameState);
 });
 
 // Handle errors
-socket.on("error", (error) => {
-  console.error("Error from backend:", error.message);
+socket.on('error', (error) => {
+  console.error('Error from backend:', error.message);
   alert(`Error: ${error.message}`);
 });
 
 // Handle connection errors
-socket.on("connect_error", (error) => {
-  console.error("WebSocket connection error:", error);
+socket.on('connect_error', (error) => {
+  console.error('WebSocket connection error:', error);
 });
 
 onMounted(() => {
   store.initSocket();
 
   // Listen for team name updates from the backend
-  socket.on("team-names-updated", (teamNames) => {
+  socket.on('team-names-updated', (teamNames) => {
     store.teamNames = { ...store.teamNames, ...teamNames };
     // Optionally, update local refs if you use them for input fields:
     teamAName.value = store.teamNames.A;
     teamBName.value = store.teamNames.B;
   });
   if (!sessionId) {
-    alert("No session ID provided. Please join a valid session.");
+    alert('No session ID provided. Please join a valid session.');
     return;
   }
   // Join the session
-  socket.emit("join-session", { sessionId });
+  socket.emit('join-session', { sessionId });
 
   // Request the current game state from the backend
-  socket.emit("get-current-state", { sessionId });
+  socket.emit('get-current-state', { sessionId });
 
   // Listen for the current game state from the backend
-  socket.on("current-state", (currentState) => {
-    console.log("Current game state received:", currentState);
+  socket.on('current-state', (currentState) => {
+    console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
     // Sync local variables with the global state
@@ -769,7 +714,7 @@ onMounted(() => {
   });
 
   // Listen for game state updates
-  socket.on("game-updated", (updatedGameState) => {
+  socket.on('game-updated', (updatedGameState) => {
     Object.assign(store.$state, updatedGameState);
 
     // Sync local variables with the updated global state
@@ -796,17 +741,17 @@ onMounted(() => {
   });
 
   // Handle connection errors
-  socket.on("connect_error", (error) => {
-    console.error("WebSocket connection error:", error);
-    alert("Failed to connect to the game session. Please try again.");
+  socket.on('connect_error', (error) => {
+    console.error('WebSocket connection error:', error);
+    alert('Failed to connect to the game session. Please try again.');
   });
 
-  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: "POST" });
+  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
 });
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
-  socket.off("team-names-updated");
+  socket.off('team-names-updated');
   socket.removeAllListeners();
 });
 </script>
@@ -867,7 +812,9 @@ button {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   opacity: 0.7; /* Default opacity */
-  transition: opacity 0.3s ease, background-color 0.3s ease; /* Smooth transition for hover and color changes */
+  transition:
+    opacity 0.3s ease,
+    background-color 0.3s ease; /* Smooth transition for hover and color changes */
   border: none;
   cursor: pointer; /* Make it clear that it's clickable */
 }
@@ -914,12 +861,14 @@ button {
   border-radius: 4px;
   font-size: 1rem;
   font-weight: 600;
-  font-family: "Segoe UI", "Roboto", "Arial", sans-serif;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
   text-decoration: none;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
