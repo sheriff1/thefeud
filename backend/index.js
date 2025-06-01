@@ -224,13 +224,21 @@ io.on('connection', (socket) => {
       }
 
       // Save the updated gameState to Firestore
-      await sessionRef.set(gameState, { merge: true });
+      await sessionRef.set(gameState);
 
       // Optionally reset buzzedPlayer if this is a round/game reset
       await sessionRef.set({ buzzedPlayer: '' }, { merge: true });
 
+      //DEBUG: Log the received gameState and updated state
+      console.log('Received gameState:', JSON.stringify(gameState));
+      await sessionRef.set(gameState);
+      const updatedDoc = await sessionRef.get();
+      const updatedState = updatedDoc.data();
+      console.log('Rebroadcasting updatedState:', JSON.stringify(updatedState));
+      //END DEBUG: Log the received gameState and updated state
+
       // Broadcast the updated game state to all clients in the session
-      io.to(sessionId).emit('game-updated', gameState);
+      io.to(sessionId).emit('update-game', gameState);
     } catch (error) {
       console.error('Error updating game state:', error);
       socket.emit('error', { message: 'Failed to update game state' });
@@ -248,7 +256,7 @@ io.on('connection', (socket) => {
       // Emit only the team-names-updated event
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
 
-      // Do NOT emit 'game-updated' here
+      // Do NOT emit 'update-game' here
     } catch (error) {
       console.error('Error updating team name:', error);
     }
@@ -264,7 +272,7 @@ io.on('connection', (socket) => {
       const sessionDoc = await sessionRef.get();
       const gameState = sessionDoc.data();
       // Broadcast the updated game state to all clients
-      io.to(sessionId).emit('game-updated', gameState);
+      io.to(sessionId).emit('update-game', gameState);
     } catch (error) {
       console.error('Error setting starting team:', error);
       socket.emit('error', { message: 'Failed to set starting team' });

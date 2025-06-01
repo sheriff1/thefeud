@@ -30,7 +30,7 @@ export const useGameStore = defineStore('game', {
       socket.on('gameState', (newState) => {
         Object.assign(this, newState);
       });
-      socket.on('game-updated', (gameState) => {
+      socket.on('update-game', (gameState) => {
         Object.assign(this.$state, gameState);
       });
     },

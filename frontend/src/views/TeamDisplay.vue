@@ -52,13 +52,10 @@
           :active="store.currentTeam === 'A'"
           :editing="editingTeam === 'A'"
           :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
-          :showBuzzer="
-            isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet
-          "
+          :showBuzzer="isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet"
           :buzzerDisabled="isBuzzerDisabled"
           :initialEditedName="editedTeamName"
           @edit-team="startEditingTeamName"
-          @save-team="({ team, name }) => saveTeamName(team, name)"
           @buzz="pressBuzzer"
         />
 
@@ -93,9 +90,7 @@
           :active="store.currentTeam === 'B'"
           :editing="editingTeam === 'B'"
           :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
-          :showBuzzer="
-            isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet
-          "
+          :showBuzzer="isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet"
           :buzzerDisabled="isBuzzerDisabled"
           :initialEditedName="editedTeamName"
           @edit-team="startEditingTeamName"
@@ -108,15 +103,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
-import { useGameStore } from "@/stores/gamestore";
-import socket from "../utils/socket";
-import TeamPanel from "@/components/teamDisplay/TeamPanel.vue";
-import AnswersBoard from "@/components/teamDisplay/AnswersBoard.vue";
-import GameInfo from "@/components/teamDisplay/GameInfo.vue";
-import FloatingButton from "@/components/teamDisplay/FloatingButton.vue";
-import Banner from "@/components/teamDisplay/Banner.vue";
-import JoinTeamDialog from "@/components/teamDisplay/JoinTeamDialog.vue";
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useGameStore } from '@/stores/gamestore';
+import socket from '../utils/socket';
+import TeamPanel from '@/components/teamDisplay/TeamPanel.vue';
+import AnswersBoard from '@/components/teamDisplay/AnswersBoard.vue';
+import GameInfo from '@/components/teamDisplay/GameInfo.vue';
+import FloatingButton from '@/components/teamDisplay/FloatingButton.vue';
+import Banner from '@/components/teamDisplay/Banner.vue';
+import JoinTeamDialog from '@/components/teamDisplay/JoinTeamDialog.vue';
 
 defineProps({
   isSpectator: {
@@ -126,34 +121,32 @@ defineProps({
 });
 
 const store = useGameStore();
-const sessionId = new URLSearchParams(window.location.search).get("sessionId"); // Get sessionId from URL query params
+const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
-const sessionIdBoxState = ref(""); // Default state (no additional class)
-const playerName = ref("");
-const selectedTeam = ref("");
+const sessionIdBoxState = ref(''); // Default state (no additional class)
+const playerName = ref('');
+const selectedTeam = ref('');
 const hasJoined = ref(false);
 const hasBuzzed = ref(false);
-const buzzedPlayer = ref(""); // Name of the player who buzzed first
-const isBuzzerDisabled = computed(
-  () => hasBuzzed.value || !!buzzedPlayer.value
-);
+const buzzedPlayer = ref(''); // Name of the player who buzzed first
+const isBuzzerDisabled = computed(() => hasBuzzed.value || !!buzzedPlayer.value);
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const editingTeam = ref(null); // 'A' or 'B' or null
-const editedTeamName = ref("");
+const editedTeamName = ref('');
 const isMuted = ref(false); // Mute state
 const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
-const otherTeam = (team) => (team === "A" ? "B" : "A"); // Helper function to get the other team
+const otherTeam = (team) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
 const showStrikeX = ref(false);
 
 const playDingSound = () => {
   if (isMuted.value) return;
-  const audio = new Audio("/sounds/ding.mp3"); // Path to the "ding" sound file
+  const audio = new Audio('/sounds/ding.mp3'); // Path to the "ding" sound file
   audio.play();
 };
 
 const playBuzzerSound = () => {
   if (isMuted.value) return;
-  const audio = new Audio("/sounds/buzzer.mp3");
+  const audio = new Audio('/sounds/buzzer.mp3');
   audio.play();
 };
 
@@ -166,33 +159,33 @@ const playStrikeSound = () => {
   if (isMuted.value) {
     return;
   } else {
-    const audio = new Audio("/sounds/strike.mp3");
+    const audio = new Audio('/sounds/strike.mp3');
     audio.play();
   }
 };
 
 const playRoundOverSound = () => {
   if (isMuted.value) return;
-  const audio = new Audio("/sounds/round-over.mp3");
+  const audio = new Audio('/sounds/round-over.mp3');
   audio.play();
 };
 
 const playNextRoundSound = () => {
   if (isMuted.value) return;
-  const audio = new Audio("/sounds/next-round.mp3");
+  const audio = new Audio('/sounds/next-round.mp3');
   audio.play();
 };
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
-    socket.emit("buzz", { sessionId, name: playerName.value });
+    socket.emit('buzz', { sessionId, name: playerName.value });
     hasBuzzed.value = true;
   }
 };
 
 const startEditingTeamName = (team) => {
   editingTeam.value = team;
-  editedTeamName.value = store.teamNames[team] || "";
+  editedTeamName.value = store.teamNames[team] || '';
 };
 
 const copySessionId = () => {
@@ -201,26 +194,26 @@ const copySessionId = () => {
       .writeText(sessionId)
       .then(() => {
         // Show "Copied" and turn the box green
-        sessionIdBoxText.value = "Copied!";
-        sessionIdBoxState.value = "copied";
+        sessionIdBoxText.value = 'Copied!';
+        sessionIdBoxState.value = 'copied';
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
+          sessionIdBoxState.value = '';
         }, 2000);
       })
       .catch((err) => {
-        console.error("Failed to copy session ID:", err);
+        console.error('Failed to copy session ID:', err);
 
         // Show "Error" and turn the box red
-        sessionIdBoxText.value = "Error";
-        sessionIdBoxState.value = "error";
+        sessionIdBoxText.value = 'Error';
+        sessionIdBoxState.value = 'error';
 
         // Revert back to the original state after 2 seconds
         setTimeout(() => {
           sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = "";
+          sessionIdBoxState.value = '';
         }, 2000);
       });
   }
@@ -232,7 +225,7 @@ function toggleMute() {
 
 function saveTeamName(team, name) {
   if (name && name.trim()) {
-    socket.emit("update-team-name", {
+    socket.emit('update-team-name', {
       sessionId,
       team,
       name: name.trim(),
@@ -243,7 +236,7 @@ function saveTeamName(team, name) {
 
 function joinTeam({ playerName: name, selectedTeam: team }) {
   if (!name.trim() || !team) return;
-  socket.emit("join-team", {
+  socket.emit('join-team', {
     sessionId,
     name: name.trim(),
     team,
@@ -253,15 +246,15 @@ function joinTeam({ playerName: name, selectedTeam: team }) {
   hasJoined.value = true;
 }
 
-socket.on("play-strike-sound", () => {
+socket.on('play-strike-sound', () => {
   playStrikeSound();
 });
 
-socket.on("team-names-updated", (teamNames) => {
+socket.on('team-names-updated', (teamNames) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
 });
 
-socket.emit("round-over", { sessionId });
+socket.emit('round-over', { sessionId });
 
 // Watch for changes in guessed answers
 watch(
@@ -270,7 +263,7 @@ watch(
     if (newGuessedAnswers.length > oldGuessedAnswers.length) {
       playDingSound(); // Play sound when a new answer is guessed
     }
-  }
+  },
 );
 
 // Watch for changes in team strikes
@@ -284,63 +277,63 @@ watch(
       playStrikeSound(); // Play sound when a strike is given
     }
   },
-  { deep: true } // Watch for deep changes in the teamStrikes object
+  { deep: true }, // Watch for deep changes in the teamStrikes object
 );
 
 // Join a session and listen for updates
 onMounted(() => {
   if (!sessionId) {
-    alert("No session ID provided. Please join a valid session.");
+    alert('No session ID provided. Please join a valid session.');
     return;
   }
 
   // Join the session
-  socket.emit("join-session", { sessionId });
+  socket.emit('join-session', { sessionId });
 
   // Request the current game state from the backend
-  socket.emit("get-current-state", { sessionId });
+  socket.emit('get-current-state', { sessionId });
 
-  socket.on("buzzed", ({ name }) => {
+  socket.on('buzzed', ({ name }) => {
     buzzedPlayer.value = name;
     playBuzzerSound(); // <-- Make sure this is here!
   });
 
   // Listen for the current game state from the backend
-  socket.on("current-state", (currentState) => {
-    console.log("Current game state received:", currentState);
+  socket.on('current-state', (currentState) => {
+    console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState);
-    buzzedPlayer.value = currentState?.buzzedPlayer || "";
+    buzzedPlayer.value = currentState?.buzzedPlayer || '';
   });
 
   // Listen for game state updates
-  socket.on("game-updated", (newState) => {
-    store.teamNames = { ...store.teamNames, ...newState.teamNames };
+  socket.on('update-game', (newState) => {
     Object.assign(store.$state, newState);
-    buzzedPlayer.value = newState?.buzzedPlayer || "";
+    store.teamNames = { ...store.teamNames, ...newState.teamNames };
+    buzzedPlayer.value = newState?.buzzedPlayer || '';
     hasBuzzed.value = false;
   });
 
   // Listen for the "play-strike-sound" event from the backend
-  socket.on("play-strike-sound", () => {
-    console.log("play-strike-sound event received");
+  socket.on('play-strike-sound', () => {
+    console.log('play-strike-sound event received');
     playStrikeSound();
   });
 
-  socket.on("team-members-updated", (members) => {
+  socket.on('team-members-updated', (members) => {
     teamMembers.value = members;
   });
 
   // Handle connection errors
-  socket.on("connect_error", (error) => {
-    console.error("WebSocket connection error:", error);
-    alert("Failed to connect to the game session. Please try again.");
+  socket.on('connect_error', (error) => {
+    console.error('WebSocket connection error:', error);
+    alert('Failed to connect to the game session. Please try again.');
   });
 
-  socket.on("round-over", () => {
+  socket.on('round-over', () => {
     playRoundOverSound();
   });
-  socket.on("next-round", () => {
-    console.log("next-round event received");
+  socket.on('next-round', () => {
+    console.log('next-round event received');
     playNextRoundSound();
   });
 });
@@ -352,7 +345,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 /* Root Container Styles */
 .gameboard-container {
   padding: 4rem; /* Add padding around the perimeter */

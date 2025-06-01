@@ -56,7 +56,7 @@
         :teamNames="store.teamNames"
         :teamStrikes="store.teamStrikes"
         :teamScores="store.teamScores"
-        :roundCounter="store.roundCounter"
+        :roundCounter="Number(store.roundCounter) || 0"
         :currentTeam="store.currentTeam"
         :pointPool="store.pointPool"
         :roundOver="store.roundOver"
@@ -66,75 +66,14 @@
     </div>
 
     <div class="flex-row">
-      <!-- Score and Manual Score Override Container -->
-      <!-- In the Score Management section, update each <label> to wrap the label text in a <span class="info-key">: -->
-
-      <div class="container score-container">
-        <h3>Score Management</h3>
-        <div class="form-row">
-          <label :for="'team-a-score'">
-            <span class="info-key">{{ store.teamNames.A }}:</span>
-          </label>
-          <input
-            id="team-a-score"
-            type="number"
-            v-model.number="store.teamScores.A"
-            @change="updateTeamScore('A', store.teamScores.A)"
-          />
-        </div>
-        <div class="form-row">
-          <label :for="'team-b-score'">
-            <span class="info-key">{{ store.teamNames.B }}:</span>
-          </label>
-          <input
-            id="team-b-score"
-            type="number"
-            v-model.number="store.teamScores.B"
-            @change="updateTeamScore('B', store.teamScores.B)"
-          />
-        </div>
-        <div class="form-row">
-          <label for="round-counter">
-            <span class="info-key">Round:</span>
-          </label>
-          <input
-            id="round-counter"
-            type="number"
-            v-model.number="store.roundCounter"
-            @change="updateRoundCounter(store.roundCounter)"
-          />
-        </div>
-        <div class="form-row">
-          <label for="score-multiplier">
-            <span class="info-key">Score Multiplier:</span>
-          </label>
-          <input
-            id="score-multiplier"
-            type="number"
-            v-model.number="store.scoreMultiplier"
-            @change="updateScoreMultiplier(store.scoreMultiplier)"
-            min="1"
-            max="3"
-          />
-        </div>
-        <h3>Team Names</h3>
-        <div class="form-row">
-          <label for="team-a-name">
-            <span class="info-key">Team A:</span>
-          </label>
-          <input id="team-a-name" type="text" v-model="teamAName" placeholder="Enter Team A Name" />
-        </div>
-        <div class="form-row">
-          <label for="team-b-name">
-            <span class="info-key">Team B:</span>
-          </label>
-          <input id="team-b-name" type="text" v-model="teamBName" placeholder="Enter Team B Name" />
-        </div>
-        <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
-        <button class="btn" @click="saveTeamNames" :disabled="!isTeamNamesUnique">
-          Save Team Names
-        </button>
-      </div>
+      <ManualOverrideMgr
+        :teamNames="store.teamNames"
+        :teamScores="store.teamScores"
+        :roundCounter="store.roundCounter"
+        :scoreMultiplier="store.scoreMultiplier ?? 1"
+        :isTeamNamesUnique="isTeamNamesUnique"
+        @saveScoreMgmt="saveScoreMgmt"
+      />
 
       <!-- Timer Container -->
       <TimerMgr
@@ -161,6 +100,7 @@ import GameStatusMgr from '@/components/hostDashboard/GameStatusMgr.vue';
 import QuestionAndAnswersMgr from '@/components/hostDashboard/QuestionAndAnswersMgr.vue';
 import ActiveGameInfoMgr from '@/components/hostDashboard/ActiveGameInfoMgr.vue';
 import TimerMgr from '@/components/hostDashboard/TimerMgr.vue';
+import ManualOverrideMgr from '@/components/hostDashboard/ManualOverrideMgr.vue';
 
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
@@ -184,21 +124,22 @@ const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const currentStep = ref('manage'); // Possible values: 'manage', 'multiplier', 'answers'
-const teamAName = ref('');
-const teamBName = ref('');
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const question = ref(''); // or whatever initial value/type you use
 const answers = computed(() => store.answers || []); // Use store's answers
 const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
 const isTeamNamesUnique = computed(() => {
-  return teamAName.value.trim().toLowerCase() !== teamBName.value.trim().toLowerCase();
+  return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
 });
 
 // Update game state
 const updateGameState = (gameState) => {
-  console.log('Session ID:', sessionId);
-  console.log('Game State:', gameState);
+  console.log('Session ID when updateGameState() is called:', sessionId);
+  console.log(
+    'Game State when updateGameState() is called:',
+    JSON.parse(JSON.stringify(gameState)),
+  );
 
   if (!sessionId) {
     alert('YERRRR Session ID is missing. Cannot update game state.');
@@ -206,32 +147,6 @@ const updateGameState = (gameState) => {
   }
 
   socket.emit('update-game', { sessionId, gameState });
-};
-
-const emitGameState = () => {
-  // Check if the team names have changed
-  if (
-    previousTeamNames.value.A !== store.teamNames.A ||
-    previousTeamNames.value.B !== store.teamNames.B
-  ) {
-    socket.emit('update-game', { teamNames: { ...store.teamNames } }); // Emit only the team names
-    previousTeamNames.value = { ...store.teamNames }; // Update the previous team names
-  }
-
-  // Emit the full game state if both question and answers are saved
-  if (questionSaved.value && answersSaved.value) {
-    socket.emit('update-game', { ...store.$state });
-  }
-
-  // Emit the game state when the game is reset
-  if (!questionSaved.value && !answersSaved.value) {
-    socket.emit('update-game', { ...store.$state, reset: true }); // Include a reset flag
-  }
-
-  // Emit the game state when the round is reset
-  if (store.roundOver === false && store.pointPool === 0) {
-    socket.emit('update-game', { ...store.$state, roundReset: true }); // Include a round reset flag
-  }
 };
 
 const handleUpload = (event) => {
@@ -395,26 +310,6 @@ const nextRound = () => {
   updateGameState(store.$state);
 };
 
-const updateTeamScore = (team, score) => {
-  store.updateTeamScore(team, score);
-  updateGameState(store.$state); // Emit the updated game state
-};
-
-const updateTeamName = (team, name) => {
-  store.updateTeamName(team, name);
-  updateGameState(store.$state); // Emit the updated game state
-};
-
-const updateRoundCounter = (round) => {
-  store.updateRoundCounter(round);
-  updateGameState(store.$state); // Emit the updated game state
-};
-
-const updateScoreMultiplier = (multiplier) => {
-  store.setScoreMultiplier(multiplier);
-  updateGameState(store.$state); // Emit the updated game state
-};
-
 const handleIncorrectAndStrike = () => {
   handleIncorrectGuess();
   emitStrikeSound();
@@ -537,9 +432,9 @@ const saveQuestionAndAnswers = () => {
   }
 };
 
-const saveTeamNames = () => {
-  const trimmedTeamAName = teamAName.value.trim();
-  const trimmedTeamBName = teamBName.value.trim();
+const saveScoreMgmt = () => {
+  const trimmedTeamAName = store.teamNames.A.trim();
+  const trimmedTeamBName = store.teamNames.B.trim();
 
   if (!trimmedTeamAName || !trimmedTeamBName) {
     alert('Both team names are required.');
@@ -551,12 +446,16 @@ const saveTeamNames = () => {
     return;
   }
 
-  // Update the global state with the trimmed names
-  store.teamNames.A = trimmedTeamAName;
-  store.teamNames.B = trimmedTeamBName;
+  // Build a fresh game state object
+  const gameState2 = {
+    ...store.$state,
+    teamNames: {
+      A: trimmedTeamAName,
+      B: trimmedTeamBName,
+    },
+  };
 
-  //alert('Team names saved successfully!');
-  updateGameState(store.$state); // Emit the updated game state
+  updateGameState(gameState2);
 };
 
 const revealAllAnswers = () => {
@@ -653,7 +552,7 @@ const loadLibraryFile = async (filename) => {
 };
 
 // Listen for game state updates
-socket.on('game-updated', (updatedGameState) => {
+socket.on('update-game', (updatedGameState) => {
   console.log('Game state updated:', updatedGameState);
 });
 
@@ -672,12 +571,12 @@ onMounted(() => {
   store.initSocket();
 
   // Listen for team name updates from the backend
-  socket.on('team-names-updated', (teamNames) => {
-    store.teamNames = { ...store.teamNames, ...teamNames };
-    // Optionally, update local refs if you use them for input fields:
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
-  });
+  // socket.on('team-names-updated', (teamNames) => {
+  //   store.teamNames = { ...store.teamNames, ...teamNames };
+  //   // Optionally, update local refs if you use them for input fields:
+  //   // teamAName.value = store.teamNames.A;
+  //   // teamBName.value = store.teamNames.B;
+  // });
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
     return;
@@ -694,8 +593,8 @@ onMounted(() => {
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
     // Sync local variables with the global state
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
+    // teamAName.value = store.teamNames.A;
+    // teamBName.value = store.teamNames.B;
 
     // Sync "Who Starts" state
     if (store.firstTeam) {
@@ -711,12 +610,8 @@ onMounted(() => {
   });
 
   // Listen for game state updates
-  socket.on('game-updated', (updatedGameState) => {
+  socket.on('update-game', (updatedGameState) => {
     Object.assign(store.$state, updatedGameState);
-
-    // Sync local variables with the updated global state
-    teamAName.value = store.teamNames.A;
-    teamBName.value = store.teamNames.B;
 
     // Sync "Who Starts" state
     if (store.firstTeam) {
@@ -735,6 +630,12 @@ onMounted(() => {
       selectedMultiplier.value = null;
       //multiplierSet.value = false;
     }
+
+    // Instead of replacing the whole object, update properties
+    if (updatedGameState.teamNames) {
+      store.teamNames.A = updatedGameState.teamNames.A;
+      store.teamNames.B = updatedGameState.teamNames.B;
+    }
   });
 
   // Handle connection errors
@@ -748,7 +649,7 @@ onMounted(() => {
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
-  socket.off('team-names-updated');
+  // socket.off('team-names-updated');
   socket.removeAllListeners();
 });
 </script>
