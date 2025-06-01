@@ -254,8 +254,6 @@ socket.on('team-names-updated', (teamNames) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
 });
 
-socket.emit('round-over', { sessionId });
-
 // Watch for changes in guessed answers
 watch(
   () => store.guessedAnswers,
@@ -335,6 +333,17 @@ onMounted(() => {
   socket.on('next-round', () => {
     console.log('next-round event received');
     playNextRoundSound();
+  });
+  socket.on('reset-round', () => {
+    buzzedPlayer.value = '';
+    hasBuzzed.value = false;
+    editingTeam.value = null;
+    editedTeamName.value = '';
+    showStrikeX.value = false;
+  });
+  socket.on('reset-buzzers', () => {
+    buzzedPlayer.value = '';
+    hasBuzzed.value = false;
   });
 });
 

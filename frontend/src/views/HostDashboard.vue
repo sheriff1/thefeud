@@ -224,7 +224,7 @@ const resetGame = () => {
 
   socket.emit('update-game', {
     sessionId,
-    gameState: { ...store.$state, roundReset: true },
+    gameState: { ...store.$state, gameReset: true },
   });
   updateGameState(store.$state); // Emit the reset state to the Team Display
 };

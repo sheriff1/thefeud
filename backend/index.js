@@ -215,12 +215,82 @@ io.on('connection', (socket) => {
       // Emit "next-round" ONLY if transitioning from over to not over
       if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
         console.log('Emitting next-round event');
+        gameState.roundReset = false;
+        gameState.roundOver = false; // Reset roundOver if roundReset is true
+        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
+        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
+        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
+        gameState.strikes = 0; // Reset strikes
+        gameState.pointPool = 0; // Reset point pool
+        gameState.firstTeam = null; // Reset firstTeam
+        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
+        gameState.scoreMultiplier = null; // Reset scoreMultiplier
+        gameState.timer = 0; // Reset timer
+        gameState.timerRunning = false; // Reset timerRunning
+        gameState.question = ''; // Reset question
+        gameState.pointsAwarded = 0; // Reset pointsAwarded
+        gameState.winningTeam = null; // Reset winningTeam
+        gameState.answers = []; // Reset answers
+        gameState.guessedAnswers = []; // Reset guessedAnswers
+        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
         io.to(sessionId).emit('next-round');
+        io.to(sessionId).emit('reset-buzzers');
       }
 
       // --- Reset the flag here, after logic that depends on it ---
       if (gameState.roundReset) {
         gameState.roundReset = false;
+        gameState.roundOver = false; // Reset roundOver if roundReset is true
+        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
+        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
+        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
+        gameState.strikes = 0; // Reset strikes
+        gameState.pointPool = 0; // Reset point pool
+        gameState.firstTeam = null; // Reset firstTeam
+        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
+        gameState.scoreMultiplier = null; // Reset scoreMultiplier
+        gameState.timer = 0; // Reset timer
+        gameState.timerRunning = false; // Reset timerRunning
+        gameState.question = ''; // Reset question
+        gameState.pointsAwarded = 0; // Reset pointsAwarded
+        gameState.winningTeam = null; // Reset winningTeam
+        gameState.answers = []; // Reset answers
+        gameState.guessedAnswers = []; // Reset guessedAnswers
+        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
+
+        // gameState.roundCounter = 0; // Reset roundCounter
+        // gameState.teamScores = { A: 0, B: 0 }; // Reset team scores
+
+        io.to(sessionId).emit('reset-round');
+        io.to(sessionId).emit('reset-buzzers');
+      }
+
+      // --- Reset the flag here, after logic that depends on it ---
+      if (gameState.gameReset) {
+        gameState.roundReset = false;
+        gameState.roundOver = false; // Reset roundOver if roundReset is true
+        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
+        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
+        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
+        gameState.strikes = 0; // Reset strikes
+        gameState.pointPool = 0; // Reset point pool
+        gameState.firstTeam = null; // Reset firstTeam
+        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
+        gameState.scoreMultiplier = null; // Reset scoreMultiplier
+        gameState.timer = 0; // Reset timer
+        gameState.timerRunning = false; // Reset timerRunning
+        gameState.question = ''; // Reset question
+        gameState.pointsAwarded = 0; // Reset pointsAwarded
+        gameState.winningTeam = null; // Reset winningTeam
+        gameState.answers = []; // Reset answers
+        gameState.guessedAnswers = []; // Reset guessedAnswers
+        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
+
+        gameState.roundCounter = 0; // Reset roundCounter
+        gameState.teamScores = { A: 0, B: 0 }; // Reset team scores
+
+        io.to(sessionId).emit('reset-round');
+        io.to(sessionId).emit('reset-buzzers');
       }
 
       // Save the updated gameState to Firestore
@@ -312,6 +382,22 @@ io.on('connection', (socket) => {
       }
       // Remove from tracking
       delete socketToPlayer[socket.id];
+    }
+  });
+  // Listen for reset-round from the host
+  socket.on('reset-round', async ({ sessionId }) => {
+    try {
+      // Optionally, reset round-specific state in Firestore here
+      // For example:
+      // await db.collection('sessions').doc(sessionId).set({ ...resetFields }, { merge: true });
+
+      // Emit to all clients in the session
+      io.to(sessionId).emit('reset-round');
+      // Optionally, also emit 'reset-buzzers' if you want to clear buzzers
+      io.to(sessionId).emit('reset-buzzers');
+    } catch (error) {
+      console.error('Error resetting round:', error);
+      socket.emit('error', { message: 'Failed to reset round' });
     }
   });
 });
