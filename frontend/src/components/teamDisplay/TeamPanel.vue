@@ -37,7 +37,7 @@
         <span class="game-info-label">Strikes</span>
       </div>
     </div>
-    <div class="buzzer-container" v-if="showBuzzer">
+    <div class="buzzer-container" v-if="showBuzzer && guessedAnswers.length == 0">
       <button class="buzzer-button" :disabled="buzzerDisabled" @click="$emit('buzz')">
         {{ buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
       </button>
@@ -61,6 +61,7 @@ const props = defineProps({
   showBuzzer: Boolean,
   buzzerDisabled: Boolean,
   initialEditedName: String,
+  guessedAnswers: Array,
 });
 const emit = defineEmits(['edit-team', 'save-team', 'buzz']);
 
@@ -195,13 +196,13 @@ function saveTeamNameChange() {
   margin-top: 0.7rem;
 }
 .buzzer-button {
-  background: #f59e42;
+  background: #f5425a;
   color: #fff;
   font-weight: bold;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
   border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.5rem;
+  border-radius: 100%;
+  padding: 3rem 1.5rem;
   cursor: pointer;
   transition: background 0.2s;
 }

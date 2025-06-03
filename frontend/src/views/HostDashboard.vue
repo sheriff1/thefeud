@@ -43,6 +43,7 @@
         :answers="answers"
         :guessedAnswers="guessedAnswers"
         :roundOver="store.roundOver"
+        :showWhoStartsSection="showWhoStartsSection"
         :handleCorrectGuess="handleCorrectGuess"
         :handleIncorrectAndStrike="handleIncorrectAndStrike"
         :emitStrikeSound="emitStrikeSound"
@@ -122,6 +123,8 @@ const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const answers = computed(() => store.answers || []); // Use store's answers
 const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
+const buzzerOnlyPressed = ref(false);
+const correctAfterBuzzer = ref(false);
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
 });
@@ -196,6 +199,8 @@ const resetGame = () => {
   showAvailableAnswers.value = false;
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
+  buzzerOnlyPressed.value = false;
+  correctAfterBuzzer.value = false;
 
   const gameResetState = { ...store.$state, gameReset: true };
   updateGameState(gameResetState);
@@ -228,6 +233,8 @@ const resetRound = () => {
   showAvailableAnswers.value = false;
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
+  buzzerOnlyPressed.value = false;
+  correctAfterBuzzer.value = false;
 
   const resetRoundState = { ...store.$state, roundReset: true };
   updateGameState(resetRoundState);
@@ -249,6 +256,8 @@ const nextRound = () => {
   showAvailableAnswers.value = false;
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
+  buzzerOnlyPressed.value = false;
+  correctAfterBuzzer.value = false;
 
   // Emit the updated game state for the next round
   const nextRoundState = { ...store.$state, nextRound: true };
@@ -293,6 +302,9 @@ const resetTimer = () => {
 
 const handleCorrectGuess = (answerId) => {
   correctCount.value++;
+  if (buzzerOnlyPressed.value) {
+    correctAfterBuzzer.value = true;
+  }
   if (!store.firstTeam) {
     const match = store.answers.find((a) => a.id === answerId);
     if (match && !store.guessedAnswers.includes(match.id)) {
@@ -366,7 +378,7 @@ const saveQuestionAndAnswers = async () => {
     store.currentStep = 'multiplier';
     store.answersSaved = true;
   } else {
-    alert('Please provide at least one valid answer with points.');
+    alert('Please provide at least two valid answers with points.');
     return;
   }
 
@@ -414,6 +426,7 @@ const revealAllAnswers = () => {
 
 const emitStrikeSound = () => {
   buzzerOnlyCount.value++;
+  buzzerOnlyPressed.value = true;
   console.log('emitStrikeSound called');
   socket.emit('play-strike-sound', { sessionId });
 };
@@ -449,10 +462,30 @@ const copySessionId = () => {
   }
 };
 
-function handleFetchLibraryFiles() {
-  fetchLibraryFiles();
-  showLibraryDialog.value = true;
-}
+const highestPointAnswerId = computed(() => {
+  if (!store.answers.length) return null;
+  return store.answers.reduce(
+    (max, curr) => (curr.points > max.points ? curr : max),
+    store.answers[0],
+  ).id;
+});
+
+const highestPointAnswered = computed(() =>
+  store.guessedAnswers.includes(highestPointAnswerId.value),
+);
+
+const guessedAnswersCount = computed(() => store.guessedAnswers.length);
+
+const showWhoStartsSection = computed(() => {
+  if (store.startingTeamSet) return false;
+  // 1. Highest point answer selected
+  if (highestPointAnswered.value) return true;
+  // 2. Any answer selected after buzzer only
+  if (buzzerOnlyPressed.value && correctAfterBuzzer.value) return true;
+  // 3. Any 2 answers selected (including highest-point)
+  if (guessedAnswersCount.value >= 2) return true;
+  return false;
+});
 
 const fetchLibraryFiles = async () => {
   const res = await fetch(`${apiBase}/api/answers-library`);

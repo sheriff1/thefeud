@@ -3,7 +3,7 @@
     <h3>Manage Question and Answers</h3>
 
     <!-- Who Starts Section -->
-    <div v-if="!startingTeamSet">
+    <div v-if="showWhoStartsSection">
       <h4>Who Starts?</h4>
       <p v-if="startingTeamSet">Starting Team: {{ teamNames[startingTeam] }}</p>
       <button class="btn" @click="setStartingTeam('A')" :disabled="startingTeamSet">
@@ -55,7 +55,8 @@
       <div>
         <h4>Answers</h4>
         <div v-if="answerPairs.length === 0" class="no-answers-message">
-          No answers added yet. Upload CSV or press "Add Answer" below
+          No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
+          least 2 answers are required to save.
         </div>
         <div v-for="(pair, index) in answerPairs" :key="index" class="answer-pair">
           <label :for="'answer-' + index">Answer:</label>
@@ -91,7 +92,7 @@
       <button
         class="btn primary"
         @click="saveQuestionAndAnswers"
-        :disabled="questionSaved && answersSaved"
+        :disabled="(questionSaved && answersSaved) || answerPairs.length < 1"
       >
         Save Question and Answers
       </button>
@@ -179,6 +180,7 @@ const props = defineProps({
   answers: Array,
   guessedAnswers: Array,
   roundOver: Boolean,
+  showWhoStartsSection: Boolean,
   handleCorrectGuess: Function,
   handleIncorrectAndStrike: Function,
   emitStrikeSound: Function,
