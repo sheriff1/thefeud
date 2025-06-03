@@ -195,16 +195,18 @@ io.on('connection', (socket) => {
       const newRoundOver = !!gameState.roundOver;
 
       // Merge critical fields from Firestore into the incoming gameState
-      gameState.teamNames = firestoreState.teamNames || { A: 'Team A', B: 'Team B' };
-      gameState.buzzedPlayer = firestoreState.buzzedPlayer || '';
-      gameState.startingTeamSet =
-        typeof gameState.startingTeamSet === 'boolean'
-          ? gameState.startingTeamSet
-          : firestoreState.startingTeamSet || false;
+      // gameState.teamNames = firestoreState.teamNames || { A: 'Team A', B: 'Team B' };
+      // gameState.buzzedPlayer = firestoreState.buzzedPlayer || '';
+      // gameState.startingTeamSet =
+      //   typeof gameState.startingTeamSet === 'boolean'
+      //     ? gameState.startingTeamSet
+      //     : firestoreState.startingTeamSet || false;
 
-      // Add expiryTime to the gameState object
-      const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-      gameState.expiryTime = new Date(Date.now() + expiryDuration);
+      if (!gameState.expiryTime) {
+        // Add expiryTime to the gameState object
+        const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        gameState.expiryTime = new Date(Date.now() + expiryDuration);
+      }
 
       // Emit "round-over" ONLY if transitioning from not over to over
       if (!prevRoundOver && newRoundOver) {
@@ -233,6 +235,8 @@ io.on('connection', (socket) => {
         gameState.answers = []; // Reset answers
         gameState.guessedAnswers = []; // Reset guessedAnswers
         gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
+        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
+        gameState.nextRound = false;
         io.to(sessionId).emit('next-round');
         io.to(sessionId).emit('reset-buzzers');
       }
@@ -257,9 +261,8 @@ io.on('connection', (socket) => {
         gameState.answers = []; // Reset answers
         gameState.guessedAnswers = []; // Reset guessedAnswers
         gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-
-        // gameState.roundCounter = 0; // Reset roundCounter
-        // gameState.teamScores = { A: 0, B: 0 }; // Reset team scores
+        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
+        gameState.roundReset = false;
 
         io.to(sessionId).emit('reset-round');
         io.to(sessionId).emit('reset-buzzers');
@@ -285,9 +288,12 @@ io.on('connection', (socket) => {
         gameState.answers = []; // Reset answers
         gameState.guessedAnswers = []; // Reset guessedAnswers
         gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
+        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
 
         gameState.roundCounter = 0; // Reset roundCounter
         gameState.teamScores = { A: 0, B: 0 }; // Reset team scores
+
+        gameState.gameReset = false; // Reset gameReset flag
 
         io.to(sessionId).emit('reset-round');
         io.to(sessionId).emit('reset-buzzers');

@@ -19,12 +19,11 @@
       <!-- Manage Question and Answers Section -->
       <QuestionAndAnswersMgr
         v-model:questionInput="questionInput"
-        :showWhoStarts="showWhoStarts"
-        :startingTeamSet="startingTeamSet"
+        :startingTeamSet="store.startingTeamSet"
         :startingTeam="startingTeam"
         :teamNames="store.teamNames"
         :setStartingTeam="setStartingTeam"
-        :currentStep="currentStep"
+        :currentStep="store.currentStep"
         :handleUpload="handleUpload"
         :fetchLibraryFiles="fetchLibraryFiles"
         :showLibraryDialog="showLibraryDialog"
@@ -32,15 +31,15 @@
         :loadLibraryFile="loadLibraryFile"
         :questionSaved="questionSaved"
         :answerPairs="answerPairs"
-        :answersSaved="answersSaved"
+        :answersSaved="store.answersSaved"
         :removeAnswerPair="removeAnswerPair"
         :addAnswerPair="addAnswerPair"
         :removeAllAnswers="removeAllAnswers"
         :saveQuestionAndAnswers="saveQuestionAndAnswers"
         :selectedMultiplier="selectedMultiplier"
-        :multiplierSet="multiplierSet"
+        :multiplierSet="store.multiplierSet"
         :setMultiplier="setMultiplier"
-        :question="question"
+        :question="store.question"
         :answers="answers"
         :guessedAnswers="guessedAnswers"
         :roundOver="store.roundOver"
@@ -102,6 +101,7 @@ import ActiveGameInfoMgr from '@/components/hostDashboard/ActiveGameInfoMgr.vue'
 import TimerMgr from '@/components/hostDashboard/TimerMgr.vue';
 import ManualOverrideMgr from '@/components/hostDashboard/ManualOverrideMgr.vue';
 
+let timerInterval = null;
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
@@ -110,23 +110,16 @@ const apiBase = import.meta.env.VITE_API_BASE || '';
 const fileUploaded = ref(false);
 const startingTeam = ref(null); // Track the selected starting team
 const selectedMultiplier = ref(null); // Track the selected multiplier
-const startingTeamSet = computed(() => !!store.firstTeam);
-const multiplierSet = computed(() => !!store.scoreMultiplier);
 const timerInput = ref(0);
-let timerInterval = null;
 const answerPairs = ref([]); // Initialize with an empty array
-const answersSaved = ref(false); // Track if answers have been saved
 const questionInput = ref(''); // Track the question input
 const questionSaved = ref(false); // Track if the question has been saved
 const previousRound = ref(store.roundCounter); // Track the previous round value
-const previousTeamNames = ref({ ...store.teamNames }); // Track the previous team names
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
-const currentStep = ref('manage'); // Possible values: 'manage', 'multiplier', 'answers'
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
-const question = ref(''); // or whatever initial value/type you use
 const answers = computed(() => store.answers || []); // Use store's answers
 const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
 const isTeamNamesUnique = computed(() => {
@@ -135,17 +128,10 @@ const isTeamNamesUnique = computed(() => {
 
 // Update game state
 const updateGameState = (gameState) => {
-  console.log('Session ID when updateGameState() is called:', sessionId);
-  console.log(
-    'Game State when updateGameState() is called:',
-    JSON.parse(JSON.stringify(gameState)),
-  );
-
   if (!sessionId) {
     alert('YERRRR Session ID is missing. Cannot update game state.');
     return;
   }
-
   socket.emit('update-game', { sessionId, gameState });
 };
 
@@ -190,43 +176,29 @@ const setStartingTeam = (team) => {
 const setMultiplier = (multiplier) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
-  multiplierSet.value = true; // Disable the buttons
-  currentStep.value = 'answers'; // Show the Available Answers section
+  // multiplierSet.value = true; // Disable the buttons
+  store.currentStep = 'answers'; // Update the store's current step
+  store.multiplierSet = true; // Set the multiplier set flag in the store
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const resetGame = () => {
   stopTimer();
-
-  // Always reset these, not just conditionally
-  store.roundOver = false;
-  store.strikes = 0;
-  store.pointPool = 0;
-  store.guessedAnswers = [];
-  store.pointsAwarded = 0;
-  store.winningTeam = null;
-
   store.resetGame();
 
   // Reset all local refs
   fileUploaded.value = false;
+  startingTeam.value = null;
   selectedMultiplier.value = null;
-  store.scoreMultiplier = null;
-  answersSaved.value = false;
   answerPairs.value = [];
   questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
-  previousRound.value = 0; // Store the current round value
 
-  socket.emit('update-game', {
-    sessionId,
-    gameState: { ...store.$state, gameReset: true },
-  });
-  updateGameState(store.$state); // Emit the reset state to the Team Display
+  const gameResetState = { ...store.$state, gameReset: true };
+  updateGameState(gameResetState);
 };
 
 const resetRound = () => {
@@ -243,71 +215,44 @@ const resetRound = () => {
     store.winningTeam = null; // Reset winning team
   }
 
-  // Always reset these, not just conditionally
-  store.roundOver = false;
-  store.strikes = 0;
-  store.pointPool = 0;
-  store.guessedAnswers = [];
-  store.pointsAwarded = 0;
-  store.winningTeam = null;
-
   store.resetRound();
   store.updateRoundCounter(previousRound.value);
 
   // Reset all local refs
   fileUploaded.value = false;
+  startingTeam.value = null;
   selectedMultiplier.value = null;
-  store.scoreMultiplier = null;
-  answersSaved.value = false;
   answerPairs.value = [];
   questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
-  socket.emit('update-game', {
-    sessionId,
-    gameState: { ...store.$state, roundReset: true },
-  });
+  const resetRoundState = { ...store.$state, roundReset: true };
+  updateGameState(resetRoundState);
 };
 
 const nextRound = () => {
   stopTimer();
 
-  // Reset round-specific store state
-  store.roundOver = false;
-  store.strikes = 0;
-  store.pointPool = 0;
-  store.guessedAnswers = [];
-  store.pointsAwarded = 0;
-  store.winningTeam = null;
-
-  // Advance to the next round in the store
   previousRound.value = store.roundCounter; // Store the current round value
-  store.nextRound(); // Advance to the next round
+  store.resetRound(); // Advance to the next round
 
   // Reset all local refs
   fileUploaded.value = false;
   startingTeam.value = null;
   selectedMultiplier.value = null;
-  store.scoreMultiplier = null;
-  answersSaved.value = false;
   answerPairs.value = [];
   questionInput.value = '';
   questionSaved.value = false;
   showAvailableAnswers.value = false;
-  currentStep.value = 'manage';
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
   // Emit the updated game state for the next round
-  socket.emit('update-game', {
-    sessionId,
-    gameState: { ...store.$state, nextRound: true },
-  });
-  updateGameState(store.$state);
+  const nextRoundState = { ...store.$state, nextRound: true };
+  updateGameState(nextRoundState);
 };
 
 const handleIncorrectAndStrike = () => {
@@ -405,30 +350,30 @@ const removeAllAnswers = () => {
   answerPairs.value = [{ text: '', points: 0 }]; // Reset to one empty pair
 };
 
-const saveQuestionAndAnswers = () => {
+const saveQuestionAndAnswers = async () => {
   if (questionInput.value.trim()) {
-    store.uploadQuestion(questionInput.value.trim());
-    question.value = questionInput.value.trim(); // <-- Set the active question
+    await store.uploadQuestion(questionInput.value.trim());
     questionSaved.value = true;
+    store.question = questionInput.value.trim();
   } else {
     alert('Please enter a valid question.');
     return;
   }
 
   const validAnswers = answerPairs.value.filter((pair) => pair.text.trim() && !isNaN(pair.points));
-
   if (validAnswers.length > 0) {
-    store.uploadAnswers(validAnswers);
-    answersSaved.value = true;
+    await store.uploadAnswers(validAnswers);
+    store.currentStep = 'multiplier';
+    store.answersSaved = true;
   } else {
     alert('Please provide at least one valid answer with points.');
     return;
   }
 
-  if (questionSaved.value && answersSaved.value) {
+  if (questionSaved.value && store.answersSaved) {
     store.incrementRoundCounter();
-    updateGameState(store.$state); // Emit the updated game state
-    currentStep.value = 'multiplier'; // Show the Set Score Multiplier section
+    store.questionSaved = true;
+    updateGameState(store.$state); // Emit the updated game state LAST
   }
 };
 
@@ -472,10 +417,6 @@ const emitStrikeSound = () => {
   console.log('emitStrikeSound called');
   socket.emit('play-strike-sound', { sessionId });
 };
-
-const showWhoStarts = computed(() => {
-  return correctCount.value >= 2 || (correctCount.value === 1 && buzzerOnlyCount.value >= 1);
-});
 
 const copySessionId = () => {
   if (sessionId) {
@@ -612,6 +553,9 @@ onMounted(() => {
   // Listen for game state updates
   socket.on('update-game', (updatedGameState) => {
     Object.assign(store.$state, updatedGameState);
+
+    console.log('ANSWERS IN STORE: ', store.answers);
+    console.log('ANSWERS IN UPDATEDGAMESTATE: ', updatedGameState.answers);
 
     // Sync "Who Starts" state
     if (store.firstTeam) {

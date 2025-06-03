@@ -6,30 +6,24 @@
         <span v-if="!editing">
           <span v-if="isWinning">👑</span>
           {{ teamName.toUpperCase() }}
-          <button class="edit-team-btn" @click="$emit('edit-team', team)">
-            ✏️
-          </button>
+          <button class="edit-team-btn" @click="$emit('edit-team', team)">✏️</button>
         </span>
         <span v-else>
           <input
             v-model="editedName"
-            @keyup.enter="save"
-            @blur="save"
+            @keyup.enter="saveTeamNameChange"
+            @blur="saveTeamNameChange"
             class="edit-team-input"
             maxlength="20"
             autofocus
           />
-          <button class="save-team-btn" @click="save">💾</button>
+          <button class="save-team-btn" @click="saveTeamNameChange">💾</button>
         </span>
       </span>
     </div>
     <div class="team-row">
       <ul class="team-members-list">
-        <li
-          v-for="member in members"
-          :key="member"
-          :class="{ buzzed: buzzedPlayer === member }"
-        >
+        <li v-for="member in members" :key="member" :class="{ buzzed: buzzedPlayer === member }">
           😎 {{ member }}
         </li>
       </ul>
@@ -44,19 +38,15 @@
       </div>
     </div>
     <div class="buzzer-container" v-if="showBuzzer">
-      <button
-        class="buzzer-button"
-        :disabled="buzzerDisabled"
-        @click="$emit('buzz')"
-      >
-        {{ buzzedPlayer ? "Buzzed!" : "BUZZER" }}
+      <button class="buzzer-button" :disabled="buzzerDisabled" @click="$emit('buzz')">
+        {{ buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, toRefs } from "vue";
+import { ref, watch, toRefs } from 'vue';
 const props = defineProps({
   team: String,
   teamName: String,
@@ -72,7 +62,7 @@ const props = defineProps({
   buzzerDisabled: Boolean,
   initialEditedName: String,
 });
-const emit = defineEmits(["edit-team", "save-team", "buzz"]);
+const emit = defineEmits(['edit-team', 'save-team', 'buzz']);
 
 const editedName = ref(props.initialEditedName || props.teamName);
 
@@ -80,11 +70,11 @@ watch(
   () => props.teamName,
   (newVal) => {
     editedName.value = newVal;
-  }
+  },
 );
 
-function save() {
-  emit("save-team", { team: props.team, name: editedName.value });
+function saveTeamNameChange() {
+  emit('save-team', { team: props.team, name: editedName.value });
 }
 </script>
 

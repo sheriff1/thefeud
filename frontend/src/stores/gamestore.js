@@ -7,6 +7,7 @@ export const useGameStore = defineStore('game', {
     teamNames: { A: 'Team A', B: 'Team B' },
     teamScores: { A: 0, B: 0 },
     answers: [],
+    question: '',
     guessedAnswers: [],
     currentTeam: 'A',
     strikes: 0, // Current team's strikes during the round
@@ -23,6 +24,9 @@ export const useGameStore = defineStore('game', {
     pointsAwarded: 0, // New property to store awarded points
     winningTeam: null, // New property to store the winning team
     startingTeamSet: false,
+    currentStep: 'manage',
+    multiplierSet: false, // New property to track if the multiplier is set
+    answersSaved: false, // New property to track if answers are saved
   }),
 
   actions: {
@@ -43,20 +47,20 @@ export const useGameStore = defineStore('game', {
       this.pointPool = 0;
       this.firstTeam = null;
       this.secondTeamGuessUsed = false;
-      this.syncToServer();
+      // this.syncToServer();
     },
 
     // Set the starting team
     setStartingTeam(team) {
       this.firstTeam = team;
       this.currentTeam = team;
-      this.syncToServer();
+      //this.syncToServer();
     },
 
     // Set the score multiplier
     setScoreMultiplier(multiplier) {
       this.scoreMultiplier = multiplier;
-      this.syncToServer();
+      //this.syncToServer();
     },
 
     guessAnswer(answerId) {
@@ -72,16 +76,16 @@ export const useGameStore = defineStore('game', {
           this.winningTeam = this.currentTeam; // Set the current team as the winning team
           this.pointPool = 0; // Reset the point pool
           this.roundOver = true; // Mark the round as over
-          this.syncToServer();
+          //this.syncToServer();
           return true;
         }
 
-        this.syncToServer();
+        //this.syncToServer();
         return true;
       } else {
         this.strikes++;
         if (this.strikes >= 3) this.handleThreeStrikes();
-        this.syncToServer();
+        //this.syncToServer();
         return false;
       }
     },
@@ -104,7 +108,7 @@ export const useGameStore = defineStore('game', {
         this.switchTeam(); // Switch back to the starting team
       }
 
-      this.syncToServer();
+      //this.syncToServer();
     },
 
     secondTeamGuess(answerId) {
@@ -119,7 +123,7 @@ export const useGameStore = defineStore('game', {
         this.winningTeam = this.currentTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
-        this.syncToServer();
+        //this.syncToServer();
         return true;
       } else {
         // If the second team guesses incorrectly
@@ -129,7 +133,7 @@ export const useGameStore = defineStore('game', {
         this.winningTeam = this.firstTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
-        this.syncToServer();
+        //this.syncToServer();
         return false;
       }
     },
@@ -143,46 +147,30 @@ export const useGameStore = defineStore('game', {
       return this.currentTeam === 'A' ? 'B' : 'A';
     },
 
-    syncToServer() {
-      const gameState = {
-        answers: this.answers,
-        guessedAnswers: this.guessedAnswers,
-        teamScores: this.teamScores,
-        currentTeam: this.currentTeam,
-        strikes: this.strikes,
-        pointPool: this.pointPool,
-        firstTeam: this.firstTeam,
-        secondTeamGuessUsed: this.secondTeamGuessUsed,
-        scoreMultiplier: this.scoreMultiplier,
-        timer: this.timer,
-        timerRunning: this.timerRunning,
-        teamNames: this.teamNames,
-        roundCounter: this.roundCounter,
-      };
-      socket.emit('updateGameState', gameState);
-    },
+    // syncToServer() {
+    //   const gameState = {
+    //     answers: this.answers,
+    //     guessedAnswers: this.guessedAnswers,
+    //     teamScores: this.teamScores,
+    //     currentTeam: this.currentTeam,
+    //     strikes: this.strikes,
+    //     pointPool: this.pointPool,
+    //     firstTeam: this.firstTeam,
+    //     secondTeamGuessUsed: this.secondTeamGuessUsed,
+    //     scoreMultiplier: this.scoreMultiplier,
+    //     timer: this.timer,
+    //     timerRunning: this.timerRunning,
+    //     teamNames: this.teamNames,
+    //     roundCounter: this.roundCounter,
+    //   };
+    //   socket.emit('updateGameState', gameState);
+    // },
 
     resetGame() {
       this.teamNames = { A: 'Team A', B: 'Team B' };
       this.teamScores = { A: 0, B: 0 };
       this.roundCounter = 0;
-      this.answers = [];
-      this.guessedAnswers = [];
-      this.currentTeam = 'A';
-      this.strikes = 0;
-      this.teamStrikes = { A: 0, B: 0 };
-      this.pointPool = 0;
-      this.firstTeam = null;
-      this.secondTeamGuessUsed = false;
-      this.scoreMultiplier = null;
-      this.timer = 0;
-      this.timerRunning = false;
-      this.roundOver = false;
-      this.question = '';
-      this.pointsAwarded = 0;
-      this.winningTeam = null;
-      this.startingTeamSet = false;
-      this.syncToServer(); // Ensure the reset state is synced with the Team Display
+      this.resetRound();
     },
 
     resetRound() {
@@ -202,27 +190,11 @@ export const useGameStore = defineStore('game', {
       this.pointsAwarded = 0;
       this.winningTeam = null;
       this.startingTeamSet = false;
-      this.syncToServer();
-    },
-
-    nextRound() {
-      this.answers = [];
-      this.guessedAnswers = [];
-      this.currentTeam = 'A';
-      this.strikes = 0;
-      this.teamStrikes = { A: 0, B: 0 };
-      this.pointPool = 0;
-      this.firstTeam = null;
-      this.secondTeamGuessUsed = false;
-      this.scoreMultiplier = null;
-      this.timer = 0;
-      this.timerRunning = false;
-      this.roundOver = false;
-      this.question = '';
-      this.pointsAwarded = 0;
-      this.winningTeam = null;
-      this.startingTeamSet = false;
-      this.syncToServer();
+      this.currentStep = 'manage';
+      this.multiplierSet = false;
+      this.answersSaved = false; // Reset the answers saved state
+      console.log('resetRound called');
+      //this.syncToServer(); // Ensure the reset state is synced with the Team Display
     },
 
     updateRoundCounter(round) {
@@ -231,13 +203,13 @@ export const useGameStore = defineStore('game', {
 
     incrementRoundCounter() {
       this.roundCounter++;
-      this.syncToServer();
+      //this.syncToServer();
     },
 
     updateTeamScore(team, score) {
       if (team === 'A' || team === 'B') {
         this.teamScores[team] = score;
-        this.syncToServer();
+        //this.syncToServer();
       }
     },
 
@@ -248,7 +220,7 @@ export const useGameStore = defineStore('game', {
     },
 
     saveTeamNames() {
-      this.syncToServer(); // Sync the updated team names with the server
+      //this.syncToServer(); // Sync the updated team names with the server
     },
 
     setTimer(seconds) {
@@ -276,7 +248,7 @@ export const useGameStore = defineStore('game', {
 
     uploadQuestion(question) {
       this.question = question;
-      this.syncToServer();
+      //this.syncToServer();
     },
   },
 });

@@ -3,21 +3,13 @@
     <h3>Manage Question and Answers</h3>
 
     <!-- Who Starts Section -->
-    <div v-if="showWhoStarts">
+    <div v-if="!startingTeamSet">
       <h4>Who Starts?</h4>
       <p v-if="startingTeamSet">Starting Team: {{ teamNames[startingTeam] }}</p>
-      <button
-        class="btn"
-        @click="setStartingTeam('A')"
-        :disabled="startingTeamSet"
-      >
+      <button class="btn" @click="setStartingTeam('A')" :disabled="startingTeamSet">
         {{ teamNames.A }}
       </button>
-      <button
-        class="btn"
-        @click="setStartingTeam('B')"
-        :disabled="startingTeamSet"
-      >
+      <button class="btn" @click="setStartingTeam('B')" :disabled="startingTeamSet">
         {{ teamNames.B }}
       </button>
     </div>
@@ -28,9 +20,7 @@
       <div>
         <label for="file-upload">Upload CSV File:</label>
         <input id="file-upload" type="file" @change="handleUpload" />
-        <button class="btn" @click="fetchLibraryFiles">
-          Select from library
-        </button>
+        <button class="btn" @click="fetchLibraryFiles">Select from library</button>
       </div>
 
       <!-- Library Dialog -->
@@ -67,18 +57,9 @@
         <div v-if="answerPairs.length === 0" class="no-answers-message">
           No answers added yet. Upload CSV or press "Add Answer" below
         </div>
-        <div
-          v-for="(pair, index) in answerPairs"
-          :key="index"
-          class="answer-pair"
-        >
+        <div v-for="(pair, index) in answerPairs" :key="index" class="answer-pair">
           <label :for="'answer-' + index">Answer:</label>
-          <input
-            :id="'answer-' + index"
-            type="text"
-            v-model="pair.text"
-            :disabled="answersSaved"
-          />
+          <input :id="'answer-' + index" type="text" v-model="pair.text" :disabled="answersSaved" />
           <label :for="'points-' + index">Points:</label>
           <input
             :id="'points-' + index"
@@ -86,11 +67,7 @@
             v-model.number="pair.points"
             :disabled="answersSaved"
           />
-          <button
-            class="btn"
-            @click="removeAnswerPair(index)"
-            :disabled="answersSaved"
-          >
+          <button class="btn" @click="removeAnswerPair(index)" :disabled="answersSaved">
             Remove
           </button>
         </div>
@@ -119,24 +96,16 @@
         Save Question and Answers
       </button>
       <!-- Download Template Button -->
-      <a href="/answers/family-feud-template.csv" download class="btn">
-        Download Template
-      </a>
+      <a href="/answers/family-feud-template.csv" download class="btn">Download Template</a>
     </template>
 
     <!-- Set Score Multiplier Section -->
     <template v-if="currentStep === 'multiplier'">
       <h4>Set Score Multiplier</h4>
       <p v-if="multiplierSet">Score Multiplier: {{ selectedMultiplier }}x</p>
-      <button class="btn" @click="setMultiplier(1)" :disabled="multiplierSet">
-        1x
-      </button>
-      <button class="btn" @click="setMultiplier(2)" :disabled="multiplierSet">
-        2x
-      </button>
-      <button class="btn" @click="setMultiplier(3)" :disabled="multiplierSet">
-        3x
-      </button>
+      <button class="btn" @click="setMultiplier(1)" :disabled="multiplierSet">1x</button>
+      <button class="btn" @click="setMultiplier(2)" :disabled="multiplierSet">2x</button>
+      <button class="btn" @click="setMultiplier(3)" :disabled="multiplierSet">3x</button>
     </template>
 
     <!-- Available Answers Section -->
@@ -148,9 +117,7 @@
         <li v-for="answer in answers" :key="answer.id">
           <span
             :style="{
-              textDecoration: guessedAnswers.includes(answer.id)
-                ? 'line-through'
-                : 'none',
+              textDecoration: guessedAnswers.includes(answer.id) ? 'line-through' : 'none',
             }"
           >
             {{ answer.text }} ({{ answer.points }} pts)
@@ -168,7 +135,7 @@
       <!-- Incorrect Button -->
       <button
         class="btn"
-        v-if="answersSaved && startingTeamSet && multiplierSet && !roundOver"
+        v-if="answersSaved && multiplierSet && startingTeamSet && !roundOver"
         @click="handleIncorrectAndStrike"
       >
         Incorrect
@@ -187,7 +154,6 @@
 <script setup>
 // Props
 const props = defineProps({
-  showWhoStarts: Boolean,
   startingTeamSet: Boolean,
   startingTeam: String,
   teamNames: Object,
@@ -220,7 +186,7 @@ const props = defineProps({
   setShowLibraryDialog: Function,
 });
 
-const emit = defineEmits(["update:questionInput"]);
+const emit = defineEmits(['update:questionInput']);
 
 function closeLibraryDialog() {
   if (props.setShowLibraryDialog) {

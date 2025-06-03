@@ -56,6 +56,7 @@
           :buzzerDisabled="isBuzzerDisabled"
           :initialEditedName="editedTeamName"
           @edit-team="startEditingTeamName"
+          @save-team="({ team, name }) => saveTeamName(team, name)"
           @buzz="pressBuzzer"
         />
 
