@@ -3,11 +3,7 @@
     <div class="join-team-dialog">
       <h2>Join the Game</h2>
       <h3 class="left-align">Enter your name:</h3>
-      <input
-        v-model="playerName"
-        placeholder="Enter your name"
-        class="full-width-input"
-      />
+      <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
       <hr class="dialog-divider" />
       <h3 class="left-align">Select your team:</h3>
       <div class="radio-group">
@@ -17,28 +13,26 @@
           :class="['radio-option', { selected: selectedTeam === team }]"
         >
           <input type="radio" :value="team" v-model="selectedTeam" />
-          Team {{ teamNames[team] || team }}
+          Team {{ props.teamNames[team] || team }}
         </label>
       </div>
-      <button @click="handleJoin" :disabled="!playerName || !selectedTeam">
-        Join
-      </button>
+      <button @click="handleJoin" :disabled="!playerName || !selectedTeam">Join</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed } from 'vue';
 const props = defineProps({
   teamNames: Object,
   joinTeam: Function,
 });
-const playerName = ref("");
-const selectedTeam = ref("A"); // Default to team A
-const emit = defineEmits(["joinTeam"]);
+const playerName = ref('');
+const selectedTeam = ref('A'); // Default to team A
+const emit = defineEmits(['joinTeam']);
 
 function handleJoin() {
-  emit("joinTeam", {
+  emit('joinTeam', {
     playerName: playerName.value,
     selectedTeam: selectedTeam.value,
   });
@@ -49,24 +43,24 @@ watch(
   () => teamNames,
   (newNames) => {
     if (newNames.A) {
-      selectedTeam.value = "A";
+      selectedTeam.value = 'A';
     } else if (newNames.B) {
-      selectedTeam.value = "B";
+      selectedTeam.value = 'B';
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // Ensure selected team is valid
 watch(selectedTeam, (newTeam) => {
-  if (!["A", "B"].includes(newTeam)) {
-    selectedTeam.value = "A"; // Reset to default if invalid
+  if (!['A', 'B'].includes(newTeam)) {
+    selectedTeam.value = 'A'; // Reset to default if invalid
   }
 });
 // Ensure player name is not empty
 watch(playerName, (newName) => {
-  if (newName.trim() === "") {
-    playerName.value = ""; // Reset to empty if name is invalid
+  if (newName.trim() === '') {
+    playerName.value = ''; // Reset to empty if name is invalid
   }
 });
 </script>
@@ -100,7 +94,7 @@ hr {
   align-items: center;
 }
 
-.join-team-dialog input[type="text"] {
+.join-team-dialog input[type='text'] {
   margin-bottom: 1rem;
   padding: 0.5rem;
   font-size: 1rem;
@@ -170,7 +164,9 @@ hr {
   border-radius: 8px;
   cursor: pointer;
   background: #f9f9f9;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   font-size: 1rem;
 }
 
@@ -179,7 +175,7 @@ hr {
   background: #e6f0ff;
 }
 
-.radio-option input[type="radio"] {
+.radio-option input[type='radio'] {
   margin-right: 0.5rem;
 }
 </style>

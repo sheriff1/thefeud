@@ -565,12 +565,9 @@ onMounted(() => {
   store.initSocket();
 
   // Listen for team name updates from the backend
-  // socket.on('team-names-updated', (teamNames) => {
-  //   store.teamNames = { ...store.teamNames, ...teamNames };
-  //   // Optionally, update local refs if you use them for input fields:
-  //   // teamAName.value = store.teamNames.A;
-  //   // teamBName.value = store.teamNames.B;
-  // });
+  socket.on('team-names-updated', (teamNames) => {
+    store.teamNames = { ...store.teamNames, ...teamNames };
+  });
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
     return;
