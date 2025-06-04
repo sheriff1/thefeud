@@ -12,21 +12,22 @@
         <input v-model="sessionId" type="text" placeholder="Enter Session ID" />
         <button @click="joinAsHost">Join as Host</button>
         <button @click="joinAsTeam">Join as a Team Member</button>
+        <button @click="joinAsSpectator">Join as Spectator</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref } from "vue"; // Import ref from Vue
-import { useRouter } from "vue-router";
+import { ref } from 'vue'; // Import ref from Vue
+import { useRouter } from 'vue-router';
 
-const apiBase = import.meta.env.VITE_API_BASE || "";
+const apiBase = import.meta.env.VITE_API_BASE || '';
 export default {
-  name: "Home",
+  name: 'Home',
   setup() {
     const router = useRouter();
-    const sessionId = ref(""); // Define sessionId as a reactive variable
+    const sessionId = ref(''); // Define sessionId as a reactive variable
 
     // Generate a short ID
     const generateShortId = () => {
@@ -37,7 +38,7 @@ export default {
     const createSession = async () => {
       const newSessionId = generateShortId(); // Generate a short session ID
       await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
-        method: "POST",
+        method: 'POST',
       });
       router.push(`/host?sessionId=${newSessionId}`);
     };
@@ -46,11 +47,11 @@ export default {
     const joinAsHost = async () => {
       const id = sessionId.value.trim().toUpperCase();
       if (!isValidSessionId(id)) {
-        alert("Invalid Session ID format.");
+        alert('Invalid Session ID format.');
         return;
       }
       if (!sessionId.value.trim()) {
-        alert("Please enter a valid Session ID.");
+        alert('Please enter a valid Session ID.');
         return;
       }
       // Always use uppercase for backend check
@@ -59,7 +60,7 @@ export default {
       if (data.exists) {
         router.push(`/host?sessionId=${id}`);
       } else {
-        alert("Session does not exist. Please check the Session ID.");
+        alert('Session does not exist. Please check the Session ID.');
       }
     };
 
@@ -67,11 +68,11 @@ export default {
     const joinAsTeam = async () => {
       const id = sessionId.value.trim().toUpperCase();
       if (!isValidSessionId(id)) {
-        alert("Invalid Session ID format.");
+        alert('Invalid Session ID format.');
         return;
       }
       if (!sessionId.value.trim()) {
-        alert("Please enter a valid Session ID.");
+        alert('Please enter a valid Session ID.');
         return;
       }
       // Always use uppercase for backend check
@@ -80,7 +81,27 @@ export default {
       if (data.exists) {
         router.push(`/team?sessionId=${id}`);
       } else {
-        alert("Session does not exist. Please check the Session ID.");
+        alert('Session does not exist. Please check the Session ID.');
+      }
+    };
+
+    const joinAsSpectator = async () => {
+      const id = sessionId.value.trim().toUpperCase();
+      if (!isValidSessionId(id)) {
+        alert('Invalid Session ID format.');
+        return;
+      }
+      if (!sessionId.value.trim()) {
+        alert('Please enter a valid Session ID.');
+        return;
+      }
+      // Always use uppercase for backend check
+      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
+      const data = await response.json();
+      if (data.exists) {
+        router.push(`/spectator?sessionId=${id}`);
+      } else {
+        alert('Session does not exist. Please check the Session ID.');
       }
     };
 
@@ -94,6 +115,7 @@ export default {
       createSession,
       joinAsHost,
       joinAsTeam,
+      joinAsSpectator,
     };
   },
 };

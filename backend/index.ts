@@ -1,4 +1,4 @@
-// filepath: family-feud/backend/index.js
+// filepath: family-feud/backend/index.ts
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');

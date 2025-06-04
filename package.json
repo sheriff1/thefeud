@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
-    "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.js\" \"cd frontend && npm run dev\"",
+    "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.ts\" \"cd frontend && npm run dev\"",
     "lint": "eslint --ext .js,.vue frontend/src backend",
     "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
     "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\""

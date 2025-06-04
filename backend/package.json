@@ -2,10 +2,10 @@
   "name": "family-feud-backend",
   "version": "1.0.0",
   "description": "Backend for Family Feud game",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.ts",
+    "dev": "nodemon index.ts"
   },
   "keywords": [],
   "author": "",
