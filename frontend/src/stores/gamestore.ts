@@ -174,7 +174,6 @@ export const useGameStore = defineStore('game', {
       this.currentStep = 'manage';
       this.multiplierSet = false;
       this.answersSaved = false; // Reset the answers saved state
-      console.log('resetRound called');
     },
 
     updateRoundCounter(round: number) {

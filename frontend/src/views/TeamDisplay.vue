@@ -249,7 +249,6 @@ function joinTeam(payload: { playerName: string; selectedTeam: string }) {
   playerName.value = name.trim();
   selectedTeam.value = team;
   hasJoined.value = true;
-  console.log(`Player ${name} joined team ${team}`);
 }
 
 socket.on('play-strike-sound', () => {
@@ -304,7 +303,6 @@ onMounted(() => {
 
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
-    console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState);
     buzzedPlayer.value = currentState?.buzzedPlayer || '';
   });
@@ -319,7 +317,6 @@ onMounted(() => {
 
   // Listen for the "play-strike-sound" event from the backend
   socket.on('play-strike-sound', () => {
-    console.log('play-strike-sound event received');
     playStrikeSound();
   });
 
@@ -340,7 +337,6 @@ onMounted(() => {
     playRoundOverSound();
   });
   socket.on('next-round', () => {
-    console.log('next-round event received');
     playNextRoundSound();
   });
   socket.on('reset-round', () => {

@@ -194,7 +194,6 @@ const setMultiplier = (multiplier: number) => {
 
 const resetGame = async () => {
   isLoading.value = true;
-  console.log(isLoading.value, 'isLoading set to true in resetGame');
   stopTimer();
 
   // Reset all local refs
@@ -217,7 +216,6 @@ const resetGame = async () => {
 
 const resetRound = async () => {
   isLoading.value = true;
-  console.log(isLoading.value, 'isLoading set to true in resetRound');
   stopTimer();
 
   // Deduct awarded points from the team that received them, if any
@@ -253,7 +251,6 @@ const resetRound = async () => {
 
 const nextRound = async () => {
   isLoading.value = true;
-  console.log(isLoading.value, 'isLoading set to true in nextRound');
   stopTimer();
 
   previousRound.value = store.roundCounter; // Store the current round value
@@ -457,7 +454,6 @@ const emitStrikeSound = () => {
     correctBeforeBuzzer.value = false; // Reset for next use
     correctAfterBuzzer.value = true; // This triggers the new condition
   }
-  console.log('emitStrikeSound called');
   socket.emit('play-strike-sound', { sessionId });
 };
 
@@ -534,8 +530,6 @@ function setShowLibraryDialog(value: boolean) {
 const loadLibraryFile = async (filename: string) => {
   const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
   const csvText = await res.text();
-  console.log('CSV file loaded:', filename);
-  console.log('CSV content:', csvText);
   if (!csvText) {
     alert('The selected CSV file is empty or invalid.');
     showLibraryDialog.value = false;
@@ -547,7 +541,6 @@ const loadLibraryFile = async (filename: string) => {
     skipEmptyLines: true,
     complete: (results: { data: any }) => {
       const data = results.data;
-      console.log('Parsed CSV data:', data);
       if (data.length > 0) {
         questionInput.value = data[0].Question || '';
         answerPairs.value = data.map((row: { Answer: any; Points: string }) => ({
@@ -570,7 +563,6 @@ const loadLibraryFile = async (filename: string) => {
 // Listen for game state updates
 socket.on('update-game', (updatedGameState: any) => {
   Object.assign(store.$state, updateGameState);
-  console.log('Game state updated:', updatedGameState);
 });
 
 // Handle errors
@@ -603,7 +595,6 @@ onMounted(() => {
 
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: any) => {
-    console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
     // Sync "Who Starts" state
@@ -622,7 +613,6 @@ onMounted(() => {
     Object.assign(store.$state, updatedGameState);
 
     isLoading.value = false;
-    console.log(isLoading.value, 'isLoading set to false in update-game');
 
     // Sync "Who Starts" state
     if (store.firstTeam) {

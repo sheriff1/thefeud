@@ -36,7 +36,6 @@ app.use(
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       } else {
-        console.log('Allowed origins:', allowedOrigins);
         return callback(new Error('Not allowed by CORS'));
       }
     },
@@ -158,8 +157,6 @@ io.on('connection', (socket) => {
 
   // Handle request for the current game state
   socket.on('get-current-state', async ({ sessionId }) => {
-    console.log(`Ferrrrtching current state for session: ${sessionId}`);
-    console.log('Allowed origins:', allowedOrigins);
     try {
       const sessionDoc = await db.collection('sessions').doc(sessionId).get();
       if (sessionDoc.exists) {
@@ -199,13 +196,11 @@ io.on('connection', (socket) => {
 
       // Emit "round-over" ONLY if transitioning from not over to over
       if (!prevRoundOver && newRoundOver) {
-        console.log('Emitting round-over event');
         io.to(sessionId).emit('round-over');
       }
 
       // Emit "next-round" ONLY if transitioning from over to not over
       if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
-        console.log('Emitting next-round event');
         gameState.roundReset = false;
         gameState.roundOver = false; // Reset roundOver if roundReset is true
         gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
