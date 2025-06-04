@@ -168,8 +168,12 @@ function saveTeamNameChange() {
   align-items: center;
 }
 .team-members-list li.buzzed {
-  color: #f59e42;
+  background-color: #f87171;
   font-weight: bold;
+  border-radius: 0.5rem;
+  padding: 0.125rem 0.25rem;
+  color: #fff;
+  border: 0.25rem solid #f5425a;
 }
 
 .team-strikes {
