@@ -21,26 +21,28 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, computed } from 'vue';
-const props = defineProps({
-  teamNames: Object,
-  joinTeam: Function,
-});
+
+interface JoinTeamDialogProps {
+  teamNames: Record<string, string>;
+}
+
+interface JoinTeamDialogEmits {
+  (e: 'joinTeam', payload: { playerName: string; selectedTeam: string }): void;
+}
+
+const props = defineProps<JoinTeamDialogProps>();
 const playerName = ref('');
 const selectedTeam = ref('A'); // Default to team A
-const emit = defineEmits(['joinTeam']);
+const emit = defineEmits<JoinTeamDialogEmits>();
 
 function handleJoin() {
-  emit('joinTeam', {
-    playerName: playerName.value,
-    selectedTeam: selectedTeam.value,
-  });
+  emit('joinTeam', { playerName: playerName.value, selectedTeam: selectedTeam.value });
 }
-const teamNames = computed(() => teamNames);
 // Watch for changes in team names to update the UI dynamically
 watch(
-  () => teamNames,
+  () => props.teamNames,
   (newNames) => {
     if (newNames.A) {
       selectedTeam.value = 'A';

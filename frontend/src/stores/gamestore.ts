@@ -4,24 +4,23 @@ import socket from '../utils/socket';
 export const useGameStore = defineStore('game', {
   state: () => ({
     teamNames: { A: 'Team A', B: 'Team B' },
-    teamScores: { A: 0, B: 0 },
-    answers: [],
+    teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
+    answers: [] as { id: string; text: string; points: number }[],
     question: '',
-    guessedAnswers: [],
-    currentTeam: 'A',
+    guessedAnswers: [] as { id: string; text: string; points: number }[],
+    currentTeam: 'A' as 'A' | 'B',
     strikes: 0, // Current team's strikes during the round
     teamStrikes: { A: 0, B: 0 }, // Persistent strike count for each team
     pointPool: 0,
-    firstTeam: null,
+    firstTeam: null as 'A' | 'B' | null,
     secondTeamGuessUsed: false,
-    scoreMultiplier: null,
+    scoreMultiplier: null as number | null,
     timer: 0,
     timerRunning: false,
     roundCounter: 0,
     roundOver: false, // New flag to track if the round is over
-    question: '', // New property to store the question
     pointsAwarded: 0, // New property to store awarded points
-    winningTeam: null, // New property to store the winning team
+    winningTeam: null as 'A' | 'B' | null, // New property to store the winning team
     startingTeamSet: false,
     currentStep: 'manage',
     multiplierSet: false, // New property to track if the multiplier is set
@@ -38,7 +37,7 @@ export const useGameStore = defineStore('game', {
       });
     },
 
-    uploadAnswers(answerList) {
+    uploadAnswers(answerList: { id: string; text: string; points: number }[]) {
       this.answers = answerList;
       this.guessedAnswers = [];
       this.currentTeam = 'A';
@@ -49,27 +48,32 @@ export const useGameStore = defineStore('game', {
     },
 
     // Set the starting team
-    setStartingTeam(team) {
-      this.firstTeam = team;
-      this.currentTeam = team;
+    setStartingTeam(team: string | null) {
+      if (team === 'A' || team === 'B' || team === null) {
+        this.firstTeam = team;
+        if (team !== null) {
+          this.currentTeam = team;
+        }
+      }
     },
 
     // Set the score multiplier
-    setScoreMultiplier(multiplier) {
+    setScoreMultiplier(multiplier: number | null) {
       this.scoreMultiplier = multiplier;
     },
 
-    guessAnswer(answerId) {
+    guessAnswer(answerId: string) {
       const match = this.answers.find((a) => a.id === answerId); // Find the answer by its unique ID
       if (match && !this.guessedAnswers.includes(match.id)) {
         this.guessedAnswers.push(match.id); // Use the unique ID to track guessed answers
-        this.pointPool += match.points * this.scoreMultiplier; // Apply multiplier here
+        this.pointPool += match.points * (this.scoreMultiplier ?? 1); // Apply multiplier here, default to 1 if null
 
         // Check if all answers have been guessed
         if (this.guessedAnswers.length === this.answers.length) {
           this.pointsAwarded = this.pointPool; // Use the already multiplied pointPool
           this.teamScores[this.currentTeam] += this.pointPool; // Award all points to the current team
-          this.winningTeam = this.currentTeam; // Set the current team as the winning team
+          this.winningTeam =
+            this.currentTeam === 'A' || this.currentTeam === 'B' ? this.currentTeam : null; // Set the current team as the winning team
           this.pointPool = 0; // Reset the point pool
           this.roundOver = true; // Mark the round as over
           return true;
@@ -93,7 +97,11 @@ export const useGameStore = defineStore('game', {
       } else {
         // If the second team fails, award the point pool to the first team
         this.pointsAwarded = this.pointPool; // Use the already multiplied pointPool
-        this.teamScores[this.firstTeam] += this.pointPool;
+        if (this.firstTeam !== null) {
+          if (this.firstTeam !== null) {
+            this.teamScores[this.firstTeam] += this.pointPool;
+          }
+        }
         this.winningTeam = this.firstTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
@@ -101,14 +109,14 @@ export const useGameStore = defineStore('game', {
       }
     },
 
-    secondTeamGuess(answerId) {
+    secondTeamGuess(answerId: string) {
       if (this.secondTeamGuessUsed) return false;
 
       const match = this.answers.find((a) => a.id === answerId); // Find the answer by its unique ID
       if (match && !this.guessedAnswers.includes(match.id)) {
         // If the second team guesses correctly
         this.guessedAnswers.push(match.id);
-        this.pointsAwarded = this.pointPool + match.points * this.scoreMultiplier; // Apply multiplier only to the guessed answer
+        this.pointsAwarded = this.pointPool + match.points * (this.scoreMultiplier ?? 1); // Apply multiplier only to the guessed answer, default to 1 if null
         this.teamScores[this.currentTeam] += this.pointsAwarded; // Add points to the second team's score
         this.winningTeam = this.currentTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
@@ -118,7 +126,11 @@ export const useGameStore = defineStore('game', {
         // If the second team guesses incorrectly
         this.secondTeamGuessUsed = true;
         this.pointsAwarded = this.pointPool; // Use the already multiplied pointPool
-        this.teamScores[this.firstTeam] += this.pointPool;
+        if (this.firstTeam !== null) {
+          if (this.firstTeam !== null) {
+            this.teamScores[this.firstTeam] += this.pointPool;
+          }
+        }
         this.winningTeam = this.firstTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
@@ -165,7 +177,7 @@ export const useGameStore = defineStore('game', {
       console.log('resetRound called');
     },
 
-    updateRoundCounter(round) {
+    updateRoundCounter(round: number) {
       this.roundCounter = round;
     },
 
@@ -173,19 +185,19 @@ export const useGameStore = defineStore('game', {
       this.roundCounter++;
     },
 
-    updateTeamScore(team, score) {
+    updateTeamScore(team: string, score: any) {
       if (team === 'A' || team === 'B') {
         this.teamScores[team] = score;
       }
     },
 
-    updateTeamName(team, name) {
+    updateTeamName(team: string, name: any) {
       if (team === 'A' || team === 'B') {
         this.teamNames[team] = name;
       }
     },
 
-    setTimer(seconds) {
+    setTimer(seconds: number) {
       this.timer = seconds;
     },
 
@@ -208,7 +220,7 @@ export const useGameStore = defineStore('game', {
       this.timerRunning = false;
     },
 
-    uploadQuestion(question) {
+    uploadQuestion(question: string) {
       this.question = question;
     },
   },

@@ -46,7 +46,7 @@
           id="question-input"
           type="text"
           :value="questionInput"
-          @input="(e) => emit('update:questionInput', e.target.value)"
+          @input="(e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)"
           :disabled="questionSaved"
         />
       </div>
@@ -118,7 +118,9 @@
         <li v-for="answer in answers" :key="answer.id">
           <span
             :style="{
-              textDecoration: guessedAnswers.includes(answer.id) ? 'line-through' : 'none',
+              textDecoration: guessedAnswers.map((a) => String(a.id)).includes(String(answer.id))
+                ? 'line-through'
+                : 'none',
             }"
           >
             {{ answer.text }} ({{ answer.points }} pts)
@@ -126,8 +128,10 @@
           <!-- Correct Button: Only show if round is not over -->
           <button
             class="btn"
-            v-if="!guessedAnswers.includes(answer.id) && !roundOver"
-            @click="handleCorrectGuess(answer.id)"
+            v-if="
+              !guessedAnswers.map((a) => String(a.id)).includes(String(answer.id)) && !roundOver
+            "
+            @click="props.handleCorrectGuess && props.handleCorrectGuess(Number(answer.id))"
           >
             Correct
           </button>
@@ -152,43 +156,48 @@
   </div>
 </template>
 
-<script setup>
-// Props
-const props = defineProps({
-  startingTeamSet: Boolean,
-  startingTeam: String,
-  teamNames: Object,
-  setStartingTeam: Function,
-  currentStep: String,
-  handleUpload: Function,
-  fetchLibraryFiles: Function,
-  showLibraryDialog: Boolean,
-  libraryFiles: Array,
-  loadLibraryFile: Function,
-  questionInput: String,
-  questionSaved: Boolean,
-  answerPairs: Array,
-  answersSaved: Boolean,
-  removeAnswerPair: Function,
-  addAnswerPair: Function,
-  removeAllAnswers: Function,
-  saveQuestionAndAnswers: Function,
-  selectedMultiplier: Number,
-  multiplierSet: Boolean,
-  setMultiplier: Function,
-  question: String,
-  answers: Array,
-  guessedAnswers: Array,
-  roundOver: Boolean,
-  showWhoStartsSection: Boolean,
-  handleCorrectGuess: Function,
-  handleIncorrectAndStrike: Function,
-  emitStrikeSound: Function,
-  revealAllAnswers: Function,
-  setShowLibraryDialog: Function,
-});
+<script setup lang="ts">
+interface QuestionAndAnswersMgrProps {
+  startingTeamSet: boolean;
+  startingTeam: string;
+  teamNames: Record<string, string>;
+  setStartingTeam: (team: string) => void;
+  currentStep: 'manage' | 'multiplier' | 'answers';
+  handleUpload: (event: Event) => void;
+  fetchLibraryFiles: () => void;
+  showLibraryDialog: boolean;
+  libraryFiles: string[];
+  loadLibraryFile: (fileName: string) => void;
+  questionInput: string;
+  questionSaved: boolean;
+  answerPairs: { text: string; points: number }[];
+  answersSaved: boolean;
+  removeAnswerPair: (index: number) => void;
+  addAnswerPair: () => void;
+  removeAllAnswers: () => void;
+  saveQuestionAndAnswers: () => void;
+  selectedMultiplier: number;
+  multiplierSet: boolean;
+  setMultiplier: (multiplier: number) => void;
+  question: string;
+  answers: { id: string; text: string; points: number }[];
+  guessedAnswers: { id: string; text: string; points: number }[];
+  roundOver: boolean;
+  showWhoStartsSection?: boolean;
+  handleCorrectGuess?: (answerId: number) => void;
+  handleIncorrectAndStrike?: () => void;
+  emitStrikeSound?: () => void;
+  revealAllAnswers?: () => void;
+  setShowLibraryDialog?: (show: boolean) => void;
+}
+interface QuestionAndAnswersMgrEmits {
+  (e: 'update:questionInput', value: string): void;
+}
 
-const emit = defineEmits(['update:questionInput']);
+// Props
+const props = defineProps<QuestionAndAnswersMgrProps>();
+
+const emit = defineEmits<QuestionAndAnswersMgrEmits>();
 
 function closeLibraryDialog() {
   if (props.setShowLibraryDialog) {

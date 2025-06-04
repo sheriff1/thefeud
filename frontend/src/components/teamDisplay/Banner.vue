@@ -6,11 +6,13 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  heading: String,
-  paragraph: String,
-});
+<script setup lang="ts">
+interface BannerProps {
+  heading: string;
+  paragraph: string;
+}
+
+const props = defineProps<BannerProps>();
 </script>
 
 <style>

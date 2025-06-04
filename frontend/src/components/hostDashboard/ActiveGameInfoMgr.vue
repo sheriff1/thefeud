@@ -36,18 +36,20 @@
   </div>
 </template>
 
-<script setup>
-const props = defineProps({
-  teamNames: Object,
-  teamStrikes: Object,
-  teamScores: Object,
-  roundCounter: Number,
-  currentTeam: String,
-  pointPool: Number,
-  roundOver: Boolean,
-  scoreMultiplier: Number,
-  revealAllAnswers: Function,
-});
+<script setup lang="ts">
+interface ActiveGameInfoMgrProps {
+  teamNames: Record<string, string>;
+  teamStrikes: Record<string, number>;
+  teamScores: Record<string, number>;
+  roundCounter: number;
+  currentTeam: string;
+  pointPool: number;
+  roundOver: boolean;
+  scoreMultiplier: number;
+  revealAllAnswers: () => void;
+}
+
+const props = defineProps<ActiveGameInfoMgrProps>();
 </script>
 
 <style scoped></style>

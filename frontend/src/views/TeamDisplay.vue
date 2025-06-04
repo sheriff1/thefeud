@@ -64,7 +64,7 @@
         <!-- Answers & Game Info Section -->
         <div class="center-info">
           <AnswersBoard
-            :answers="store.answers"
+            :answers="store.answers.map((a) => ({ ...a, id: Number(a.id) }))"
             :question="store.question"
             :guessedAnswers="store.guessedAnswers"
             :showStrikeX="showStrikeX"
@@ -105,23 +105,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useGameStore } from '@/stores/gamestore';
+import { useGameStore } from '../stores/gamestore';
 import socket from '../utils/socket';
-import TeamPanel from '@/components/teamDisplay/TeamPanel.vue';
-import AnswersBoard from '@/components/teamDisplay/AnswersBoard.vue';
-import GameInfo from '@/components/teamDisplay/GameInfo.vue';
-import FloatingButton from '@/components/teamDisplay/FloatingButton.vue';
-import Banner from '@/components/teamDisplay/Banner.vue';
-import JoinTeamDialog from '@/components/teamDisplay/JoinTeamDialog.vue';
+import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
+import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
+import GameInfo from '../components/teamDisplay/GameInfo.vue';
+import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
+import Banner from '../components/teamDisplay/Banner.vue';
+import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 
-defineProps({
-  isSpectator: {
-    type: Boolean,
-    default: false,
-  },
-});
+interface TeamDisplayProps {
+  isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
+}
+
+const props = defineProps<TeamDisplayProps>();
 
 const store = useGameStore();
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
@@ -134,12 +133,13 @@ const hasBuzzed = ref(false);
 const buzzedPlayer = ref(''); // Name of the player who buzzed first
 const isBuzzerDisabled = computed(() => hasBuzzed.value || !!buzzedPlayer.value);
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
-const editingTeam = ref(null); // 'A' or 'B' or null
+const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
 const isMuted = ref(false); // Mute state
 const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
-const otherTeam = (team) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
+const otherTeam = (team: string) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
 const showStrikeX = ref(false);
+const isSpectator = props.isSpectator ?? false;
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -186,9 +186,9 @@ const pressBuzzer = () => {
   }
 };
 
-const startEditingTeamName = (team) => {
-  editingTeam.value = team;
-  editedTeamName.value = store.teamNames[team] || '';
+const startEditingTeamName = (team: string | number | null) => {
+  editingTeam.value = team as 'A' | 'B' | null;
+  editedTeamName.value = store.teamNames[team as 'A' | 'B'] || '';
 };
 
 const copySessionId = () => {
@@ -226,7 +226,7 @@ function toggleMute() {
   isMuted.value = !isMuted.value;
 }
 
-function saveTeamName({ team, name }) {
+function saveTeamName({ team, name }: { team: string; name: string }) {
   if (name && name.trim()) {
     store.teamNames = { ...store.teamNames, [team]: name };
     socket.emit('update-team-name', {
@@ -238,23 +238,25 @@ function saveTeamName({ team, name }) {
   }
 }
 
-function joinTeam({ playerName: name, selectedTeam: team }) {
+function joinTeam(payload: { playerName: string; selectedTeam: string }) {
+  const { playerName: name, selectedTeam: team } = payload;
   if (!name.trim() || !team) return;
   socket.emit('join-team', {
     sessionId,
     name: name.trim(),
     team,
   });
-  playerName.value = name.trim(); // <-- Ensure this line is present
+  playerName.value = name.trim();
   selectedTeam.value = team;
   hasJoined.value = true;
+  console.log(`Player ${name} joined team ${team}`);
 }
 
 socket.on('play-strike-sound', () => {
   playStrikeSound();
 });
 
-socket.on('team-names-updated', (teamNames) => {
+socket.on('team-names-updated', (teamNames: any) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
 });
 
@@ -295,20 +297,20 @@ onMounted(() => {
   // Request the current game state from the backend
   socket.emit('get-current-state', { sessionId });
 
-  socket.on('buzzed', ({ name }) => {
+  socket.on('buzzed', ({ name }: { name: string }) => {
     buzzedPlayer.value = name;
     playBuzzerSound(); // <-- Make sure this is here!
   });
 
   // Listen for the current game state from the backend
-  socket.on('current-state', (currentState) => {
+  socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
     console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState);
     buzzedPlayer.value = currentState?.buzzedPlayer || '';
   });
 
   // Listen for game state updates
-  socket.on('update-game', (newState) => {
+  socket.on('update-game', (newState: { teamNames: any; buzzedPlayer: string }) => {
     Object.assign(store.$state, newState);
     store.teamNames = { ...store.teamNames, ...newState.teamNames };
     buzzedPlayer.value = newState?.buzzedPlayer || '';
@@ -321,12 +323,15 @@ onMounted(() => {
     playStrikeSound();
   });
 
-  socket.on('team-members-updated', (members) => {
-    teamMembers.value = members;
-  });
+  socket.on(
+    'team-members-updated',
+    (members: { A: never[]; B: never[] } | { A: never[]; B: never[] }) => {
+      teamMembers.value = members;
+    },
+  );
 
   // Handle connection errors
-  socket.on('connect_error', (error) => {
+  socket.on('connect_error', (error: any) => {
     console.error('WebSocket connection error:', error);
     alert('Failed to connect to the game session. Please try again.');
   });

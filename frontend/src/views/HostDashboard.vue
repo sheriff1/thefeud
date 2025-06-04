@@ -21,10 +21,10 @@
       <QuestionAndAnswersMgr
         v-model:questionInput="questionInput"
         :startingTeamSet="store.startingTeamSet"
-        :startingTeam="startingTeam"
+        :startingTeam="startingTeam ?? ''"
         :teamNames="store.teamNames"
         :setStartingTeam="setStartingTeam"
-        :currentStep="store.currentStep"
+        :currentStep="store.currentStep as 'answers' | 'manage' | 'multiplier'"
         :handleUpload="handleUpload"
         :fetchLibraryFiles="fetchLibraryFiles"
         :showLibraryDialog="showLibraryDialog"
@@ -37,7 +37,7 @@
         :addAnswerPair="addAnswerPair"
         :removeAllAnswers="removeAllAnswers"
         :saveQuestionAndAnswers="saveQuestionAndAnswers"
-        :selectedMultiplier="selectedMultiplier"
+        :selectedMultiplier="selectedMultiplier ?? 0"
         :multiplierSet="store.multiplierSet"
         :setMultiplier="setMultiplier"
         :question="store.question"
@@ -61,7 +61,7 @@
         :currentTeam="store.currentTeam"
         :pointPool="store.pointPool"
         :roundOver="store.roundOver"
-        :scoreMultiplier="store.scoreMultiplier"
+        :scoreMultiplier="store.scoreMultiplier ?? 1"
         :revealAllAnswers="revealAllAnswers"
       />
     </div>
@@ -90,30 +90,32 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
+/// <reference types="vite/client" />
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useGameStore } from '@/stores/gamestore';
+import { useGameStore } from '../stores/gamestore';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
-import GameStatusMgr from '@/components/hostDashboard/GameStatusMgr.vue';
-import QuestionAndAnswersMgr from '@/components/hostDashboard/QuestionAndAnswersMgr.vue';
-import ActiveGameInfoMgr from '@/components/hostDashboard/ActiveGameInfoMgr.vue';
-import TimerMgr from '@/components/hostDashboard/TimerMgr.vue';
-import ManualOverrideMgr from '@/components/hostDashboard/ManualOverrideMgr.vue';
+import GameStatusMgr from '../components/hostDashboard/GameStatusMgr.vue';
+import QuestionAndAnswersMgr from '../components/hostDashboard/QuestionAndAnswersMgr.vue';
+import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue';
+import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
+import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue';
 
-let timerInterval = null;
+let timerInterval: string | number | NodeJS.Timeout | null | undefined = null;
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
 const apiBase = import.meta.env.VITE_API_BASE || '';
 const fileUploaded = ref(false);
-const startingTeam = ref(null); // Track the selected starting team
-const selectedMultiplier = ref(null); // Track the selected multiplier
+const startingTeam = ref<string | null>(null); // Track the selected starting team
+const selectedMultiplier = ref<number | null>(null); // Track the selected multiplier
 const timerInput = ref(0);
-const answerPairs = ref([]); // Initialize with an empty array
+const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
 const questionSaved = ref(false); // Track if the question has been saved
 const previousRound = ref(store.roundCounter); // Track the previous round value
@@ -133,7 +135,7 @@ const isLoading = ref(false);
 const correctBeforeBuzzer = ref(false);
 
 // Update game state
-const updateGameState = (gameState) => {
+const updateGameState = (gameState: any) => {
   if (!sessionId) {
     alert('YERRRR Session ID is missing. Cannot update game state.');
     return;
@@ -141,14 +143,16 @@ const updateGameState = (gameState) => {
   socket.emit('update-game', { sessionId, gameState });
 };
 
-const handleUpload = (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+const handleUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input?.files || input.files.length === 0) return;
+
+  const file = input.files[0];
 
   Papa.parse(file, {
     header: true,
     skipEmptyLines: true,
-    complete: (results) => {
+    complete: (results: { data: any }) => {
       const data = results.data;
 
       if (data.length > 0) {
@@ -156,7 +160,7 @@ const handleUpload = (event) => {
         questionInput.value = data[0].Question || '';
 
         // Populate the answers and points, assigning unique IDs
-        answerPairs.value = data.map((row) => ({
+        answerPairs.value = data.map((row: { Answer: any; Points: string }) => ({
           id: uuidv4(), // Assign a unique ID
           text: row.Answer || '',
           points: parseInt(row.Points, 10) || 0,
@@ -165,21 +169,21 @@ const handleUpload = (event) => {
         alert('The uploaded CSV file is empty or invalid.');
       }
     },
-    error: (error) => {
+    error: (error: any) => {
       console.error('Error parsing CSV:', error);
       alert('Failed to parse the CSV file. Please check the format.');
     },
   });
 };
 
-const setStartingTeam = (team) => {
+const setStartingTeam = (team: string) => {
   store.setStartingTeam(team);
   startingTeam.value = team; // Set the selected starting team
   store.startingTeamSet = true;
   updateGameState(store.$state); // Emit the updated game state
 };
 
-const setMultiplier = (multiplier) => {
+const setMultiplier = (multiplier: number) => {
   store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
   // multiplierSet.value = true; // Disable the buttons
@@ -297,7 +301,9 @@ const startTimer = () => {
 
 const stopTimer = () => {
   store.stopTimer();
-  clearInterval(timerInterval);
+  if (timerInterval !== null && timerInterval !== undefined) {
+    clearInterval(timerInterval as NodeJS.Timeout);
+  }
   timerInterval = null;
   updateGameState(store.$state); // Emit the updated game state
 };
@@ -309,7 +315,7 @@ const resetTimer = () => {
   updateGameState(store.$state); // Emit the updated game state
 };
 
-const handleCorrectGuess = (answerId) => {
+const handleCorrectGuess = (answerId: any) => {
   correctCount.value++;
   if (buzzerOnlyPressed.value) {
     correctAfterBuzzer.value = true;
@@ -318,10 +324,10 @@ const handleCorrectGuess = (answerId) => {
     correctBeforeBuzzer.value = true;
   }
   if (!store.firstTeam) {
-    const match = store.answers.find((a) => a.id === answerId);
+    const match = store.answers.find((a: { id: any }) => a.id === answerId);
     if (match && !store.guessedAnswers.includes(match.id)) {
       store.guessedAnswers.push(match.id); // Use the unique ID to track guessed answers
-      store.pointPool += match.points * store.scoreMultiplier; // Add points to the points pool
+      store.pointPool += match.points * (store.scoreMultiplier ?? 1); // Add points to the points pool, default multiplier to 1 if null
     }
   } else {
     // Normal gameplay: Award points to the current team
@@ -366,12 +372,12 @@ const addAnswerPair = () => {
   }
 };
 
-const removeAnswerPair = (index) => {
+const removeAnswerPair = (index: number) => {
   answerPairs.value.splice(index, 1); // Remove the selected answer pair
 };
 
 const removeAllAnswers = () => {
-  answerPairs.value = [{ text: '', points: 0 }]; // Reset to one empty pair
+  answerPairs.value = [{ id: uuidv4(), text: '', points: 0 }]; // Reset to one empty pair with unique id
 };
 
 const saveQuestionAndAnswers = async () => {
@@ -396,7 +402,6 @@ const saveQuestionAndAnswers = async () => {
 
   if (questionSaved.value && store.answersSaved) {
     store.incrementRoundCounter();
-    store.questionSaved = true;
     updateGameState(store.$state); // Emit the updated game state LAST
   }
 };
@@ -429,8 +434,8 @@ const saveScoreMgmt = () => {
 
 const revealAllAnswers = () => {
   const unrevealedAnswers = store.answers
-    .filter((answer) => !store.guessedAnswers.includes(answer.id)) // Find answers not yet revealed
-    .map((answer) => answer.id); // Get their IDs
+    .filter((answer: { id: any }) => !store.guessedAnswers.includes(answer.id)) // Find answers not yet revealed
+    .map((answer: { id: any }) => answer.id); // Get their IDs
 
   store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed IDs to guessedAnswers
   updateGameState(store.$state); // Emit the updated game state
@@ -482,7 +487,8 @@ const copySessionId = () => {
 const highestPointAnswerId = computed(() => {
   if (!store.answers.length) return null;
   return store.answers.reduce(
-    (max, curr) => (curr.points > max.points ? curr : max),
+    (max: { id: any; points: number }, curr: { id: any; points: number }) =>
+      curr.points > max.points ? curr : max,
     store.answers[0],
   ).id;
 });
@@ -512,12 +518,12 @@ const fetchLibraryFiles = async () => {
   showLibraryDialog.value = true;
 };
 
-function setShowLibraryDialog(value) {
+function setShowLibraryDialog(value: boolean) {
   showLibraryDialog.value = value;
 }
 
 // Load and parse the selected CSV file
-const loadLibraryFile = async (filename) => {
+const loadLibraryFile = async (filename: string) => {
   const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
   const csvText = await res.text();
   console.log('CSV file loaded:', filename);
@@ -531,12 +537,12 @@ const loadLibraryFile = async (filename) => {
   Papa.parse(csvText, {
     header: true,
     skipEmptyLines: true,
-    complete: (results) => {
+    complete: (results: { data: any }) => {
       const data = results.data;
       console.log('Parsed CSV data:', data);
       if (data.length > 0) {
         questionInput.value = data[0].Question || '';
-        answerPairs.value = data.map((row) => ({
+        answerPairs.value = data.map((row: { Answer: any; Points: string }) => ({
           id: uuidv4(),
           text: row.Answer || '',
           points: parseInt(row.Points, 10) || 0,
@@ -546,7 +552,7 @@ const loadLibraryFile = async (filename) => {
       }
       showLibraryDialog.value = false;
     },
-    error: (error) => {
+    error: () => {
       alert('Failed to parse the selected CSV file.');
       showLibraryDialog.value = false;
     },
@@ -554,19 +560,19 @@ const loadLibraryFile = async (filename) => {
 };
 
 // Listen for game state updates
-socket.on('update-game', (updatedGameState) => {
+socket.on('update-game', (updatedGameState: any) => {
   Object.assign(store.$state, updateGameState);
   console.log('Game state updated:', updatedGameState);
 });
 
 // Handle errors
-socket.on('error', (error) => {
+socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   alert(`Error: ${error.message}`);
 });
 
 // Handle connection errors
-socket.on('connect_error', (error) => {
+socket.on('connect_error', (error: any) => {
   console.error('WebSocket connection error:', error);
 });
 
@@ -574,7 +580,7 @@ onMounted(() => {
   store.initSocket();
 
   // Listen for team name updates from the backend
-  socket.on('team-names-updated', (teamNames) => {
+  socket.on('team-names-updated', (teamNames: any) => {
     store.teamNames = { ...store.teamNames, ...teamNames };
   });
   if (!sessionId) {
@@ -588,7 +594,7 @@ onMounted(() => {
   socket.emit('get-current-state', { sessionId });
 
   // Listen for the current game state from the backend
-  socket.on('current-state', (currentState) => {
+  socket.on('current-state', (currentState: any) => {
     console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
@@ -604,7 +610,7 @@ onMounted(() => {
   });
 
   // Listen for game state updates
-  socket.on('update-game', (updatedGameState) => {
+  socket.on('update-game', (updatedGameState: any) => {
     Object.assign(store.$state, updatedGameState);
 
     isLoading.value = false;
@@ -624,11 +630,11 @@ onMounted(() => {
       selectedMultiplier.value = null;
     }
 
-    store.teamNames = { ...store.teamNames, ...updateGameState.teamNames };
+    store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
   });
 
   // Handle connection errors
-  socket.on('connect_error', (error) => {
+  socket.on('connect_error', (error: any) => {
     console.error('WebSocket connection error:', error);
     alert('Failed to connect to the game session. Please try again.');
   });

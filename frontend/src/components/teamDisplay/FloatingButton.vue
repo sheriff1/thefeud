@@ -1,34 +1,36 @@
 <template>
   <button
     :class="['floating-button', className, buttonState]"
-    @click="onClick"
+    @click="handleClick"
     :aria-pressed="ariaPressed"
   >
     {{ label }}
   </button>
 </template>
 
-<script setup>
-const props = defineProps({
-  label: String,
-  onClick: Function,
-  className: [String, Object],
-  state: String,
-  ariaPressed: Boolean,
-});
-import { ref, watch } from "vue";
-const emit = defineEmits(["click"]);
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+interface FloatingButtonProps {
+  label: string;
+  onClick?: () => void;
+  className?: string | Record<string, boolean>;
+  state?: string;
+  ariaPressed?: boolean;
+}
+
+const props = defineProps<FloatingButtonProps>();
+const emit = defineEmits<{ (e: 'click'): void }>();
 
 const buttonState = ref(props.state);
 watch(
   () => props.state,
   (newState) => {
     buttonState.value = newState;
-  }
+  },
 );
 
 function handleClick() {
-  emit("click");
+  emit('click');
   if (props.onClick) {
     props.onClick();
   }
@@ -45,7 +47,9 @@ function handleClick() {
   font-size: 0.9rem;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   opacity: 0.7;
-  transition: opacity 0.3s ease, background-color 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    background-color 0.3s ease;
   border: none;
   cursor: pointer;
 }

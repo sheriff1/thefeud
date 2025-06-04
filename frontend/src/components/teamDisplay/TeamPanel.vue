@@ -45,25 +45,34 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch, toRefs } from 'vue';
-const props = defineProps({
-  team: String,
-  teamName: String,
-  score: Number,
-  members: Array,
-  strikes: Number,
-  strikeCount: Number,
-  buzzedPlayer: String,
-  active: Boolean,
-  editing: Boolean,
-  isWinning: Boolean,
-  showBuzzer: Boolean,
-  buzzerDisabled: Boolean,
-  initialEditedName: String,
-  guessedAnswers: Array,
-});
-const emit = defineEmits(['edit-team', 'save-team', 'buzz']);
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+
+interface TeamPanelProps {
+  team: string;
+  teamName: string;
+  score: number;
+  members: string[];
+  strikes: number;
+  strikeCount: number;
+  buzzedPlayer: string;
+  active: boolean;
+  editing: boolean;
+  isWinning: boolean;
+  showBuzzer: boolean;
+  buzzerDisabled: boolean;
+  initialEditedName?: string;
+  guessedAnswers: string[];
+}
+
+interface TeamPanelEmits {
+  (e: 'edit-team', team: string): void;
+  (e: 'save-team', payload: { team: string; name: string }): void;
+  (e: 'buzz'): void;
+}
+
+const props = defineProps<TeamPanelProps>();
+const emit = defineEmits<TeamPanelEmits>();
 
 const editedName = ref(props.initialEditedName || props.teamName);
 

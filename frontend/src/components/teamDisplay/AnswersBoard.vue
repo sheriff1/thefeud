@@ -13,13 +13,9 @@
 
     <!-- Answers Grid -->
     <div class="answers-grid">
-      <div
-        v-for="(answer, index) in answers"
-        :key="answer.id"
-        class="answer-box"
-      >
+      <div v-for="(answer, index) in answers" :key="answer.id" class="answer-box">
         <!-- Hidden Answer (Blue Box) -->
-        <div v-if="!guessedAnswers.includes(answer.id)" class="blue-box">
+        <div v-if="!guessedAnswers.map((a) => a.id).includes(answer.id)" class="blue-box">
           <span class="answer-number-circle">{{ index + 1 }}</span>
         </div>
 
@@ -34,15 +30,18 @@
   <p v-else class="no-answers-message">No answers available yet.</p>
 </template>
 
-<script setup>
-import { ref, watch, computed } from "vue";
-const props = defineProps({
-  answers: Array,
-  question: String,
-  guessedAnswers: Array,
-  showStrikeX: Boolean,
-});
-const emit = defineEmits(["strikeX"]);
+<script setup lang="ts">
+import { ref, watch } from 'vue';
+
+interface AnswerBoardProps {
+  answers: { id: number; text: string; points: number }[];
+  question: string;
+  guessedAnswers: { id: number; text: string; points: number }[]; // updated
+  showStrikeX: boolean;
+}
+
+const props = defineProps<AnswerBoardProps>();
+const emit = defineEmits<{ (e: 'strikeX'): void }>();
 const showStrikeX = ref(props.showStrikeX);
 watch(
   () => props.showStrikeX,
@@ -51,10 +50,10 @@ watch(
     if (newVal) {
       setTimeout(() => {
         showStrikeX.value = false;
-        emit("strikeX");
+        emit('strikeX');
       }, 1200); // Hide after 1 second
     }
-  }
+  },
 );
 </script>
 
@@ -98,7 +97,9 @@ watch(
   font-size: 1.5rem;
   font-weight: bold;
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .answer-box:hover {
@@ -142,7 +143,7 @@ watch(
   font-size: 2rem;
   font-weight: bold;
   text-align: left;
-  font-family: "Bebas Neue", Arial, sans-serif;
+  font-family: 'Bebas Neue', Arial, sans-serif;
   overflow: hidden;
 }
 
@@ -157,7 +158,7 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: clamp(1rem, 2.5vw, 2.2rem); /* Responsive font size */
-  font-family: "Bebas Neue", Arial, sans-serif;
+  font-family: 'Bebas Neue', Arial, sans-serif;
   font-weight: bold;
   color: white;
   text-transform: uppercase;
@@ -222,7 +223,9 @@ watch(
   font-size: 10vw;
   color: #e53935;
   font-weight: bold;
-  text-shadow: 0 0 30px #e53935, 0 0 10px #fff;
+  text-shadow:
+    0 0 30px #e53935,
+    0 0 10px #fff;
   border: 8px solid #e53935;
   border-radius: 16px;
   padding: 2vw 4vw;

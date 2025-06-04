@@ -56,7 +56,7 @@
         type="text"
         v-model="teamNames.A"
         placeholder="Enter Team A Name"
-        @input="onTeamNamesInput({ ...teamNames, A: $event.target.value })"
+        @input="onTeamNamesInput({ ...teamNames, A: ($event.target as HTMLInputElement).value })"
       />
     </div>
     <div class="form-row">
@@ -68,7 +68,7 @@
         type="text"
         v-model="teamNames.B"
         placeholder="Enter Team B Name"
-        @input="onTeamNamesInput({ ...teamNames, B: $event.target.value })"
+        @input="onTeamNamesInput({ ...teamNames, B: ($event.target as HTMLInputElement).value })"
       />
     </div>
     <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
@@ -76,27 +76,31 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch, toRefs } from 'vue';
 
-const props = defineProps({
-  teamNames: { type: Object, required: true },
-  teamScores: { type: Object, required: true },
-  roundCounter: { type: [Number, String], required: true },
-  scoreMultiplier: { type: [Number, String], required: true },
-  isTeamNamesUnique: { type: Boolean, required: true },
-});
+interface ManualOverrideMgrProps {
+  teamNames: Record<string, string>;
+  teamScores: Record<string, number>;
+  roundCounter: number | string;
+  scoreMultiplier: number | string;
+  isTeamNamesUnique: boolean;
+}
 
-const emit = defineEmits([
-  'update:teamNames',
-  'update:teamScores',
-  'update:roundCounter',
-  'update:scoreMultiplier',
-  'saveScoreMgmt',
-]);
+interface ManualOverrideMgrEmits {
+  (e: 'update:teamNames', teamNames: Record<string, string>): void;
+  (e: 'update:teamScores', teamScores: Record<string, number>): void;
+  (e: 'update:roundCounter', roundCounter: number | string): void;
+  (e: 'update:scoreMultiplier', scoreMultiplier: number | string): void;
+  (e: 'saveScoreMgmt'): void;
+}
+
+const props = defineProps<ManualOverrideMgrProps>();
+
+const emit = defineEmits<ManualOverrideMgrEmits>();
 
 // Use two-way binding for v-model
-const { teamNames, teamScores, roundCounter, scoreMultiplier } = toRefs(props);
+const { teamNames } = toRefs(props);
 
 const localScoreMultiplier = ref(props.scoreMultiplier);
 // const localTeamNames = ref(props.teamNames);
@@ -110,12 +114,19 @@ watch(
   },
 );
 
-function onScoreMultiplierInput(val) {
+function onScoreMultiplierInput(val: number | string) {
   emit('update:scoreMultiplier', val);
 }
-
-function onTeamNamesInput(val) {
+function onTeamNamesInput(val: Record<string, string>) {
   emit('update:teamNames', val);
+}
+
+function onTeamScoresInput(val: Record<string, number>) {
+  emit('update:teamScores', val);
+}
+
+function onRoundCounterInput(val: number | string) {
+  emit('update:roundCounter', val);
 }
 
 watch(
@@ -125,20 +136,12 @@ watch(
   },
 );
 
-function onTeamScoresInput(val) {
-  emit('update:teamScores', val);
-}
-
 watch(
   () => props.roundCounter,
   (val) => {
     localRoundCounter.value = val;
   },
 );
-
-function onRoundCounterInput(val) {
-  emit('update:roundCounter', val);
-}
 
 function saveScoreMgmt() {
   emit('saveScoreMgmt');

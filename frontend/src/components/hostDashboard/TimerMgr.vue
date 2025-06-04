@@ -6,7 +6,7 @@
       id="timer-input"
       type="number"
       :value="timerInput"
-      @input="(e) => emit('update:timerInput', Number(e.target.value))"
+      @input="onTimerInput"
       @change="setTimer"
     />
     <div>
@@ -20,19 +20,28 @@
   </div>
 </template>
 
-<script setup>
-// Props
-const props = defineProps({
-  timerRunning: Boolean,
-  timer: Number,
-  timerInput: Number,
-  startTimer: Function,
-  stopTimer: Function,
-  resetTimer: Function,
-  setTimer: Function,
-});
+<script setup lang="ts">
+interface TimerMgrProps {
+  timerRunning: boolean;
+  timer: number;
+  timerInput: number;
+  startTimer: () => void;
+  stopTimer: () => void;
+  resetTimer: () => void;
+  setTimer: () => void;
+}
+interface TimerMgrEmits {
+  (e: 'update:timerInput', value: number): void;
+}
 
-const emit = defineEmits(['update:timerInput']);
+const props = defineProps<TimerMgrProps>();
+
+const emit = defineEmits<TimerMgrEmits>();
+
+function onTimerInput(e: Event) {
+  const value = Number((e.target as HTMLInputElement).value);
+  emit('update:timerInput', value);
+}
 </script>
 
 <style scoped></style>

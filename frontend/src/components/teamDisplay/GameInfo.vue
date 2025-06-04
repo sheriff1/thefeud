@@ -23,31 +23,36 @@
   </div>
 </template>
 
-<script setup>
-import { ref, watch, computed } from "vue";
-const props = defineProps({
-  roundCounter: Number,
-  timer: Number,
-  pointPool: Number,
-  scoreMultiplier: Number,
-});
-const emit = defineEmits([
-  "update:roundCounter",
-  "update:timer",
-  "update:pointPool",
-  "update:scoreMultiplier",
-]);
+<script setup lang="ts">
+import { computed } from 'vue';
+
+interface GameInfoProps {
+  roundCounter: number;
+  timer: number; // in seconds
+  pointPool: number;
+  scoreMultiplier: number | null; // null if not set
+}
+
+interface GameInfoEmits {
+  'update:roundCounter': (value: number) => void;
+  'update:timer': (value: number) => void;
+  'update:pointPool': (value: number) => void;
+  'update:scoreMultiplier': (value: number | null) => void;
+}
+
+const props = defineProps<GameInfoProps>();
+const emit = defineEmits<GameInfoEmits>();
 
 // Computed properties for displaying values
 const formattedRoundCounter = computed(() => props.roundCounter.toString());
 const formattedTimer = computed(() => {
   const minutes = Math.floor(props.timer / 60);
   const seconds = props.timer % 60;
-  return `${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+  return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
 });
 const formattedPointPool = computed(() => props.pointPool.toLocaleString());
 const formattedScoreMultiplier = computed(() =>
-  props.scoreMultiplier == null ? "x" : `x${props.scoreMultiplier}`
+  props.scoreMultiplier == null ? 'x' : `x${props.scoreMultiplier}`,
 );
 </script>
 

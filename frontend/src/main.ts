@@ -4,7 +4,6 @@ import App from './App.vue';
 import router from './router';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { collection, doc, setDoc } from 'firebase/firestore';
 
 const app = createApp(App);
 const pinia = createPinia();
