@@ -15,7 +15,7 @@
     <div class="answers-grid">
       <div v-for="(answer, index) in answers" :key="answer.id" class="answer-box">
         <!-- Hidden Answer (Blue Box) -->
-        <div v-if="!guessedAnswers.map((a) => a.id).includes(answer.id)" class="blue-box">
+        <div v-if="!guessedAnswers.map((a) => a.id).includes(String(answer.id))" class="blue-box">
           <span class="answer-number-circle">{{ index + 1 }}</span>
         </div>
 
@@ -34,9 +34,9 @@
 import { ref, watch } from 'vue';
 
 interface AnswerBoardProps {
-  answers: { id: number; text: string; points: number }[];
+  answers: { id: string; text: string; points: number }[];
   question: string;
-  guessedAnswers: { id: number; text: string; points: number }[]; // updated
+  guessedAnswers: { id: string }[]; // updated
   showStrikeX: boolean;
 }
 

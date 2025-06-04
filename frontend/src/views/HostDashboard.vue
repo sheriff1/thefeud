@@ -42,7 +42,7 @@
         :setMultiplier="setMultiplier"
         :question="store.question"
         :answers="answers"
-        :guessedAnswers="guessedAnswers"
+        :guessedAnswers="store.guessedAnswers"
         :roundOver="store.roundOver"
         :showWhoStartsSection="showWhoStartsSection"
         :handleCorrectGuess="handleCorrectGuess"
@@ -325,8 +325,13 @@ const handleCorrectGuess = (answerId: any) => {
   }
   if (!store.firstTeam) {
     const match = store.answers.find((a: { id: any }) => a.id === answerId);
-    if (match && !store.guessedAnswers.includes(match.id)) {
-      store.guessedAnswers.push(match.id); // Use the unique ID to track guessed answers
+    if (
+      match &&
+      !store.guessedAnswers.some((a: string | { id: string }) =>
+        typeof a === 'string' ? a === match.id : a.id === match.id,
+      )
+    ) {
+      store.guessedAnswers.push({ id: match.id }); // Use the unique ID object to track guessed answers
       store.pointPool += match.points * (store.scoreMultiplier ?? 1); // Add points to the points pool, default multiplier to 1 if null
     }
   } else {
@@ -433,11 +438,14 @@ const saveScoreMgmt = () => {
 };
 
 const revealAllAnswers = () => {
+  // Find answers not yet revealed
   const unrevealedAnswers = store.answers
-    .filter((answer: { id: any }) => !store.guessedAnswers.includes(answer.id)) // Find answers not yet revealed
-    .map((answer: { id: any }) => answer.id); // Get their IDs
+    .filter(
+      (answer: { id: any }) => !store.guessedAnswers.some((a: { id: any }) => a.id === answer.id),
+    )
+    .map((answer: { id: any }) => ({ id: answer.id })); // Map to { id: ... } objects
 
-  store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed IDs to guessedAnswers
+  store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed objects to guessedAnswers
   updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -494,7 +502,7 @@ const highestPointAnswerId = computed(() => {
 });
 
 const highestPointAnswered = computed(() =>
-  store.guessedAnswers.includes(highestPointAnswerId.value),
+  store.guessedAnswers.some((a: { id: any }) => a.id === highestPointAnswerId.value),
 );
 
 const guessedAnswersCount = computed(() => store.guessedAnswers.length);

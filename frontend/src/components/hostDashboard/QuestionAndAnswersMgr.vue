@@ -131,7 +131,7 @@
             v-if="
               !guessedAnswers.map((a) => String(a.id)).includes(String(answer.id)) && !roundOver
             "
-            @click="props.handleCorrectGuess && props.handleCorrectGuess(Number(answer.id))"
+            @click="props.handleCorrectGuess && props.handleCorrectGuess(String(answer.id))"
           >
             Correct
           </button>
@@ -181,10 +181,10 @@ interface QuestionAndAnswersMgrProps {
   setMultiplier: (multiplier: number) => void;
   question: string;
   answers: { id: string; text: string; points: number }[];
-  guessedAnswers: { id: string; text: string; points: number }[];
+  guessedAnswers: { id: string }[];
   roundOver: boolean;
   showWhoStartsSection?: boolean;
-  handleCorrectGuess?: (answerId: number) => void;
+  handleCorrectGuess?: (answerId: string) => void;
   handleIncorrectAndStrike?: () => void;
   emitStrikeSound?: () => void;
   revealAllAnswers?: () => void;

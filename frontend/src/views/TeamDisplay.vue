@@ -64,7 +64,7 @@
         <!-- Answers & Game Info Section -->
         <div class="center-info">
           <AnswersBoard
-            :answers="store.answers.map((a) => ({ ...a, id: Number(a.id) }))"
+            :answers="store.answers.map((a) => ({ ...a, id: String(a.id) }))"
             :question="store.question"
             :guessedAnswers="store.guessedAnswers"
             :showStrikeX="showStrikeX"

@@ -7,7 +7,7 @@ export const useGameStore = defineStore('game', {
     teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
     answers: [] as { id: string; text: string; points: number }[],
     question: '',
-    guessedAnswers: [] as { id: string; text: string; points: number }[],
+    guessedAnswers: [] as { id: string }[],
     currentTeam: 'A' as 'A' | 'B',
     strikes: 0, // Current team's strikes during the round
     teamStrikes: { A: 0, B: 0 }, // Persistent strike count for each team
@@ -64,8 +64,8 @@ export const useGameStore = defineStore('game', {
 
     guessAnswer(answerId: string) {
       const match = this.answers.find((a) => a.id === answerId); // Find the answer by its unique ID
-      if (match && !this.guessedAnswers.includes(match.id)) {
-        this.guessedAnswers.push(match.id); // Use the unique ID to track guessed answers
+      if (match && !this.guessedAnswers.some((a) => a.id === match.id)) {
+        this.guessedAnswers.push({ id: match.id }); // Use the unique ID to track guessed answers
         this.pointPool += match.points * (this.scoreMultiplier ?? 1); // Apply multiplier here, default to 1 if null
 
         // Check if all answers have been guessed
@@ -113,9 +113,9 @@ export const useGameStore = defineStore('game', {
       if (this.secondTeamGuessUsed) return false;
 
       const match = this.answers.find((a) => a.id === answerId); // Find the answer by its unique ID
-      if (match && !this.guessedAnswers.includes(match.id)) {
+      if (match && !this.guessedAnswers.some((a) => a.id === match.id)) {
         // If the second team guesses correctly
-        this.guessedAnswers.push(match.id);
+        this.guessedAnswers.push({ id: match.id });
         this.pointsAwarded = this.pointPool + match.points * (this.scoreMultiplier ?? 1); // Apply multiplier only to the guessed answer, default to 1 if null
         this.teamScores[this.currentTeam] += this.pointsAwarded; // Add points to the second team's score
         this.winningTeam = this.currentTeam; // Set the winning team

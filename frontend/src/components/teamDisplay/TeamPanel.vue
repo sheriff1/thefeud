@@ -62,7 +62,7 @@ interface TeamPanelProps {
   showBuzzer: boolean;
   buzzerDisabled: boolean;
   initialEditedName?: string;
-  guessedAnswers: string[];
+  guessedAnswers: { id: string }[]; // updated
 }
 
 interface TeamPanelEmits {
