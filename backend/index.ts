@@ -10,7 +10,10 @@ const path = require('path');
 // Load environment variables
 dotenv.config();
 // Initialize Firebase
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+if (!process.env.FIREBASE_CREDENTIALS) {
+  throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
+}
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
