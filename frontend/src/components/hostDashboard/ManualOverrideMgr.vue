@@ -114,13 +114,6 @@ function onScoreMultiplierInput(val) {
   emit('update:scoreMultiplier', val);
 }
 
-// watch(
-//   () => props.teamNames,
-//   (val) => {
-//     localTeamNames.value = val;
-//   },
-// );
-
 function onTeamNamesInput(val) {
   emit('update:teamNames', val);
 }

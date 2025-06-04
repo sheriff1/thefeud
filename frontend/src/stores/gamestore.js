@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { io } from 'socket.io-client';
 import socket from '../utils/socket';
 
 export const useGameStore = defineStore('game', {
@@ -47,20 +46,17 @@ export const useGameStore = defineStore('game', {
       this.pointPool = 0;
       this.firstTeam = null;
       this.secondTeamGuessUsed = false;
-      // this.syncToServer();
     },
 
     // Set the starting team
     setStartingTeam(team) {
       this.firstTeam = team;
       this.currentTeam = team;
-      //this.syncToServer();
     },
 
     // Set the score multiplier
     setScoreMultiplier(multiplier) {
       this.scoreMultiplier = multiplier;
-      //this.syncToServer();
     },
 
     guessAnswer(answerId) {
@@ -76,16 +72,12 @@ export const useGameStore = defineStore('game', {
           this.winningTeam = this.currentTeam; // Set the current team as the winning team
           this.pointPool = 0; // Reset the point pool
           this.roundOver = true; // Mark the round as over
-          //this.syncToServer();
           return true;
         }
-
-        //this.syncToServer();
         return true;
       } else {
         this.strikes++;
         if (this.strikes >= 3) this.handleThreeStrikes();
-        //this.syncToServer();
         return false;
       }
     },
@@ -107,8 +99,6 @@ export const useGameStore = defineStore('game', {
         this.roundOver = true; // Mark the round as over
         this.switchTeam(); // Switch back to the starting team
       }
-
-      //this.syncToServer();
     },
 
     secondTeamGuess(answerId) {
@@ -123,7 +113,6 @@ export const useGameStore = defineStore('game', {
         this.winningTeam = this.currentTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
-        //this.syncToServer();
         return true;
       } else {
         // If the second team guesses incorrectly
@@ -133,7 +122,6 @@ export const useGameStore = defineStore('game', {
         this.winningTeam = this.firstTeam; // Set the winning team
         this.pointPool = 0; // Reset the point pool
         this.roundOver = true; // Mark the round as over
-        //this.syncToServer();
         return false;
       }
     },
@@ -146,25 +134,6 @@ export const useGameStore = defineStore('game', {
     otherTeam() {
       return this.currentTeam === 'A' ? 'B' : 'A';
     },
-
-    // syncToServer() {
-    //   const gameState = {
-    //     answers: this.answers,
-    //     guessedAnswers: this.guessedAnswers,
-    //     teamScores: this.teamScores,
-    //     currentTeam: this.currentTeam,
-    //     strikes: this.strikes,
-    //     pointPool: this.pointPool,
-    //     firstTeam: this.firstTeam,
-    //     secondTeamGuessUsed: this.secondTeamGuessUsed,
-    //     scoreMultiplier: this.scoreMultiplier,
-    //     timer: this.timer,
-    //     timerRunning: this.timerRunning,
-    //     teamNames: this.teamNames,
-    //     roundCounter: this.roundCounter,
-    //   };
-    //   socket.emit('updateGameState', gameState);
-    // },
 
     resetGame() {
       this.teamNames = { A: 'Team A', B: 'Team B' };
@@ -194,7 +163,6 @@ export const useGameStore = defineStore('game', {
       this.multiplierSet = false;
       this.answersSaved = false; // Reset the answers saved state
       console.log('resetRound called');
-      //this.syncToServer(); // Ensure the reset state is synced with the Team Display
     },
 
     updateRoundCounter(round) {
@@ -203,13 +171,11 @@ export const useGameStore = defineStore('game', {
 
     incrementRoundCounter() {
       this.roundCounter++;
-      //this.syncToServer();
     },
 
     updateTeamScore(team, score) {
       if (team === 'A' || team === 'B') {
         this.teamScores[team] = score;
-        //this.syncToServer();
       }
     },
 
@@ -217,10 +183,6 @@ export const useGameStore = defineStore('game', {
       if (team === 'A' || team === 'B') {
         this.teamNames[team] = name;
       }
-    },
-
-    saveTeamNames() {
-      //this.syncToServer(); // Sync the updated team names with the server
     },
 
     setTimer(seconds) {
@@ -248,7 +210,6 @@ export const useGameStore = defineStore('game', {
 
     uploadQuestion(question) {
       this.question = question;
-      //this.syncToServer();
     },
   },
 });

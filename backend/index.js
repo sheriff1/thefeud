@@ -115,9 +115,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('play-strike-sound', async ({ sessionId }) => {
-    // Broadcast to all other clients (except sender)
-    //socket.broadcast.emit('play-strike-sound');
-    // Or, if using rooms:
     io.to(sessionId).emit('play-strike-sound');
   });
 
@@ -136,10 +133,7 @@ io.on('connection', (socket) => {
         members = sessionDoc.data().teamMembers;
       }
 
-      // Prevent duplicates
-      // if (!members[team].includes(name)) {
       members[team].push(name);
-      // }
 
       // Update Firestore with new team members
       await sessionRef.set({ teamMembers: members }, { merge: true });
@@ -193,14 +187,6 @@ io.on('connection', (socket) => {
       // Get previous roundOver value
       const prevRoundOver = !!firestoreState.roundOver;
       const newRoundOver = !!gameState.roundOver;
-
-      // Merge critical fields from Firestore into the incoming gameState
-      // gameState.teamNames = firestoreState.teamNames || { A: 'Team A', B: 'Team B' };
-      // gameState.buzzedPlayer = firestoreState.buzzedPlayer || '';
-      // gameState.startingTeamSet =
-      //   typeof gameState.startingTeamSet === 'boolean'
-      //     ? gameState.startingTeamSet
-      //     : firestoreState.startingTeamSet || false;
 
       if (!gameState.expiryTime) {
         // Add expiryTime to the gameState object
@@ -351,7 +337,6 @@ io.on('connection', (socket) => {
     const sessionRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionRef.get();
     const data = sessionDoc.data() || {};
-    // Assuming you store team members as { A: [...], B: [...] }
     socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
   });
 
@@ -385,10 +370,6 @@ io.on('connection', (socket) => {
   // Listen for reset-round from the host
   socket.on('reset-round', async ({ sessionId }) => {
     try {
-      // Optionally, reset round-specific state in Firestore here
-      // For example:
-      // await db.collection('sessions').doc(sessionId).set({ ...resetFields }, { merge: true });
-
       // Emit to all clients in the session
       io.to(sessionId).emit('reset-round');
       // Optionally, also emit 'reset-buzzers' if you want to clear buzzers

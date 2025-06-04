@@ -583,20 +583,14 @@ onMounted(() => {
     console.log('Current game state received:', currentState);
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
-    // Sync local variables with the global state
-    // teamAName.value = store.teamNames.A;
-    // teamBName.value = store.teamNames.B;
-
     // Sync "Who Starts" state
     if (store.firstTeam) {
       startingTeam.value = store.firstTeam;
-      //startingTeamSet.value = true;
     }
 
     // Sync "Score Multiplier" state
     if (store.scoreMultiplier) {
       selectedMultiplier.value = store.scoreMultiplier;
-      //multiplierSet.value = true;
     }
   });
 
@@ -610,28 +604,18 @@ onMounted(() => {
     // Sync "Who Starts" state
     if (store.firstTeam) {
       startingTeam.value = store.firstTeam;
-      //startingTeamSet.value = true;
     } else {
       startingTeam.value = null;
-      //startingTeamSet.value = false;
     }
 
     // Sync "Score Multiplier" state
     if (store.scoreMultiplier) {
       selectedMultiplier.value = store.scoreMultiplier;
-      //multiplierSet.value = true;
     } else {
       selectedMultiplier.value = null;
-      //multiplierSet.value = false;
     }
 
     store.teamNames = { ...store.teamNames, ...updateGameState.teamNames };
-
-    // Instead of replacing the whole object, update properties
-    // if (updatedGameState.teamNames) {
-    //   store.teamNames.A = updatedGameState.teamNames.A;
-    //   store.teamNames.B = updatedGameState.teamNames.B;
-    // }
   });
 
   // Handle connection errors
@@ -645,7 +629,6 @@ onMounted(() => {
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
-  // socket.off('team-names-updated');
   socket.removeAllListeners();
 });
 </script>
