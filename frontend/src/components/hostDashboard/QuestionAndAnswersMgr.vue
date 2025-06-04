@@ -30,7 +30,7 @@
           <ul>
             <li v-for="file in libraryFiles" :key="file">
               <button class="btn" @click="loadLibraryFile(file)">
-                {{ file }}
+                {{ file.replace(/\.csv$/i, '') }}
               </button>
             </li>
           </ul>

@@ -518,13 +518,22 @@ function setShowLibraryDialog(value) {
 
 // Load and parse the selected CSV file
 const loadLibraryFile = async (filename) => {
-  const res = await fetch(`/answers/${filename}`);
+  const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
   const csvText = await res.text();
+  console.log('CSV file loaded:', filename);
+  console.log('CSV content:', csvText);
+  if (!csvText) {
+    alert('The selected CSV file is empty or invalid.');
+    showLibraryDialog.value = false;
+    return;
+  }
+
   Papa.parse(csvText, {
     header: true,
     skipEmptyLines: true,
     complete: (results) => {
       const data = results.data;
+      console.log('Parsed CSV data:', data);
       if (data.length > 0) {
         questionInput.value = data[0].Question || '';
         answerPairs.value = data.map((row) => ({
