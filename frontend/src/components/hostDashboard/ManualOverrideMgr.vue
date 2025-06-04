@@ -1,6 +1,6 @@
 <template>
   <div class="container score-container">
-    <h3>Score Management</h3>
+    <h3>Manual Overrides</h3>
     <div class="form-row">
       <label :for="'team-a-score'">
         <span class="info-key">{{ teamNames.A }} Points:</span>
@@ -54,9 +54,9 @@
       <input
         id="team-a-name"
         type="text"
-        v-model="localTeamNames.A"
+        v-model="teamNames.A"
         placeholder="Enter Team A Name"
-        @input="onTeamNamesInput(localTeamNames)"
+        @input="onTeamNamesInput({ ...teamNames, A: $event.target.value })"
       />
     </div>
     <div class="form-row">
@@ -66,9 +66,9 @@
       <input
         id="team-b-name"
         type="text"
-        v-model="localTeamNames.B"
+        v-model="teamNames.B"
         placeholder="Enter Team B Name"
-        @input="onTeamNamesInput(localTeamNames)"
+        @input="onTeamNamesInput({ ...teamNames, B: $event.target.value })"
       />
     </div>
     <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
@@ -99,7 +99,7 @@ const emit = defineEmits([
 const { teamNames, teamScores, roundCounter, scoreMultiplier } = toRefs(props);
 
 const localScoreMultiplier = ref(props.scoreMultiplier);
-const localTeamNames = ref(props.teamNames);
+// const localTeamNames = ref(props.teamNames);
 const localTeamScores = ref(props.teamScores);
 const localRoundCounter = ref(props.roundCounter);
 
@@ -114,12 +114,12 @@ function onScoreMultiplierInput(val) {
   emit('update:scoreMultiplier', val);
 }
 
-watch(
-  () => props.teamNames,
-  (val) => {
-    localTeamNames.value = val;
-  },
-);
+// watch(
+//   () => props.teamNames,
+//   (val) => {
+//     localTeamNames.value = val;
+//   },
+// );
 
 function onTeamNamesInput(val) {
   emit('update:teamNames', val);

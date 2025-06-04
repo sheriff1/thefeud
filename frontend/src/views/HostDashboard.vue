@@ -13,6 +13,7 @@
       :resetRound="resetRound"
       :nextRound="nextRound"
       :roundOver="store.roundOver"
+      :isLoading="isLoading"
     />
 
     <div class="flex-row">
@@ -128,6 +129,8 @@ const correctAfterBuzzer = ref(false);
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
 });
+const isLoading = ref(false);
+const correctBeforeBuzzer = ref(false);
 
 // Update game state
 const updateGameState = (gameState) => {
@@ -185,9 +188,10 @@ const setMultiplier = (multiplier) => {
   updateGameState(store.$state); // Emit the updated game state
 };
 
-const resetGame = () => {
+const resetGame = async () => {
+  isLoading.value = true;
+  console.log(isLoading.value, 'isLoading set to true in resetGame');
   stopTimer();
-  store.resetGame();
 
   // Reset all local refs
   fileUploaded.value = false;
@@ -202,11 +206,14 @@ const resetGame = () => {
   buzzerOnlyPressed.value = false;
   correctAfterBuzzer.value = false;
 
+  store.resetGame();
   const gameResetState = { ...store.$state, gameReset: true };
   updateGameState(gameResetState);
 };
 
-const resetRound = () => {
+const resetRound = async () => {
+  isLoading.value = true;
+  console.log(isLoading.value, 'isLoading set to true in resetRound');
   stopTimer();
 
   // Deduct awarded points from the team that received them, if any
@@ -220,7 +227,6 @@ const resetRound = () => {
     store.winningTeam = null; // Reset winning team
   }
 
-  store.resetRound();
   store.updateRoundCounter(previousRound.value);
 
   // Reset all local refs
@@ -236,15 +242,17 @@ const resetRound = () => {
   buzzerOnlyPressed.value = false;
   correctAfterBuzzer.value = false;
 
+  store.resetRound();
   const resetRoundState = { ...store.$state, roundReset: true };
   updateGameState(resetRoundState);
 };
 
-const nextRound = () => {
+const nextRound = async () => {
+  isLoading.value = true;
+  console.log(isLoading.value, 'isLoading set to true in nextRound');
   stopTimer();
 
   previousRound.value = store.roundCounter; // Store the current round value
-  store.resetRound(); // Advance to the next round
 
   // Reset all local refs
   fileUploaded.value = false;
@@ -259,6 +267,7 @@ const nextRound = () => {
   buzzerOnlyPressed.value = false;
   correctAfterBuzzer.value = false;
 
+  store.resetRound(); // Advance to the next round
   // Emit the updated game state for the next round
   const nextRoundState = { ...store.$state, nextRound: true };
   updateGameState(nextRoundState);
@@ -304,6 +313,9 @@ const handleCorrectGuess = (answerId) => {
   correctCount.value++;
   if (buzzerOnlyPressed.value) {
     correctAfterBuzzer.value = true;
+  }
+  if (!buzzerOnlyPressed.value) {
+    correctBeforeBuzzer.value = true;
   }
   if (!store.firstTeam) {
     const match = store.answers.find((a) => a.id === answerId);
@@ -427,6 +439,11 @@ const revealAllAnswers = () => {
 const emitStrikeSound = () => {
   buzzerOnlyCount.value++;
   buzzerOnlyPressed.value = true;
+  // If a correct was pressed before the buzzer, set a flag
+  if (correctBeforeBuzzer.value) {
+    correctBeforeBuzzer.value = false; // Reset for next use
+    correctAfterBuzzer.value = true; // This triggers the new condition
+  }
   console.log('emitStrikeSound called');
   socket.emit('play-strike-sound', { sessionId });
 };
@@ -484,6 +501,8 @@ const showWhoStartsSection = computed(() => {
   if (buzzerOnlyPressed.value && correctAfterBuzzer.value) return true;
   // 3. Any 2 answers selected (including highest-point)
   if (guessedAnswersCount.value >= 2) return true;
+  // 4. Correct pressed, then buzzer only
+  if (correctAfterBuzzer.value) return true;
   return false;
 });
 
@@ -527,6 +546,7 @@ const loadLibraryFile = async (filename) => {
 
 // Listen for game state updates
 socket.on('update-game', (updatedGameState) => {
+  Object.assign(store.$state, updateGameState);
   console.log('Game state updated:', updatedGameState);
 });
 
@@ -587,8 +607,8 @@ onMounted(() => {
   socket.on('update-game', (updatedGameState) => {
     Object.assign(store.$state, updatedGameState);
 
-    console.log('ANSWERS IN STORE: ', store.answers);
-    console.log('ANSWERS IN UPDATEDGAMESTATE: ', updatedGameState.answers);
+    isLoading.value = false;
+    console.log(isLoading.value, 'isLoading set to false in update-game');
 
     // Sync "Who Starts" state
     if (store.firstTeam) {
@@ -608,11 +628,13 @@ onMounted(() => {
       //multiplierSet.value = false;
     }
 
+    store.teamNames = { ...store.teamNames, ...updateGameState.teamNames };
+
     // Instead of replacing the whole object, update properties
-    if (updatedGameState.teamNames) {
-      store.teamNames.A = updatedGameState.teamNames.A;
-      store.teamNames.B = updatedGameState.teamNames.B;
-    }
+    // if (updatedGameState.teamNames) {
+    //   store.teamNames.A = updatedGameState.teamNames.A;
+    //   store.teamNames.B = updatedGameState.teamNames.B;
+    // }
   });
 
   // Handle connection errors

@@ -305,14 +305,6 @@ io.on('connection', (socket) => {
       // Optionally reset buzzedPlayer if this is a round/game reset
       await sessionRef.set({ buzzedPlayer: '' }, { merge: true });
 
-      //DEBUG: Log the received gameState and updated state
-      console.log('Received gameState:', JSON.stringify(gameState));
-      await sessionRef.set(gameState);
-      const updatedDoc = await sessionRef.get();
-      const updatedState = updatedDoc.data();
-      console.log('Rebroadcasting updatedState:', JSON.stringify(updatedState));
-      //END DEBUG: Log the received gameState and updated state
-
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('update-game', gameState);
     } catch (error) {

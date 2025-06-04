@@ -1,22 +1,23 @@
 <template>
   <div class="container reset-container">
     <h3>Game Controls</h3>
-    <button class="btn" @click="handleResetGame">Reset Game</button>
-    <button class="btn" @click="handleResetRound">Reset Round</button>
-    <button class="btn" @click="handleNextRound" :disabled="!roundOver">
+    <button class="btn" @click="handleResetGame" :disabled="isLoading">Reset Game</button>
+    <button class="btn" @click="handleResetRound" :disabled="isLoading">Reset Round</button>
+    <button class="btn" @click="handleNextRound" :disabled="!roundOver || isLoading">
       Next Round
     </button>
   </div>
 </template>
 
 <script setup>
-import { watch } from "vue";
+import { watch } from 'vue';
 
 const props = defineProps({
   resetGame: Function,
   resetRound: Function,
   nextRound: Function,
   roundOver: Boolean,
+  isLoading: Boolean,
 });
 
 function handleResetGame() {
@@ -35,9 +36,9 @@ watch(
   (newVal) => {
     if (newVal) {
       // Handle any additional logic when the game is reset
-      console.log("Game has been reset");
+      console.log('Game has been reset');
     }
-  }
+  },
 );
 
 watch(
@@ -45,9 +46,9 @@ watch(
   (newVal) => {
     if (newVal) {
       // Handle any additional logic when the round is reset
-      console.log("Round has been reset");
+      console.log('Round has been reset');
     }
-  }
+  },
 );
 
 watch(
@@ -55,9 +56,9 @@ watch(
   (newVal) => {
     if (newVal) {
       // Handle any additional logic when moving to the next round
-      console.log("Moving to the next round");
+      console.log('Moving to the next round');
     }
-  }
+  },
 );
 </script>
 

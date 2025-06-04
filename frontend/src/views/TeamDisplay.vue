@@ -57,7 +57,7 @@
           :initialEditedName="editedTeamName"
           :guessedAnswers="store.guessedAnswers"
           @edit-team="startEditingTeamName"
-          @save-team="({ team, name }) => saveTeamName(team, name)"
+          @save-team="onSaveTeamName"
           @buzz="pressBuzzer"
         />
 
@@ -97,7 +97,7 @@
           :initialEditedName="editedTeamName"
           :guessedAnswers="store.guessedAnswers"
           @edit-team="startEditingTeamName"
-          @save-team="({ team, name }) => saveTeamName(team, name)"
+          @save-team="onSaveTeamName"
           @buzz="pressBuzzer"
         />
       </div>
@@ -221,6 +221,11 @@ const copySessionId = () => {
       });
   }
 };
+
+function onSaveTeamName({ team, name }) {
+  store.teamNames = { ...store.teamNames, [team]: name };
+  socket.emit('update-team-name', { sessionId, team, name });
+}
 
 function toggleMute() {
   isMuted.value = !isMuted.value;
