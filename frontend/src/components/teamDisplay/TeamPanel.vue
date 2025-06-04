@@ -171,7 +171,7 @@ function saveTeamNameChange() {
   background-color: #f87171;
   font-weight: bold;
   border-radius: 0.5rem;
-  padding: 0.125rem 0.25rem;
+  padding: 0.125rem 0.2gi5rem;
   color: #fff;
   border: 0.25rem solid #f5425a;
 }
