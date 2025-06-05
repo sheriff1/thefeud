@@ -74,4 +74,3 @@ eslint.config.mjs
 *.pem
 *.crt
 *.p12
-*.json
