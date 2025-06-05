@@ -49,7 +49,7 @@ interface ActiveGameInfoMgrProps {
   revealAllAnswers: () => void;
 }
 
-const props = defineProps<ActiveGameInfoMgrProps>();
+defineProps<ActiveGameInfoMgrProps>();
 </script>
 
 <style scoped></style>

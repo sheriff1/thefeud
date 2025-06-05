@@ -97,17 +97,15 @@ interface ManualOverrideMgrProps {
   isTeamNamesUnique: boolean;
 }
 
-interface ManualOverrideMgrEmits {
-  (e: 'update:teamNames', teamNames: Record<string, string>): void;
-  (e: 'update:teamScores', teamScores: Record<string, number>): void;
-  (e: 'update:roundCounter', roundCounter: number | string): void;
-  (e: 'update:scoreMultiplier', scoreMultiplier: number | string): void;
-  (e: 'saveScoreMgmt'): void;
-}
-
 const props = defineProps<ManualOverrideMgrProps>();
 
-const emit = defineEmits<ManualOverrideMgrEmits>();
+const emit = defineEmits<{
+  'update:teamNames': [Record<string, string>];
+  'update:teamScores': [Record<string, number>];
+  'update:roundCounter': [number | string];
+  'update:scoreMultiplier': [number | string];
+  saveScoreMgmt: [];
+}>();
 
 // Use two-way binding for v-model
 const { teamNames } = toRefs(props);

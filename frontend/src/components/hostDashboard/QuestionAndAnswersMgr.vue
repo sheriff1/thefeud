@@ -162,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 const apiBase = import.meta.env.VITE_API_BASE || '';
 interface QuestionAndAnswersMgrProps {
   startingTeamSet: boolean;

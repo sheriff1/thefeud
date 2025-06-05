@@ -41,7 +41,8 @@ interface AnswerBoardProps {
 }
 
 const props = defineProps<AnswerBoardProps>();
-const emit = defineEmits<{ (e: 'strikeX'): void }>();
+const emit = defineEmits(['strikeX']); // <-- use array of event names
+
 const showStrikeX = ref(props.showStrikeX);
 watch(
   () => props.showStrikeX,
@@ -51,7 +52,7 @@ watch(
       setTimeout(() => {
         showStrikeX.value = false;
         emit('strikeX');
-      }, 1200); // Hide after 1 second
+      }, 1200);
     }
   },
 );

@@ -10,8 +10,6 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
-
 interface GameStatusMgrProps {
   resetGame: () => void;
   resetRound: () => void;

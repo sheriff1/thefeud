@@ -12,7 +12,7 @@ interface BannerProps {
   paragraph: string;
 }
 
-const props = defineProps<BannerProps>();
+defineProps<BannerProps>();
 </script>
 
 <style>

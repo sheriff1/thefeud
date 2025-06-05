@@ -18,10 +18,12 @@
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "firebase-admin": "^13.3.0",
+    "helmet": "^8.1.0",
     "socket.io": "^4.5.4",
     "typescript": "^5.0.0"
   },
   "devDependencies": {
+    "@types/helmet": "^0.0.48",
     "@vitest/ui": "^3.2.1",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.1",
