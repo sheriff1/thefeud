@@ -61,7 +61,6 @@ const io = new Server(server, {
 
 app.use(express.json());
 app.use('/answers', express.static(path.join(__dirname, 'answers')));
-
 // Routes
 app.get('/', (req, res) => {
   res.send('Family Feud Backend is running!!!!');
@@ -82,9 +81,6 @@ app.post('/api/create-session/:sessionId', async (req, res) => {
   }
   res.json({ ok: true });
 });
-
-// Serve static files
-app.use('/answers', express.static(path.join(__dirname, 'answers')));
 
 // List files
 app.get('/api/answers-library', (req, res) => {

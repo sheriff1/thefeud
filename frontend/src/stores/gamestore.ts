@@ -38,7 +38,7 @@ export const useGameStore = defineStore('game', {
     },
 
     uploadAnswers(answerList: { id: string; text: string; points: number }[]) {
-      this.answers = answerList;
+      this.answers = answerList.slice(0, 8);
       this.guessedAnswers = [];
       this.currentTeam = 'A';
       this.strikes = 0;

@@ -49,11 +49,13 @@
           @input="(e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)"
           :disabled="questionSaved"
         />
+        <div v-if="questionError" class="error-message">{{ questionError }}</div>
       </div>
 
       <!-- Answers Management -->
       <div>
         <h4>Answers</h4>
+        <div v-if="answersError" class="error-message">{{ answersError }}</div>
         <div v-if="answerPairs.length === 0" class="no-answers-message">
           No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
           least 2 answers are required to save.
@@ -67,6 +69,9 @@
             type="number"
             v-model.number="pair.points"
             :disabled="answersSaved"
+            min="1"
+            step="1"
+            @input="onPointsInput($event, index)"
           />
           <button class="btn" @click="removeAnswerPair(index)" :disabled="answersSaved">
             Remove
@@ -92,12 +97,12 @@
       <button
         class="btn primary"
         @click="saveQuestionAndAnswers"
-        :disabled="(questionSaved && answersSaved) || answerPairs.length < 1"
+        :disabled="!isFormValid || (questionSaved && answersSaved) || answerPairs.length < 1"
       >
         Save Question and Answers
       </button>
       <!-- Download Template Button -->
-      <a href="/answers/family-feud-template.csv" download class="btn">Download Template</a>
+      <a :href="`${apiBase}/answers/Sample Template.csv`" download class="btn">Download Template</a>
     </template>
 
     <!-- Set Score Multiplier Section -->
@@ -157,6 +162,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue';
+const apiBase = import.meta.env.VITE_API_BASE || '';
 interface QuestionAndAnswersMgrProps {
   startingTeamSet: boolean;
   startingTeam: string;
@@ -202,6 +209,33 @@ const emit = defineEmits<QuestionAndAnswersMgrEmits>();
 function closeLibraryDialog() {
   if (props.setShowLibraryDialog) {
     props.setShowLibraryDialog(false);
+  }
+}
+
+const questionError = computed(() => {
+  if (!props.questionInput.trim()) return 'Question cannot be empty.';
+  return '';
+});
+
+const answersError = computed(() => {
+  if (props.answerPairs.length < 2) return 'At least 2 answers are required.';
+  for (const [i, pair] of props.answerPairs.entries()) {
+    if (!pair || typeof pair.text !== 'string' || pair.text.trim() === '')
+      return `Answer ${i + 1} cannot be empty.`;
+    if (isNaN(pair.points) || pair.points < 2 || !Number.isInteger(pair.points))
+      return `Points for answer ${i + 1} must be an integer greater than 1.`;
+  }
+  return '';
+});
+
+const isFormValid = computed(() => !questionError.value && !answersError.value);
+
+function onPointsInput(event: Event, idx: number) {
+  const value = Math.floor(Number((event.target as HTMLInputElement).value));
+  if (isNaN(value) || value < 1) {
+    props.answerPairs[idx].points = 1;
+  } else {
+    props.answerPairs[idx].points = value;
   }
 }
 </script>
@@ -270,6 +304,12 @@ function closeLibraryDialog() {
   gap: 8px;
   margin-bottom: 8px;
   flex-wrap: wrap;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 0.95rem;
+  margin-top: 4px;
 }
 
 /* Responsive: Stack fields vertically on small screens */

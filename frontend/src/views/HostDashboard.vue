@@ -144,36 +144,21 @@ const updateGameState = (gameState: any) => {
 };
 
 const handleUpload = (event: Event) => {
-  const input = event.target as HTMLInputElement;
-  if (!input?.files || input.files.length === 0) return;
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
 
-  const file = input.files[0];
-
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: (results: { data: any }) => {
-      const data = results.data;
-
-      if (data.length > 0) {
-        // Use the first entry's question
-        questionInput.value = data[0].Question || '';
-
-        // Populate the answers and points, assigning unique IDs
-        answerPairs.value = data.map((row: { Answer: any; Points: string }) => ({
-          id: uuidv4(), // Assign a unique ID
-          text: row.Answer || '',
-          points: parseInt(row.Points, 10) || 0,
-        }));
-      } else {
-        alert('The uploaded CSV file is empty or invalid.');
-      }
+  parseCsv(
+    file,
+    (row) => ({
+      id: uuidv4(),
+      text: row.Answer,
+      points: Number(row.Points),
+    }),
+    (parsedAnswers, rawData) => {
+      questionInput.value = rawData[0]?.Question || '';
+      answerPairs.value = parsedAnswers;
     },
-    error: (error: any) => {
-      console.error('Error parsing CSV:', error);
-      alert('Failed to parse the CSV file. Please check the format.');
-    },
-  });
+  );
 };
 
 const setStartingTeam = (team: string) => {
@@ -368,7 +353,7 @@ const handleIncorrectGuess = () => {
 
 const addAnswerPair = () => {
   if (answerPairs.value.length < 8) {
-    answerPairs.value.push({ id: uuidv4(), text: '', points: 0 });
+    answerPairs.value.push({ id: uuidv4(), text: '', points: 1 });
   } else {
     alert('You can only add up to 8 answers.');
   }
@@ -526,6 +511,25 @@ function setShowLibraryDialog(value: boolean) {
   showLibraryDialog.value = value;
 }
 
+function parseCsv<T>(
+  input: File | string,
+  mapRow: (row: any) => T,
+  onComplete: (parsed: T[], rawData: any[]) => void,
+  onError?: (error: any) => void,
+) {
+  Papa.parse(input, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results: { data: any[] }) => {
+      const mapped = results.data
+        .filter((row) => row && Object.values(row).some((v) => v !== undefined && v !== ''))
+        .map(mapRow);
+      onComplete(mapped.slice(0, 8), results.data); // Only first 8
+    },
+    error: onError || ((error) => alert('Failed to parse the CSV file. Please check the format.')),
+  });
+}
+
 // Load and parse the selected CSV file
 const loadLibraryFile = async (filename: string) => {
   const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
@@ -536,28 +540,23 @@ const loadLibraryFile = async (filename: string) => {
     return;
   }
 
-  Papa.parse(csvText, {
-    header: true,
-    skipEmptyLines: true,
-    complete: (results: { data: any }) => {
-      const data = results.data;
-      if (data.length > 0) {
-        questionInput.value = data[0].Question || '';
-        answerPairs.value = data.map((row: { Answer: any; Points: string }) => ({
-          id: uuidv4(),
-          text: row.Answer || '',
-          points: parseInt(row.Points, 10) || 0,
-        }));
-      } else {
-        alert('The selected CSV file is empty or invalid.');
-      }
+  parseCsv(
+    csvText,
+    (row) => ({
+      id: uuidv4(),
+      text: row.Answer || '',
+      points: parseInt(row.Points, 10) || 0,
+    }),
+    (parsedAnswers, rawData) => {
+      questionInput.value = rawData[0]?.Question || '';
+      answerPairs.value = parsedAnswers;
       showLibraryDialog.value = false;
     },
-    error: () => {
+    () => {
       alert('Failed to parse the selected CSV file.');
       showLibraryDialog.value = false;
     },
-  });
+  );
 };
 
 // Listen for game state updates

@@ -10,6 +10,8 @@
         type="number"
         v-model.number="localTeamScores.A"
         @input="onTeamScoresInput(localTeamScores)"
+        min="0"
+        step="1"
       />
     </div>
     <div class="form-row">
@@ -21,6 +23,8 @@
         type="number"
         v-model.number="localTeamScores.B"
         @input="onTeamScoresInput(localTeamScores)"
+        min="0"
+        step="1"
       />
     </div>
     <div class="form-row">
@@ -32,6 +36,8 @@
         type="number"
         v-model.number="localRoundCounter"
         @input="onRoundCounterInput(localRoundCounter)"
+        min="0"
+        step="1"
       />
     </div>
     <div class="form-row">
@@ -49,7 +55,7 @@
     </div>
     <div class="form-row">
       <label for="team-a-name">
-        <span class="info-key">Team A Name (doesn't work currently 😬):</span>
+        <span class="info-key">Team A Name:</span>
       </label>
       <input
         id="team-a-name"
@@ -61,7 +67,7 @@
     </div>
     <div class="form-row">
       <label for="team-b-name">
-        <span class="info-key">Team B Name (doesn't work currently 😬):</span>
+        <span class="info-key">Team B Name:</span>
       </label>
       <input
         id="team-b-name"
@@ -72,12 +78,16 @@
       />
     </div>
     <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
-    <button class="btn" @click="saveScoreMgmt" :disabled="!isTeamNamesUnique">Save All</button>
+    <div v-if="!teamScoresValid" class="error-message">
+      Team points must be nonnegative integers.
+    </div>
+    <div v-if="!roundCounterValid" class="error-message">Round must be a nonnegative integer.</div>
+    <button class="btn" @click="saveScoreMgmt" :disabled="!canSave">Save All</button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, toRefs } from 'vue';
+import { ref, watch, toRefs, computed } from 'vue';
 
 interface ManualOverrideMgrProps {
   teamNames: Record<string, string>;
@@ -146,8 +156,28 @@ watch(
 function saveScoreMgmt() {
   emit('saveScoreMgmt');
 }
+
+const teamScoresValid = computed(
+  () =>
+    Number.isInteger(localTeamScores.value.A) &&
+    localTeamScores.value.A >= 0 &&
+    Number.isInteger(localTeamScores.value.B) &&
+    localTeamScores.value.B >= 0,
+);
+
+const roundCounterValid = computed(
+  () => Number.isInteger(Number(localRoundCounter.value)) && Number(localRoundCounter.value) >= 0,
+);
+
+const canSave = computed(
+  () => props.isTeamNamesUnique && teamScoresValid.value && roundCounterValid.value,
+);
 </script>
 
 <style scoped>
-/* You can copy the relevant styles from HostDashboard.vue */
+.error-message {
+  color: #d32f2f;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
 </style>
