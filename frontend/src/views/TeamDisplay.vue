@@ -175,6 +175,7 @@ const playRoundOverSound = () => {
 
 const playNextRoundSound = () => {
   if (isMuted.value) return;
+  console.log('RANDOM LOG TO TEST GITHUB ACTIONS');
   const audio = new Audio('/sounds/next-round.mp3');
   audio.play();
 };
