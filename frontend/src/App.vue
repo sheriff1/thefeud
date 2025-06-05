@@ -4,10 +4,8 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: "App",
-};
+<script setup lang="ts">
+// No need for export default in <script setup>
 </script>
 
 <style>

@@ -18,107 +18,94 @@
   </div>
 </template>
 
-<script>
+<script setup lang="ts">
 import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
 
 const apiBase = import.meta.env.VITE_API_BASE || '';
-export default {
-  name: 'Home',
-  setup() {
-    const router = useRouter();
-    const sessionId = ref(''); // Define sessionId as a reactive variable
+const router = useRouter();
+const sessionId = ref(''); // Define sessionId as a reactive variable
 
-    // Generate a short ID
-    const generateShortId = () => {
-      return Math.random().toString(36).substring(2, 6).toUpperCase(); // Generates a 4-character string
-    };
-
-    // Create a new session and navigate to the Host Dashboard
-    const createSession = async () => {
-      const newSessionId = generateShortId(); // Generate a short session ID
-      await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
-        method: 'POST',
-      });
-      router.push(`/host?sessionId=${newSessionId}`);
-    };
-
-    // Join an existing session as Host
-    const joinAsHost = async () => {
-      const id = sessionId.value.trim().toUpperCase();
-      if (!isValidSessionId(id)) {
-        alert('Invalid Session ID format.');
-        return;
-      }
-      if (!sessionId.value.trim()) {
-        alert('Please enter a valid Session ID.');
-        return;
-      }
-      // Always use uppercase for backend check
-      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
-      const data = await response.json();
-      if (data.exists) {
-        router.push(`/host?sessionId=${id}`);
-      } else {
-        alert('Session does not exist. Please check the Session ID.');
-      }
-    };
-
-    // Join an existing session as Team
-    const joinAsTeam = async () => {
-      const id = sessionId.value.trim().toUpperCase();
-      if (!isValidSessionId(id)) {
-        alert('Invalid Session ID format.');
-        return;
-      }
-      if (!sessionId.value.trim()) {
-        alert('Please enter a valid Session ID.');
-        return;
-      }
-      // Always use uppercase for backend check
-      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
-      const data = await response.json();
-      if (data.exists) {
-        router.push(`/team?sessionId=${id}`);
-      } else {
-        alert('Session does not exist. Please check the Session ID.');
-      }
-    };
-
-    const joinAsSpectator = async () => {
-      const id = sessionId.value.trim().toUpperCase();
-      if (!isValidSessionId(id)) {
-        alert('Invalid Session ID format.');
-        return;
-      }
-      if (!sessionId.value.trim()) {
-        alert('Please enter a valid Session ID.');
-        return;
-      }
-      // Always use uppercase for backend check
-      const response = await fetch(`${apiBase}/api/session-exists/${id}`);
-      const data = await response.json();
-      if (data.exists) {
-        router.push(`/spectator?sessionId=${id}`);
-      } else {
-        alert('Session does not exist. Please check the Session ID.');
-      }
-    };
-
-    function isValidSessionId(id) {
-      // Example: Only allow 4-8 uppercase alphanumeric characters
-      return /^[A-Z0-9]{4,8}$/.test(id);
-    }
-
-    return {
-      sessionId,
-      createSession,
-      joinAsHost,
-      joinAsTeam,
-      joinAsSpectator,
-    };
-  },
+// Generate a short ID
+const generateShortId = () => {
+  return Math.random().toString(36).substring(2, 6).toUpperCase(); // Generates a 4-character string
 };
+
+// Create a new session and navigate to the Host Dashboard
+const createSession = async () => {
+  const newSessionId = generateShortId(); // Generate a short session ID
+  await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
+    method: 'POST',
+  });
+  router.push(`/host?sessionId=${newSessionId}`);
+};
+
+// Join an existing session as Host
+const joinAsHost = async () => {
+  const id = sessionId.value.trim().toUpperCase();
+  if (!isValidSessionId(id)) {
+    alert('Invalid Session ID format.');
+    return;
+  }
+  if (!sessionId.value.trim()) {
+    alert('Please enter a valid Session ID.');
+    return;
+  }
+  // Always use uppercase for backend check
+  const response = await fetch(`${apiBase}/api/session-exists/${id}`);
+  const data = await response.json();
+  if (data.exists) {
+    router.push(`/host?sessionId=${id}`);
+  } else {
+    alert('Session does not exist. Please check the Session ID.');
+  }
+};
+
+// Join an existing session as Team
+const joinAsTeam = async () => {
+  const id = sessionId.value.trim().toUpperCase();
+  if (!isValidSessionId(id)) {
+    alert('Invalid Session ID format.');
+    return;
+  }
+  if (!sessionId.value.trim()) {
+    alert('Please enter a valid Session ID.');
+    return;
+  }
+  // Always use uppercase for backend check
+  const response = await fetch(`${apiBase}/api/session-exists/${id}`);
+  const data = await response.json();
+  if (data.exists) {
+    router.push(`/team?sessionId=${id}`);
+  } else {
+    alert('Session does not exist. Please check the Session ID.');
+  }
+};
+
+const joinAsSpectator = async () => {
+  const id = sessionId.value.trim().toUpperCase();
+  if (!isValidSessionId(id)) {
+    alert('Invalid Session ID format.');
+    return;
+  }
+  if (!sessionId.value.trim()) {
+    alert('Please enter a valid Session ID.');
+    return;
+  }
+  // Always use uppercase for backend check
+  const response = await fetch(`${apiBase}/api/session-exists/${id}`);
+  const data = await response.json();
+  if (data.exists) {
+    router.push(`/spectator?sessionId=${id}`);
+  } else {
+    alert('Session does not exist. Please check the Session ID.');
+  }
+};
+
+function isValidSessionId(id: string) {
+  // Example: Only allow 4-8 uppercase alphanumeric characters
+  return /^[A-Z0-9]{4,8}$/.test(id);
+}
 </script>
 
 <style>
