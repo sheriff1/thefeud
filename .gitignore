@@ -69,3 +69,9 @@ firebase.json
 .firebaserc
 .prettierrc
 eslint.config.mjs
+
+*.key
+*.pem
+*.crt
+*.p12
+*.json
