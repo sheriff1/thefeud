@@ -4,7 +4,7 @@
   "description": "Backend for Family Feud game",
   "main": "index.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p ./tsconfig.json",
     "start": "node dist/index.js",
     "dev": "ts-node index.ts",
     "test": "vitest",
@@ -29,8 +29,8 @@
     "vitest": "^3.2.1"
   },
   "engines": {
-    "node": "18.x",
-    "npm": "9.x"
+    "node": ">=18 <25",
+    "npm": ">=9 <12"
   },
   "type": "module"
 }

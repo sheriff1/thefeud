@@ -7,7 +7,9 @@
     "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.ts\" \"cd frontend && npm run dev\"",
     "lint": "eslint --ext .js,.vue frontend/src backend",
     "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
-    "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\""
+    "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\"",
+    "build": "cd backend && tsc -p ./tsconfig.json",
+    "heroku-postbuild": "cd backend && npm install && npm run build"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
