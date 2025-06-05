@@ -147,18 +147,49 @@ const handleUpload = (event: Event) => {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
-  parseCsv(
-    file,
-    (row) => ({
-      id: uuidv4(),
-      text: row.Answer,
-      points: Number(row.Points),
-    }),
-    (parsedAnswers, rawData) => {
-      questionInput.value = rawData[0]?.Question || '';
-      answerPairs.value = parsedAnswers;
-    },
-  );
+  // Validate file type (MIME) and extension
+  const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+
+  if (!isCsv) {
+    alert('Please upload a valid CSV file.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target?.result as string;
+    const lines = text.split(/\r?\n/).filter(Boolean);
+
+    // Validate header
+    const expectedHeader = 'Question,Answer,Points';
+    if (lines[0].trim() !== expectedHeader) {
+      alert(`CSV header must be exactly: ${expectedHeader}`);
+      return;
+    }
+
+    // Validate each row
+    for (let i = 1; i < lines.length; i++) {
+      const columns = lines[i].split(',');
+      if (columns.length !== 3) {
+        alert(`Row ${i + 1} is invalid. Each row must have exactly 3 columns.`);
+        return;
+      }
+    }
+
+    parseCsv(
+      file,
+      (row) => ({
+        id: uuidv4(),
+        text: row.Answer,
+        points: Number(row.Points),
+      }),
+      (parsedAnswers, rawData) => {
+        questionInput.value = rawData[0]?.Question || '';
+        answerPairs.value = parsedAnswers;
+      },
+    );
+  };
+  reader.readAsText(file);
 };
 
 const setStartingTeam = (team: string) => {
