@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -23,6 +25,7 @@
     "@types/node": "^22.15.29",
     "@types/papaparse": "^5.3.16",
     "@vitejs/plugin-vue": "^5.2.3",
+    "cypress": "^14.4.1",
     "typescript": "^5.8.3",
     "vite": "^6.2.4",
     "vite-plugin-vue-devtools": "^7.7.2",
