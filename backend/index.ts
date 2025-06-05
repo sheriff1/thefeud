@@ -1,5 +1,3 @@
-import helmet from 'helmet';
-
 // filepath: family-feud/backend/index.ts
 import express from 'express';
 import http from 'http';
@@ -8,8 +6,10 @@ import cors from 'cors';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import path from 'path';
 import { fileURLToPath } from 'url';
+import path from 'path';
+import helmet from 'helmet';
+
 // Load environment variables
 dotenv.config();
 // Initialize Firebase
@@ -17,9 +17,17 @@ if (!process.env.FIREBASE_CREDENTIALS) {
   throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
 }
 
-// Add these lines at the top of your file (after imports):
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Only use import.meta.url if module is ESM
+let __filename: string;
+let __dirname: string;
+if (typeof fileURLToPath === 'function' && typeof import.meta !== 'undefined') {
+  __filename = fileURLToPath(import.meta.url);
+  __dirname = path.dirname(__filename);
+} else {
+  __filename = __filename || '';
+  __dirname = __dirname || '';
+}
+
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -395,3 +403,5 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+export default app;
