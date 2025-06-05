@@ -23,6 +23,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "helmet": "^8.1.0",
     "vue": "^3.5.15"
   }
 }

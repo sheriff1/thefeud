@@ -1,18 +1,25 @@
+import helmet from 'helmet';
+
 // filepath: family-feud/backend/index.ts
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const admin = require('firebase-admin');
-const dotenv = require('dotenv');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import admin from 'firebase-admin';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 // Load environment variables
 dotenv.config();
 // Initialize Firebase
 if (!process.env.FIREBASE_CREDENTIALS) {
   throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
 }
+
+// Add these lines at the top of your file (after imports):
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -26,6 +33,8 @@ const server = http.createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
+
+app.use(helmet());
 
 // Express CORS
 app.use(
@@ -104,11 +113,14 @@ io.on('connection', (socket) => {
   socket.on('buzz', async ({ sessionId, name }) => {
     const sessionRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionRef.get();
-    const currentBuzzed = sessionDoc.data().buzzedPlayer;
 
-    if (!currentBuzzed) {
-      await sessionRef.set({ buzzedPlayer: name }, { merge: true });
-      io.to(sessionId).emit('buzzed', { name }); // <--- This emits to all clients in the session
+    if (!sessionDoc.exists) {
+      const data = sessionDoc.data();
+      const currentBuzzed = data ? data.buzzedPlayer : undefined;
+      if (!currentBuzzed) {
+        await sessionRef.set({ buzzedPlayer: name }, { merge: true });
+        io.to(sessionId).emit('buzzed', { name }); // <--- This emits to all clients in the session
+      }
     }
   });
 
@@ -127,8 +139,9 @@ io.on('connection', (socket) => {
       const sessionDoc = await sessionRef.get();
       let members = { A: [], B: [] };
 
-      if (sessionDoc.exists && sessionDoc.data().teamMembers) {
-        members = sessionDoc.data().teamMembers;
+      const sessionData = sessionDoc.data();
+      if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
+        members = sessionData.teamMembers;
       }
 
       members[team].push(name);
@@ -297,7 +310,8 @@ io.on('connection', (socket) => {
     try {
       const sessionRef = db.collection('sessions').doc(sessionId);
       const sessionDoc = await sessionRef.get();
-      const currentTeamNames = sessionDoc.data().teamNames || { A: 'Team A', B: 'Team B' };
+      const sessionData = sessionDoc.data() || {};
+      const currentTeamNames = sessionData.teamNames || { A: 'Team A', B: 'Team B' };
       const updatedTeamNames = { ...currentTeamNames, [team]: name };
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
 
@@ -343,8 +357,9 @@ io.on('connection', (socket) => {
       try {
         const sessionRef = db.collection('sessions').doc(sessionId);
         const sessionDoc = await sessionRef.get();
-        if (sessionDoc.exists && sessionDoc.data().teamMembers) {
-          let members = sessionDoc.data().teamMembers;
+        const sessionData = sessionDoc.data();
+        if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
+          let members = sessionData.teamMembers;
           // Remove player from their team
           if (members[team]) {
             members[team] = members[team].filter((memberName) => memberName !== name);
