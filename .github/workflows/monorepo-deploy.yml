@@ -26,12 +26,14 @@ jobs:
         run: npm run build
 
       - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v4
+        uses: amondnet/heroku-deploy-action@v0.7.1
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: 'family-feud-backend'
           heroku_email: 'sheriff.jolaoso+heroku@gmail.com'
-          appdir: '.'
+          branch: main
+          usedocker: false
+          dontuseforce: true
 
   deploy-frontend-vercel:
     runs-on: ubuntu-latest
