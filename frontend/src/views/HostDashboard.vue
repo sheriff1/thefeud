@@ -562,30 +562,32 @@ function parseCsv<T>(
 
 // Load and parse the selected CSV file
 const loadLibraryFile = async (filename: string) => {
-  const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
-  const csvText = await res.text();
-  if (!csvText) {
-    alert('The selected CSV file is empty or invalid.');
-    showLibraryDialog.value = false;
-    return;
-  }
+  try {
+    const res = await fetch(`${apiBase}/answers/${encodeURIComponent(filename)}`);
+    const csvText = await res.text();
+    if (!csvText) {
+      alert('The selected CSV file is empty or invalid.');
+      return;
+    }
 
-  parseCsv(
-    csvText,
-    (row) => ({
-      id: uuidv4(),
-      text: row.Answer,
-      points: Number(row.Points),
-    }),
-    (parsedAnswers, rawData) => {
-      questionInput.value = rawData[0]?.Question || '';
-      answerPairs.value = parsedAnswers;
-    },
-    () => {
-      alert('Failed to parse the selected CSV file.');
-      showLibraryDialog.value = false;
-    },
-  );
+    parseCsv(
+      csvText,
+      (row) => ({
+        id: uuidv4(),
+        text: row.Answer,
+        points: Number(row.Points),
+      }),
+      (parsedAnswers, rawData) => {
+        questionInput.value = rawData[0]?.Question || '';
+        answerPairs.value = parsedAnswers;
+      },
+      () => {
+        alert('Failed to parse the selected CSV file.');
+      },
+    );
+  } finally {
+    showLibraryDialog.value = false;
+  }
 };
 
 // Listen for game state updates

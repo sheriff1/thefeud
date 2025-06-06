@@ -80,10 +80,12 @@ watch(
 
 .answers-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(4, auto); /* 4 rows to force 4 items per column */
   grid-auto-flow: column;
   gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .answer-box {
@@ -101,6 +103,7 @@ watch(
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
+  container-type: inline-size;
 }
 
 .answer-box:hover {
@@ -158,7 +161,7 @@ watch(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: clamp(1rem, 2.5vw, 2.2rem); /* Responsive font size */
+  font-size: clamp(2rem, 8cqw, 3rem); /* Responsive font size */
   font-family: 'Bebas Neue', Arial, sans-serif;
   font-weight: bold;
   color: white;
@@ -169,17 +172,17 @@ watch(
   background-color: #007bff;
   color: white;
   border-left: 4px solid #fff;
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: bold;
   text-align: center;
-  min-width: 40px;
+  min-width: 0.5rem;
   align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 0 8px 8px 0;
   margin-left: 12px;
-  padding: 0 16px;
+  padding: 0 1rem;
   height: 100%;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.08);
 }
@@ -245,5 +248,14 @@ watch(
 .fade-x-enter-to,
 .fade-x-leave-from {
   opacity: 1;
+}
+
+/* Responsive: 1 column on tablet or smaller */
+@media (max-width: 980px) {
+  .answers-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    grid-auto-flow: row;
+  }
 }
 </style>

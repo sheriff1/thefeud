@@ -1,7 +1,7 @@
 <template>
   <button
     :class="['floating-button', className, buttonState]"
-    @click="handleClick"
+    @click="emit('click')"
     :aria-pressed="ariaPressed"
   >
     {{ label }}
@@ -19,9 +19,7 @@ interface FloatingButtonProps {
 }
 
 const props = defineProps<FloatingButtonProps>();
-const emit = defineEmits<{
-  click: [];
-}>();
+const emit = defineEmits(['click']);
 
 const buttonState = ref(props.state);
 watch(
@@ -31,12 +29,12 @@ watch(
   },
 );
 
-function handleClick() {
-  emit('click');
-  if (props.onClick) {
-    props.onClick();
-  }
-}
+// function handleClick() {
+//   emit('click');
+//   if (props.onClick) {
+//     props.onClick();
+//   }
+// }
 </script>
 
 <style scoped>

@@ -27,7 +27,7 @@
           😎 {{ member }}
         </li>
       </ul>
-      <div class="team-strikes">
+      <div v-if="startingTeamSet" class="team-strikes">
         <span
           v-for="strike in strikeCount"
           :key="team + '-' + strike"
@@ -60,6 +60,7 @@ interface TeamPanelProps {
   editing: boolean;
   isWinning: boolean;
   showBuzzer: boolean;
+  startingTeamSet: boolean;
   buzzerDisabled: boolean;
   initialEditedName?: string;
   guessedAnswers: { id: string }[]; // updated
@@ -95,7 +96,7 @@ function saveTeamNameChange() {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   min-width: 220px;
   position: relative;
   transition: box-shadow 0.2s;
@@ -110,7 +111,6 @@ function saveTeamNameChange() {
   font-weight: bold;
   color: #3b82f6;
   margin-bottom: 0.5rem;
-  align-self: flex-end;
 }
 
 .team-header {
