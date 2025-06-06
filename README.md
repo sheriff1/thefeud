@@ -28,7 +28,7 @@
 ### 4. Specator Mode
 
 - People who want to spectate can **join a session** using the session ID provided by the host.
-- Spectators ee the Team Display without any controls.
+- Spectators see the Team Display without any controls.
 
 ---
 
