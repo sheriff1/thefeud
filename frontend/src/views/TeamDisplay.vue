@@ -11,13 +11,13 @@
     <div class="floating-buttons">
       <FloatingButton
         :label="sessionIdBoxText"
-        :onClick="copySessionId"
+        @click="copySessionId"
         className="session-id-box"
         :state="sessionIdBoxState"
       />
       <FloatingButton
         :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
-        :onClick="toggleMute"
+        @click="toggleMute"
         className="mute-btn"
         :state="isMuted ? 'muted' : ''"
         :ariaPressed="isMuted"
@@ -53,6 +53,7 @@
           :editing="editingTeam === 'A'"
           :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
           :showBuzzer="isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet"
+          :startingTeamSet="store.startingTeamSet"
           :buzzerDisabled="isBuzzerDisabled"
           :initialEditedName="editedTeamName"
           :guessedAnswers="store.guessedAnswers"
@@ -93,6 +94,7 @@
           :editing="editingTeam === 'B'"
           :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
           :showBuzzer="isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet"
+          :startingTeamSet="store.startingTeamSet"
           :buzzerDisabled="isBuzzerDisabled"
           :initialEditedName="editedTeamName"
           :guessedAnswers="store.guessedAnswers"
