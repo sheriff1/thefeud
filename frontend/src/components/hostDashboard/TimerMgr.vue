@@ -35,13 +35,12 @@ interface TimerMgrProps {
   resetTimer: () => void;
   setTimer: () => void;
 }
-interface TimerMgrEmits {
-  (e: 'update:timerInput', value: number): void;
-}
 
 const props = defineProps<TimerMgrProps>();
 
-const emit = defineEmits<TimerMgrEmits>();
+const emit = defineEmits<{
+  'update:timerInput': [number];
+}>();
 
 function onTimerInput(e: Event) {
   const value = Number((e.target as HTMLInputElement).value);

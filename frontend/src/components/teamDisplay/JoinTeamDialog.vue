@@ -22,20 +22,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 
 interface JoinTeamDialogProps {
   teamNames: Record<string, string>;
 }
 
-interface JoinTeamDialogEmits {
-  (e: 'joinTeam', payload: { playerName: string; selectedTeam: string }): void;
-}
-
 const props = defineProps<JoinTeamDialogProps>();
 const playerName = ref('');
 const selectedTeam = ref('A'); // Default to team A
-const emit = defineEmits<JoinTeamDialogEmits>();
+const emit = defineEmits<{
+  joinTeam: [{ playerName: string; selectedTeam: string }];
+}>();
 
 function handleJoin() {
   emit('joinTeam', { playerName: playerName.value, selectedTeam: selectedTeam.value });

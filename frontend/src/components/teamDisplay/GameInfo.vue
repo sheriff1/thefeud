@@ -33,15 +33,7 @@ interface GameInfoProps {
   scoreMultiplier: number | null; // null if not set
 }
 
-interface GameInfoEmits {
-  'update:roundCounter': (value: number) => void;
-  'update:timer': (value: number) => void;
-  'update:pointPool': (value: number) => void;
-  'update:scoreMultiplier': (value: number | null) => void;
-}
-
 const props = defineProps<GameInfoProps>();
-const emit = defineEmits<GameInfoEmits>();
 
 // Computed properties for displaying values
 const formattedRoundCounter = computed(() => props.roundCounter.toString());

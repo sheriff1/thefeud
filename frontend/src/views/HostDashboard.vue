@@ -105,7 +105,7 @@ import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue
 import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
 import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue';
 
-let timerInterval: string | number | NodeJS.Timeout | null | undefined = null;
+let timerInterval: number | null = null;
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
@@ -125,7 +125,6 @@ const showAvailableAnswers = ref(false); // Track whether to show the Available 
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const answers = computed(() => store.answers || []); // Use store's answers
-const guessedAnswers = computed(() => store.guessedAnswers || []); // Use store's guessed answers
 const buzzerOnlyPressed = ref(false);
 const correctAfterBuzzer = ref(false);
 const isTeamNamesUnique = computed(() => {
@@ -309,13 +308,13 @@ const startTimer = () => {
     } else {
       stopTimer();
     }
-  }, 1000);
+  }, 1000) as unknown as number;
 };
 
 const stopTimer = () => {
   store.stopTimer();
   if (timerInterval !== null && timerInterval !== undefined) {
-    clearInterval(timerInterval as NodeJS.Timeout);
+    clearInterval(timerInterval);
   }
   timerInterval = null;
   updateGameState(store.$state); // Emit the updated game state
@@ -546,7 +545,7 @@ function parseCsv<T>(
   input: File | string,
   mapRow: (row: any) => T,
   onComplete: (parsed: T[], rawData: any[]) => void,
-  onError?: (error: any) => void,
+  onError?: () => void,
 ) {
   Papa.parse(input, {
     header: true,
@@ -557,7 +556,7 @@ function parseCsv<T>(
         .map(mapRow);
       onComplete(mapped.slice(0, 8), results.data); // Only first 8
     },
-    error: onError || ((error) => alert('Failed to parse the CSV file. Please check the format.')),
+    error: onError || (() => alert('Failed to parse the CSV file. Please check the format.')),
   });
 }
 
@@ -575,13 +574,12 @@ const loadLibraryFile = async (filename: string) => {
     csvText,
     (row) => ({
       id: uuidv4(),
-      text: row.Answer || '',
-      points: parseInt(row.Points, 10) || 0,
+      text: row.Answer,
+      points: Number(row.Points),
     }),
     (parsedAnswers, rawData) => {
       questionInput.value = rawData[0]?.Question || '';
       answerPairs.value = parsedAnswers;
-      showLibraryDialog.value = false;
     },
     () => {
       alert('Failed to parse the selected CSV file.');
@@ -592,7 +590,7 @@ const loadLibraryFile = async (filename: string) => {
 
 // Listen for game state updates
 socket.on('update-game', (updatedGameState: any) => {
-  Object.assign(store.$state, updateGameState);
+  Object.assign(store.$state, updatedGameState);
 });
 
 // Handle errors

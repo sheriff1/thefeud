@@ -65,14 +65,12 @@ interface TeamPanelProps {
   guessedAnswers: { id: string }[]; // updated
 }
 
-interface TeamPanelEmits {
-  (e: 'edit-team', team: string): void;
-  (e: 'save-team', payload: { team: string; name: string }): void;
-  (e: 'buzz'): void;
-}
-
 const props = defineProps<TeamPanelProps>();
-const emit = defineEmits<TeamPanelEmits>();
+const emit = defineEmits<{
+  'edit-team': [string];
+  'save-team': [{ team: string; name: string }];
+  buzz: [];
+}>();
 
 const editedName = ref(props.initialEditedName || props.teamName);
 

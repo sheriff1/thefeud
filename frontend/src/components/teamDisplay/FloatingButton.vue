@@ -19,7 +19,9 @@ interface FloatingButtonProps {
 }
 
 const props = defineProps<FloatingButtonProps>();
-const emit = defineEmits<{ (e: 'click'): void }>();
+const emit = defineEmits<{
+  click: [];
+}>();
 
 const buttonState = ref(props.state);
 watch(
