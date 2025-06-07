@@ -8,6 +8,9 @@
 // Example: in main.ts or App.vue setup
 import { auth, signInAnonymously, onAuthStateChanged } from './firebase';
 
+console.log('About to call signInAnonymously');
+console.log('VITE_FIREBASE_CONFIG:', import.meta.env.VITE_FIREBASE_CONFIG);
+console.log('import.meta.env.MODE:', import.meta.env.MODE);
 signInAnonymously(auth)
   .then(() => {
     console.log('Signed in anonymously');
@@ -15,6 +18,7 @@ signInAnonymously(auth)
   .catch((error) => {
     console.error('Anonymous sign-in failed:', error);
   });
+console.log('signInAnonymously() promise created');
 
 onAuthStateChanged(auth, (user) => {
   if (user) {
