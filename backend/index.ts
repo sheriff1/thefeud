@@ -12,6 +12,15 @@ import helmet from 'helmet';
 
 // Load environment variables
 dotenv.config();
+
+// Set emulator environment variables if running in test or CI
+if (process.env.NODE_ENV === 'test' || process.env.CI) {
+  process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:8089';
+  process.env.FIREBASE_PROJECT_ID = 'demo-test';
+  process.env.FIREBASE_CREDENTIALS = '{}'; // Dummy credentials for emulator
+}
+
 // Initialize Firebase
 if (!process.env.FIREBASE_CREDENTIALS) {
   throw new Error('FIREBASE_CREDENTIALS environment variable is not set');

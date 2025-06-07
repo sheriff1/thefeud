@@ -9,7 +9,7 @@ const firebaseConfig = JSON.parse(configString);
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV || import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
   connectAuthEmulator(auth, 'http://localhost:8089');
   console.log('Connected to Firebase Auth Emulator');
 }

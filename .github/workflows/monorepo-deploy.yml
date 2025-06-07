@@ -29,9 +29,21 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Start Firebase Emulators
+        run: npx firebase emulators:start --only firestore,auth --project demo-test --import=./emulator-data --export-on-exit=./emulator-data &
+        working-directory: ./backend
+
+      - name: Wait for Firestore Emulator
+        run: npx wait-on tcp:8080
+
       - name: Run backend tests
         run: npm run test
         working-directory: ./backend
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          FIREBASE_AUTH_EMULATOR_HOST: localhost:8089
+          FIREBASE_PROJECT_ID: demo-test
+          FIREBASE_CREDENTIALS: '{}'
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
@@ -61,6 +73,7 @@ jobs:
         working-directory: ./frontend
         env:
           VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
+          VITE_USE_FIREBASE_EMULATOR: 'true'
 
       - name: Build (optional, for static sites)
         run: npm run build
