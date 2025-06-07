@@ -185,6 +185,8 @@ const playNextRoundSound = () => {
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
     socket.emit('buzz', { sessionId, name: playerName.value });
+    playBuzzerSound();
+    buzzedPlayer.value = playerName.value;
     hasBuzzed.value = true;
   }
 };

@@ -9,6 +9,7 @@
     "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
     "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\"",
     "build": "cd backend && tsc -p ./tsconfig.json",
+    "postbuild": "cd backend && cp -r answers dist/answers",
     "heroku-postbuild": "cd backend && npm install && npm run build"
   },
   "devDependencies": {
