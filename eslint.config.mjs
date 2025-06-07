@@ -4,6 +4,7 @@ import vue from 'eslint-plugin-vue';
 import vueParser from 'vue-eslint-parser';
 import prettier from 'eslint-plugin-prettier';
 import { defineConfig } from 'eslint/config';
+import typescriptPlugin from '@typescript-eslint/eslint-plugin';
 
 export default defineConfig([
   {
@@ -24,11 +25,14 @@ export default defineConfig([
       js,
       vue,
       prettier,
+      '@typescript-eslint': typescriptPlugin,
     },
     rules: {
       ...js.configs.recommended.rules,
       ...vue.configs['flat/recommended'].rules,
       'prettier/prettier': 'warn',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error'],
     },
   },
 ]);
