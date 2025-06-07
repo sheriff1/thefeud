@@ -5,7 +5,23 @@
 </template>
 
 <script setup lang="ts">
-// No need for export default in <script setup>
+// Example: in main.ts or App.vue setup
+import { auth, signInAnonymously, onAuthStateChanged } from './firebase';
+
+signInAnonymously(auth)
+  .then(() => {
+    console.log('Signed in anonymously');
+  })
+  .catch((error) => {
+    console.error('Anonymous sign-in failed:', error);
+  });
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in anonymously
+    console.log('User ID:', user.uid);
+  }
+});
 </script>
 
 <style>
