@@ -59,6 +59,8 @@ jobs:
       - name: Run frontend tests
         run: npm run test:ci
         working-directory: ./frontend
+        env:
+          VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
 
       - name: Build (optional, for static sites)
         run: npm run build
