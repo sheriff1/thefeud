@@ -1,7 +1,11 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, connectAuthEmulator } from 'firebase/auth';
 
-const firebaseConfig = JSON.parse(import.meta.env.VITE_FIREBASE_CONFIG);
+const configString = import.meta.env.VITE_FIREBASE_CONFIG;
+if (!configString) {
+  throw new Error('VITE_FIREBASE_CONFIG is not set');
+}
+const firebaseConfig = JSON.parse(configString);
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
