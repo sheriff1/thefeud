@@ -27,6 +27,7 @@
     "@types/papaparse": "^5.3.16",
     "@vitejs/plugin-vue": "^5.2.3",
     "cypress": "^14.4.1",
+    "start-server-and-test": "^2.0.12",
     "typescript": "^5.8.3",
     "vite": "^6.2.4",
     "vite-plugin-vue-devtools": "^7.7.2",
