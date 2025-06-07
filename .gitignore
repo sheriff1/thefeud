@@ -65,10 +65,6 @@ steps.md
 # Firebase/Firestore emulator data (if used)
 firebase-debug.log
 firestore-debug.log
-firebase.json
-.firebaserc
-.prettierrc
-eslint.config.mjs
 
 *.key
 *.pem
