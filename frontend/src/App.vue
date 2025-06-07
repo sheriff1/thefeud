@@ -9,7 +9,6 @@
 import { auth, signInAnonymously, onAuthStateChanged } from './firebase';
 
 console.log('About to call signInAnonymously');
-console.log('VITE_FIREBASE_CONFIG:', import.meta.env.VITE_FIREBASE_CONFIG);
 console.log('import.meta.env.MODE:', import.meta.env.MODE);
 signInAnonymously(auth)
   .then(() => {
