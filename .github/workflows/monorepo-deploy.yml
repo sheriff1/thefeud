@@ -29,6 +29,10 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run backend tests
+        run: npm run test
+        working-directory: ./backend
+
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
         with:
@@ -51,6 +55,10 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Run frontend tests
+        run: npm run cypress:run
+        working-directory: ./frontend
 
       - name: Build (optional, for static sites)
         run: npm run build
