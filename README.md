@@ -2,7 +2,7 @@
 
 ## Game Overview
 
-**The Feud** is a multiplayer game with three main interfaces:
+**The Feud** is a multiplayer game with four main interfaces:
 
 ### 1. Home Page
 
