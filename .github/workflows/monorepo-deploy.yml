@@ -34,7 +34,6 @@ jobs:
         working-directory: ./backend
 
       - name: Print npm debug log
-        if: failure()
         run: cat /home/runner/.npm/_logs/*.log || true
 
       - name: Wait for Firestore Emulator
