@@ -14,11 +14,20 @@ import helmet from 'helmet';
 dotenv.config();
 
 // Set emulator environment variables if running in test or CI
-if (process.env.NODE_ENV === 'test' || process.env.CI) {
-  process.env.FIRESTORE_EMULATOR_HOST = 'localhost:8080';
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:8089';
-  process.env.FIREBASE_PROJECT_ID = 'demo-test';
-  process.env.FIREBASE_CREDENTIALS = '{}'; // Dummy credentials for emulator
+let credential;
+if (
+  process.env.FIRESTORE_EMULATOR_HOST ||
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.CI
+) {
+  credential = admin.credential.applicationDefault();
+} else {
+  if (!process.env.FIREBASE_CREDENTIALS) {
+    throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
+  }
+  const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
+  credential = admin.credential.cert(serviceAccount);
 }
 
 // Initialize Firebase
@@ -38,9 +47,7 @@ if (typeof fileURLToPath === 'function' && typeof import.meta !== 'undefined') {
 }
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+admin.initializeApp({ credential });
 const db = admin.firestore();
 
 // Initialize Express and Socket.IO
