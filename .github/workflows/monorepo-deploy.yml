@@ -16,6 +16,18 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Cache backend dependencies
+        uses: actions/cache@v4
+        with:
+          path: backend/node_modules
+          key: ${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}
+
+      - name: Cache frontend dependencies
+        uses: actions/cache@v4
+        with:
+          path: frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install dependencies (backend)
         run: npm install
         working-directory: backend
@@ -36,6 +48,13 @@ jobs:
 
       - name: Set Heroku APP_BASE config var
         run: heroku config:set APP_BASE=backend --app family-feud-backend
+
+      - name: Lint backend & frontend
+        run: npm run lint
+
+      - name: Audit backend dependencies
+        run: npm audit --audit-level=high
+        working-directory: backend
 
       - name: Start Firebase Emulators
         run: npx firebase emulators:start --only firestore,auth --project demo-test --import=./emulator-data --export-on-exit=./emulator-data &

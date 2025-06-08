@@ -70,3 +70,5 @@ firestore-debug.log
 *.pem
 *.crt
 *.p12
+
+.secrets

@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "test:ci": "start-server-and-test dev http://localhost:5173 cypress:run"
+    "test:ci": "start-server-and-test dev http://localhost:5173 cypress:run",
+    "type:check": "tsc --noEmit"
   },
   "dependencies": {
     "express": "^5.1.0",
