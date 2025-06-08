@@ -46,7 +46,6 @@ if (typeof fileURLToPath === 'function' && typeof import.meta !== 'undefined') {
   __dirname = __dirname || '';
 }
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
 admin.initializeApp({ credential });
 const db = admin.firestore();
 
