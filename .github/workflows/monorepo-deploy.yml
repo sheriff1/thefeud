@@ -34,6 +34,9 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel
 
+      - name: Set Heroku APP_BASE config var
+        run: heroku config:set APP_BASE=backend --app family-feud-backend
+
       - name: Start Firebase Emulators
         run: npx firebase emulators:start --only firestore,auth --project demo-test --import=./emulator-data --export-on-exit=./emulator-data &
         working-directory: backend
@@ -73,7 +76,6 @@ jobs:
           heroku_email: 'sheriff.jolaoso+heroku@gmail.com'
           branch: main
           usedocker: false
-          appdir: backend
 
       - name: Deploy to Vercel
         run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --cwd frontend
