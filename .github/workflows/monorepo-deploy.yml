@@ -33,9 +33,6 @@ jobs:
         run: npx firebase emulators:start --only firestore,auth --project demo-test --import=./emulator-data --export-on-exit=./emulator-data &
         working-directory: ./backend
 
-      - name: Print npm debug log
-        run: cat /home/runner/.npm/_logs/*.log || true
-
       - name: Wait for Firestore Emulator
         run: npx wait-on tcp:8080
 
