@@ -6,7 +6,7 @@
     "target": "ES2020",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["node", "vitest"]
+    "types": ["node"]
   },
   "include": ["*.ts", "tests/**/*.ts"]
 }
