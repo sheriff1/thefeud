@@ -6,10 +6,14 @@
 
 ### 1. Home Page
 
+![home](https://github.com/user-attachments/assets/fad93376-0705-4140-bffd-216a9ba7f5e3)
+
 - Users can **create a new game session** or **join an existing session** using a session ID.
 - The home page is the starting point for hosts, team members, and spectators.
 
 ### 2. Host Dashboard
+
+![host-dashboard](https://github.com/user-attachments/assets/d8c9b88e-a581-4beb-8234-a4f8227199b1)
 
 - The host can **administer the game** using the dashboard.
 - Features include:
@@ -22,8 +26,15 @@
 ### 3. Team Display
 
 - Team members can **join a session** using the session ID provided by the host.
+![join-team](https://github.com/user-attachments/assets/fd5ae385-88b6-42c0-8c94-fa9d8b2f2d2b)
 - Players can **press buzzers** when the round is open to answer questions.
+![in-game-1](https://github.com/user-attachments/assets/429b85d1-9b52-4056-9688-1a3b638cd40d)
 - The team display updates in real time based on the host's actions, showing current questions, scores, and round status.
+![in-game-2](https://github.com/user-attachments/assets/85e456f1-5ccf-4e39-a3c0-7206e32dc038)
+- Round end condition is met: all answers guessed, 1st team gets 3 strikes and 2nd team guesses 1 correct answer, or 1st team gets 3 strikes and 2nd team gets 1 strike.
+![round-end](https://github.com/user-attachments/assets/6ef9d5b5-396f-40e7-876f-88c7fe6daf88)
+- Host reveals all answers
+![reveal-all](https://github.com/user-attachments/assets/0e57855d-baeb-4b65-9010-ca7f46495b41)
 
 ### 4. Specator Mode
 
