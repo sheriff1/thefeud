@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  deploy-backend-heroku:
+  all-of-the-jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -75,4 +75,4 @@ jobs:
           usedocker: false
 
       - name: Deploy to Vercel
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --confirm
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
