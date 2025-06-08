@@ -28,6 +28,9 @@ jobs:
           path: frontend/node_modules
           key: ${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}
 
+      - name: Install dependencies (root)
+        run: npm install
+
       - name: Install dependencies (backend)
         run: npm install
         working-directory: backend
