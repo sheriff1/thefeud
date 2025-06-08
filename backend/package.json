@@ -27,6 +27,7 @@
   "devDependencies": {
     "@types/helmet": "^0.0.48",
     "@vitest/ui": "^3.2.1",
+    "eslint": "^9.28.0",
     "firebase-tools": "^14.6.0",
     "nodemon": "^3.1.10",
     "supertest": "^7.1.1",
