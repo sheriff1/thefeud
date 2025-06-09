@@ -69,6 +69,12 @@ jobs:
         run: npm audit --audit-level=high
         working-directory: backend
 
+      - name: Cache Firebase Emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: ${{ runner.os }}-firebase-emulators
+
       - name: Start Firebase Emulators
         run: npx firebase emulators:start --only firestore,auth --project demo-test --import=./emulator-data --export-on-exit=./emulator-data &
         working-directory: backend
@@ -91,6 +97,8 @@ jobs:
         env:
           VITE_FIREBASE_CONFIG: ${{ secrets.VITE_FIREBASE_CONFIG }}
           VITE_USE_FIREBASE_EMULATOR: 'true'
+          NODE_NO_WARNINGS: 1
+          TERM: xterm
 
       - name: Build backend
         run: npm run build
