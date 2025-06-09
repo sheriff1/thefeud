@@ -35,8 +35,18 @@ jobs:
         run: npm install
         working-directory: backend
 
+      - name: Cache Cypress binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/Cypress
+          key: ${{ runner.os }}-cypress-${{ hashFiles('frontend/package-lock.json') }}
+
       - name: Install dependencies (frontend)
         run: npm install
+        working-directory: frontend
+
+      - name: Ensure Cypress binary is installed
+        run: npx cypress install
         working-directory: frontend
 
       - name: Install Heroku CLI
