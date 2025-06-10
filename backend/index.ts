@@ -12,7 +12,7 @@ import helmet from 'helmet';
 
 // Load environment variables
 dotenv.config();
-
+const projectId = process.env.FIREBASE_PROJECT_ID || 'family-feud-12345';
 // Set emulator environment variables if running in test or CI
 let credential;
 if (
@@ -46,7 +46,7 @@ if (typeof fileURLToPath === 'function' && typeof import.meta !== 'undefined') {
   __dirname = __dirname || '';
 }
 
-admin.initializeApp({ credential });
+admin.initializeApp({ credential, projectId });
 const db = admin.firestore();
 
 // Initialize Express and Socket.IO
