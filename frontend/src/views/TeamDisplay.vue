@@ -22,6 +22,7 @@
         :state="isMuted ? 'muted' : ''"
         :ariaPressed="isMuted"
       />
+      <FloatingButton label="Logout" :onClick="logout" className="logout-box" />
     </div>
 
     <div class="gameboard-container">
@@ -117,6 +118,7 @@ import GameInfo from '../components/teamDisplay/GameInfo.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
 import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
+import { useRouter } from 'vue-router';
 
 interface TeamDisplayProps {
   isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
@@ -142,6 +144,7 @@ const teamMembers = ref({ A: [], B: [] }); // Store team members locally for dis
 const otherTeam = (team: string) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
 const showStrikeX = ref(false);
 const isSpectator = props.isSpectator ?? false;
+const router = useRouter();
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -256,12 +259,36 @@ function joinTeam(payload: { playerName: string; selectedTeam: string }) {
   hasJoined.value = true;
 }
 
+const logout = () => {
+  // Clear session data
+  store.enteredFromHome = false;
+  store.sessionId = '';
+  localStorage.removeItem('enteredFromHome');
+  localStorage.removeItem('sessionId');
+  router.push({ name: 'Home' });
+};
+
 socket.on('play-strike-sound', () => {
   playStrikeSound();
 });
 
 socket.on('team-names-updated', (teamNames: any) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
+});
+
+// Handle errors
+socket.on('error', (error: { message: any }) => {
+  console.error('Error from backend:', error.message);
+  alert(`Error: ${error.message}`);
+
+  // Handle invalid session error
+  if (
+    error.message === 'Session does not exist.' ||
+    error.message === 'No session ID provided.' // Add any other relevant backend error messages
+  ) {
+    // Redirect to home page
+    window.location.href = '/';
+  }
 });
 
 // Watch for changes in guessed answers

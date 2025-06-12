@@ -21,6 +21,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
+import { useGameStore } from '../stores/gamestore';
+const store = useGameStore();
 
 const apiBase = import.meta.env.VITE_API_BASE || '';
 const router = useRouter();
@@ -37,6 +39,10 @@ const createSession = async () => {
   await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
     method: 'POST',
   });
+  store.enteredFromHome = true;
+  store.sessionId = sessionId.value;
+  localStorage.setItem('enteredFromHome', 'true');
+  localStorage.setItem('sessionId', sessionId.value);
   router.push(`/host?sessionId=${newSessionId}`);
 };
 
@@ -55,6 +61,10 @@ const joinAsHost = async () => {
   const response = await fetch(`${apiBase}/api/session-exists/${id}`);
   const data = await response.json();
   if (data.exists) {
+    store.enteredFromHome = true;
+    store.sessionId = sessionId.value;
+    localStorage.setItem('enteredFromHome', 'true');
+    localStorage.setItem('sessionId', sessionId.value);
     router.push(`/host?sessionId=${id}`);
   } else {
     alert('Session does not exist. Please check the Session ID.');
@@ -76,6 +86,10 @@ const joinAsTeam = async () => {
   const response = await fetch(`${apiBase}/api/session-exists/${id}`);
   const data = await response.json();
   if (data.exists) {
+    store.enteredFromHome = true;
+    store.sessionId = sessionId.value;
+    localStorage.setItem('enteredFromHome', 'true');
+    localStorage.setItem('sessionId', sessionId.value);
     router.push(`/team?sessionId=${id}`);
   } else {
     alert('Session does not exist. Please check the Session ID.');
@@ -96,6 +110,10 @@ const joinAsSpectator = async () => {
   const response = await fetch(`${apiBase}/api/session-exists/${id}`);
   const data = await response.json();
   if (data.exists) {
+    store.enteredFromHome = true;
+    store.sessionId = sessionId.value;
+    localStorage.setItem('enteredFromHome', 'true');
+    localStorage.setItem('sessionId', sessionId.value);
     router.push(`/spectator?sessionId=${id}`);
   } else {
     alert('Session does not exist. Please check the Session ID.');

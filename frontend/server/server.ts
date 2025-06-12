@@ -11,12 +11,6 @@ const io = new Server(server, {
   },
 });
 
-io.on('connection', (socket) => {
-  socket.on('update-game', (newState) => {
-    socket.broadcast.emit('update-game', newState);
-  });
-});
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`WebSocket server listening on port ${PORT}`);

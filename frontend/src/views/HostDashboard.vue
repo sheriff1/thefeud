@@ -1,77 +1,55 @@
 <template>
   <div>
-    <FloatingButton
-      :label="sessionIdBoxText"
-      :onClick="copySessionId"
-      className="session-id-box"
-      :state="sessionIdBoxState"
-    />
+    <div class="floating-buttons">
+      <FloatingButton
+        :label="sessionIdBoxText"
+        :onClick="copySessionId"
+        className="session-id-box"
+        :state="sessionIdBoxState"
+      />
+      <FloatingButton label="Logout" :onClick="logout" className="logout-box" />
+    </div>
     <!-- Reset Game and Reset Round Container -->
 
     <GameStatusMgr
+      :updateGameState="updateGameState"
       :resetGame="resetGame"
       :resetRound="resetRound"
-      :nextRound="nextRound"
-      :roundOver="store.roundOver"
       :isLoading="isLoading"
     />
-
+    <!-- Manage Question and Answers Section -->
+    <GameMgr
+      :updateGameState="updateGameState"
+      :nextRound="nextRound"
+      :handleUpload="handleUpload"
+      :fetchLibraryFiles="fetchLibraryFiles"
+      :showLibraryDialog="showLibraryDialog"
+      :libraryFiles="libraryFiles"
+      :loadLibraryFile="loadLibraryFile"
+      :setShowLibraryDialog="setShowLibraryDialog"
+      v-model:questionInput="questionInput"
+      :answerPairs="answerPairs"
+      :removeAnswerPair="removeAnswerPair"
+      :addAnswerPair="addAnswerPair"
+      :removeAllAnswers="removeAllAnswers"
+      :saveQuestionAndAnswers="saveQuestionAndAnswers"
+      :setMultiplier="setMultiplier"
+      :handleCorrectGuess="handleCorrectGuess"
+      :handleIncorrectAndStrike="handleIncorrectAndStrike"
+      :emitStrikeSound="emitStrikeSound"
+      :showWhoStartsSection="showWhoStartsSection"
+      :setStartingTeam="setStartingTeam"
+      :guessedAnswersCount="guessedAnswersCount"
+    />
     <div class="flex-row">
-      <!-- Manage Question and Answers Section -->
-      <QuestionAndAnswersMgr
-        v-model:questionInput="questionInput"
-        :startingTeamSet="store.startingTeamSet"
-        :startingTeam="startingTeam ?? ''"
-        :teamNames="store.teamNames"
-        :setStartingTeam="setStartingTeam"
-        :currentStep="store.currentStep as 'answers' | 'manage' | 'multiplier'"
-        :handleUpload="handleUpload"
-        :fetchLibraryFiles="fetchLibraryFiles"
-        :showLibraryDialog="showLibraryDialog"
-        :libraryFiles="libraryFiles"
-        :loadLibraryFile="loadLibraryFile"
-        :questionSaved="questionSaved"
-        :answerPairs="answerPairs"
-        :answersSaved="store.answersSaved"
-        :removeAnswerPair="removeAnswerPair"
-        :addAnswerPair="addAnswerPair"
-        :removeAllAnswers="removeAllAnswers"
-        :saveQuestionAndAnswers="saveQuestionAndAnswers"
-        :selectedMultiplier="selectedMultiplier ?? 0"
-        :multiplierSet="store.multiplierSet"
-        :setMultiplier="setMultiplier"
-        :question="store.question"
-        :answers="answers"
-        :guessedAnswers="store.guessedAnswers"
-        :roundOver="store.roundOver"
-        :showWhoStartsSection="showWhoStartsSection"
-        :handleCorrectGuess="handleCorrectGuess"
-        :handleIncorrectAndStrike="handleIncorrectAndStrike"
-        :emitStrikeSound="emitStrikeSound"
-        :revealAllAnswers="revealAllAnswers"
-        :setShowLibraryDialog="setShowLibraryDialog"
-      />
       <!-- Available Answers, Strikes, and Points Pool Container -->
 
-      <ActiveGameInfoMgr
-        :teamNames="store.teamNames"
-        :teamStrikes="store.teamStrikes"
-        :teamScores="store.teamScores"
-        :roundCounter="Number(store.roundCounter) || 0"
-        :currentTeam="store.currentTeam"
-        :pointPool="store.pointPool"
-        :roundOver="store.roundOver"
-        :scoreMultiplier="store.scoreMultiplier ?? 1"
-        :revealAllAnswers="revealAllAnswers"
-      />
+      <ActiveGameInfoMgr :revealAllAnswers="revealAllAnswers" />
     </div>
 
     <div class="flex-row">
       <ManualOverrideMgr
-        :teamNames="store.teamNames"
-        :teamScores="store.teamScores"
-        :roundCounter="store.roundCounter"
-        :scoreMultiplier="store.scoreMultiplier ?? 1"
+        :updateGameState="updateGameState"
         :isTeamNamesUnique="isTeamNamesUnique"
         @saveScoreMgmt="saveScoreMgmt"
       />
@@ -79,8 +57,6 @@
       <!-- Timer Container -->
       <TimerMgr
         v-model:timerInput="timerInput"
-        :timerRunning="store.timerRunning"
-        :timer="store.timer"
         :startTimer="startTimer"
         :stopTimer="stopTimer"
         :resetTimer="resetTimer"
@@ -91,8 +67,6 @@
 </template>
 
 <script setup lang="ts">
-/// <reference types="vite/client" />
-
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import Papa from 'papaparse';
@@ -100,10 +74,12 @@ import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import GameStatusMgr from '../components/hostDashboard/GameStatusMgr.vue';
-import QuestionAndAnswersMgr from '../components/hostDashboard/QuestionAndAnswersMgr.vue';
 import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue';
 import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
+import GameMgr from '../components/hostDashboard/GameMgr.vue';
 import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue';
+import { useRouter } from 'vue-router';
+const router = useRouter();
 
 let timerInterval: number | null = null;
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
@@ -112,33 +88,28 @@ const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
 const apiBase = import.meta.env.VITE_API_BASE || '';
 const fileUploaded = ref(false);
-const startingTeam = ref<string | null>(null); // Track the selected starting team
 const selectedMultiplier = ref<number | null>(null); // Track the selected multiplier
 const timerInput = ref(0);
 const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
-const questionSaved = ref(false); // Track if the question has been saved
 const previousRound = ref(store.roundCounter); // Track the previous round value
 const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
-const answers = computed(() => store.answers || []); // Use store's answers
-const buzzerOnlyPressed = ref(false);
-const correctAfterBuzzer = ref(false);
+const isLoading = ref(false);
+
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
 });
-const isLoading = ref(false);
-const correctBeforeBuzzer = ref(false);
 
-// Update game state
 const updateGameState = (gameState: any) => {
   if (!sessionId) {
     alert('YERRRR Session ID is missing. Cannot update game state.');
     return;
   }
+  console.log('-------- updateGameState called in parent -------- ', gameState);
   socket.emit('update-game', { sessionId, gameState });
 };
 
@@ -193,18 +164,20 @@ const handleUpload = (event: Event) => {
 
 const setStartingTeam = (team: string) => {
   store.setStartingTeam(team);
-  startingTeam.value = team; // Set the selected starting team
   store.startingTeamSet = true;
-  updateGameState(store.$state); // Emit the updated game state
+  // startingTeam.value = team; // Set the selected starting team
+  // console.log('setStartingTeam() called from HostDashboard.vue');
+  // updateGameState(store.$state); // Emit the updated game state
 };
 
 const setMultiplier = (multiplier: number) => {
-  store.setScoreMultiplier(multiplier);
   selectedMultiplier.value = multiplier; // Set the selected multiplier
-  // multiplierSet.value = true; // Disable the buttons
-  store.currentStep = 'answers'; // Update the store's current step
   store.multiplierSet = true; // Set the multiplier set flag in the store
-  updateGameState(store.$state); // Emit the updated game state
+  store.scoreMultiplier = multiplier; // Update the store's score multiplier
+  // multiplierSet.value = true; // Disable the buttons
+  // store.currentStep = 4; // Update the store's current step
+  // console.log('setMultiplier() called from HostDashboard.vue');
+  // updateGameState(store.$state); // Emit the updated game state
 };
 
 const resetGame = async () => {
@@ -213,20 +186,17 @@ const resetGame = async () => {
 
   // Reset all local refs
   fileUploaded.value = false;
-  startingTeam.value = null;
   selectedMultiplier.value = null;
   answerPairs.value = [];
   questionInput.value = '';
-  questionSaved.value = false;
+  buzzerOnlyCount.value = 0;
   showAvailableAnswers.value = false;
   correctCount.value = 0;
-  buzzerOnlyCount.value = 0;
-  buzzerOnlyPressed.value = false;
-  correctAfterBuzzer.value = false;
 
   store.resetGame();
-  const gameResetState = { ...store.$state, gameReset: true };
-  updateGameState(gameResetState);
+  // const gameResetState = { ...store.$state, gameReset: true };
+  console.log('resetGame() called from HostDashboard.vue');
+  // updateGameState(gameResetState);
 };
 
 const resetRound = async () => {
@@ -245,48 +215,37 @@ const resetRound = async () => {
   }
 
   store.updateRoundCounter(previousRound.value);
+  store.resetRound();
 
   // Reset all local refs
   fileUploaded.value = false;
-  startingTeam.value = null;
   selectedMultiplier.value = null;
   answerPairs.value = [];
   questionInput.value = '';
-  questionSaved.value = false;
   showAvailableAnswers.value = false;
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
-  buzzerOnlyPressed.value = false;
-  correctAfterBuzzer.value = false;
 
-  store.resetRound();
-  const resetRoundState = { ...store.$state, roundReset: true };
-  updateGameState(resetRoundState);
+  console.log('resetRoundState() called from HostDashboard.vue');
 };
 
 const nextRound = async () => {
   isLoading.value = true;
   stopTimer();
 
+  store.resetRound(); // Advance to the next round
   previousRound.value = store.roundCounter; // Store the current round value
 
   // Reset all local refs
   fileUploaded.value = false;
-  startingTeam.value = null;
   selectedMultiplier.value = null;
   answerPairs.value = [];
   questionInput.value = '';
-  questionSaved.value = false;
   showAvailableAnswers.value = false;
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
-  buzzerOnlyPressed.value = false;
-  correctAfterBuzzer.value = false;
 
-  store.resetRound(); // Advance to the next round
-  // Emit the updated game state for the next round
-  const nextRoundState = { ...store.$state, nextRound: true };
-  updateGameState(nextRoundState);
+  console.log('nextRound() called from HostDashboard.vue');
 };
 
 const handleIncorrectAndStrike = () => {
@@ -304,6 +263,7 @@ const startTimer = () => {
   timerInterval = setInterval(() => {
     if (store.timer > 0) {
       store.decrementTimer();
+      console.log('startTimer() called from HostDashboard.vue');
       updateGameState(store.$state); // Emit the updated game state
     } else {
       stopTimer();
@@ -311,29 +271,31 @@ const startTimer = () => {
   }, 1000) as unknown as number;
 };
 
-const stopTimer = () => {
+function stopTimer() {
   store.stopTimer();
   if (timerInterval !== null && timerInterval !== undefined) {
     clearInterval(timerInterval);
   }
   timerInterval = null;
-  updateGameState(store.$state); // Emit the updated game state
-};
+  // console.log('stopTimer() called from HostDashboard.vue');
+  // if (emit) updateGameState(store.$state); // Emit the updated game state
+}
 
 const resetTimer = () => {
   stopTimer();
   store.resetTimer();
   timerInput.value = 0;
+  console.log('resetTimer() called from HostDashboard.vue');
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const handleCorrectGuess = (answerId: any) => {
   correctCount.value++;
-  if (buzzerOnlyPressed.value) {
-    correctAfterBuzzer.value = true;
+  if (store.buzzerOnlyPressed) {
+    store.correctAfterBuzzer = true;
   }
-  if (!buzzerOnlyPressed.value) {
-    correctBeforeBuzzer.value = true;
+  if (!store.buzzerOnlyPressed) {
+    store.correctBeforeBuzzer = true;
   }
   if (!store.firstTeam) {
     const match = store.answers.find((a: { id: any }) => a.id === answerId);
@@ -349,12 +311,15 @@ const handleCorrectGuess = (answerId: any) => {
   } else {
     // Normal gameplay: Award points to the current team
     if (store.currentTeam === store.firstTeam) {
-      store.guessAnswer(answerId);
+      console.log('HELLLLO');
+      store.guessAnswer(answerId, updateGameState); // Use the store's method to handle guessing
     } else {
-      store.secondTeamGuess(answerId);
+      console.log('YERRRRR');
+      store.secondTeamGuess(answerId, updateGameState);
     }
   }
-  updateGameState(store.$state); // Emit the updated game state
+  console.log('handleCorrectGuess() called from HostDashboard.vue');
+  //  updateGameState(store.$state); // Emit the updated game state
 };
 
 const handleIncorrectGuess = () => {
@@ -364,7 +329,8 @@ const handleIncorrectGuess = () => {
   if (store.currentTeam === store.firstTeam) {
     // If the starting team reaches 3 strikes, handle the three-strike logic
     if (store.strikes >= 3) {
-      store.handleThreeStrikes();
+      console.log('HAAAHN');
+      store.handleThreeStrikes(updateGameState);
     } else {
       // Increment the persistent strike count for the current team
       store.teamStrikes[store.currentTeam]++;
@@ -372,13 +338,15 @@ const handleIncorrectGuess = () => {
   } else {
     // If the second team guesses incorrectly, award the points to the starting team
     if (store.strikes >= 1) {
-      store.handleThreeStrikes();
+      console.log('BLERGH');
+      store.handleThreeStrikes(updateGameState);
     } else {
       // Increment the persistent strike count for the second team
       store.teamStrikes[store.currentTeam]++;
     }
   }
-  updateGameState(store.$state); // Emit the updated game state
+  console.log('handleIncorrectGuess() called from HostDashboard.vue');
+  // updateGameState(store.$state); // Emit the updated game state
 };
 
 const addAnswerPair = () => {
@@ -397,31 +365,31 @@ const removeAllAnswers = () => {
   answerPairs.value = [{ id: uuidv4(), text: '', points: 0 }]; // Reset to one empty pair with unique id
 };
 
-const saveQuestionAndAnswers = async () => {
-  if (questionInput.value.trim()) {
-    await store.uploadQuestion(questionInput.value.trim());
-    questionSaved.value = true;
-    store.question = questionInput.value.trim();
-  } else {
+function saveQuestionAndAnswers() {
+  const question = questionInput.value.trim();
+  if (!question) {
     alert('Please enter a valid question.');
-    return;
+    return false;
   }
 
   const validAnswers = answerPairs.value.filter((pair) => pair.text.trim() && !isNaN(pair.points));
-  if (validAnswers.length > 0) {
-    await store.uploadAnswers(validAnswers);
-    store.currentStep = 'multiplier';
-    store.answersSaved = true;
-  } else {
+  if (validAnswers.length === 0) {
     alert('Please provide at least two valid answers with points.');
-    return;
+    return false;
   }
 
-  if (questionSaved.value && store.answersSaved) {
+  store.uploadQuestion(question);
+  store.questionSaved = true;
+  store.question = question;
+
+  store.uploadAnswers(validAnswers);
+  store.answersSaved = true;
+
+  if (store.questionSaved && store.answersSaved) {
     store.incrementRoundCounter();
-    updateGameState(store.$state); // Emit the updated game state LAST
+    console.log('saveQuestionAndAnswers() called from HostDashboard.vue');
   }
-};
+}
 
 const saveScoreMgmt = () => {
   const trimmedTeamAName = store.teamNames.A.trim();
@@ -446,6 +414,7 @@ const saveScoreMgmt = () => {
     },
   };
 
+  console.log('saveScoreMgmt() called from HostDashboard.vue');
   updateGameState(gameState2);
 };
 
@@ -458,16 +427,17 @@ const revealAllAnswers = () => {
     .map((answer: { id: any }) => ({ id: answer.id })); // Map to { id: ... } objects
 
   store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed objects to guessedAnswers
+  console.log('revealAllAnswers() called from HostDashboard.vue');
   updateGameState(store.$state); // Emit the updated game state
 };
 
 const emitStrikeSound = () => {
   buzzerOnlyCount.value++;
-  buzzerOnlyPressed.value = true;
+  store.buzzerOnlyPressed = true;
   // If a correct was pressed before the buzzer, set a flag
-  if (correctBeforeBuzzer.value) {
-    correctBeforeBuzzer.value = false; // Reset for next use
-    correctAfterBuzzer.value = true; // This triggers the new condition
+  if (store.correctBeforeBuzzer) {
+    store.correctBeforeBuzzer = false; // Reset for next use
+    store.correctAfterBuzzer = true; // This triggers the new condition
   }
   socket.emit('play-strike-sound', { sessionId });
 };
@@ -503,31 +473,27 @@ const copySessionId = () => {
   }
 };
 
-const highestPointAnswerId = computed(() => {
-  if (!store.answers.length) return null;
-  return store.answers.reduce(
-    (max: { id: any; points: number }, curr: { id: any; points: number }) =>
-      curr.points > max.points ? curr : max,
-    store.answers[0],
-  ).id;
-});
-
-const highestPointAnswered = computed(() =>
-  store.guessedAnswers.some((a: { id: any }) => a.id === highestPointAnswerId.value),
-);
+const logout = () => {
+  // Clear session data
+  store.enteredFromHome = false;
+  store.sessionId = '';
+  localStorage.removeItem('enteredFromHome');
+  localStorage.removeItem('sessionId');
+  router.push({ name: 'Home' });
+};
 
 const guessedAnswersCount = computed(() => store.guessedAnswers.length);
 
 const showWhoStartsSection = computed(() => {
   if (store.startingTeamSet) return false;
   // 1. Highest point answer selected
-  if (highestPointAnswered.value) return true;
+  if (store.highestPointAnswered) return true;
   // 2. Any answer selected after buzzer only
-  if (buzzerOnlyPressed.value && correctAfterBuzzer.value) return true;
+  if (store.buzzerOnlyPressed && store.correctAfterBuzzer) return true;
   // 3. Any 2 answers selected (including highest-point)
   if (guessedAnswersCount.value >= 2) return true;
   // 4. Correct pressed, then buzzer only
-  if (correctAfterBuzzer.value) return true;
+  if (store.correctAfterBuzzer) return true;
   return false;
 });
 
@@ -590,15 +556,42 @@ const loadLibraryFile = async (filename: string) => {
   }
 };
 
-// Listen for game state updates
-socket.on('update-game', (updatedGameState: any) => {
+function handleUpdatedGame(updatedGameState: any) {
+  console.log(`Session ${sessionId} currentStep updated to:`, updatedGameState.currentStep);
   Object.assign(store.$state, updatedGameState);
-});
+
+  isLoading.value = false;
+
+  // Sync "Who Starts" state
+  if (store.firstTeam) {
+    store.startingTeam = store.firstTeam;
+  } else {
+    store.startingTeam = null;
+  }
+
+  // Sync "Score Multiplier" state
+  if (store.scoreMultiplier) {
+    selectedMultiplier.value = store.scoreMultiplier;
+  } else {
+    selectedMultiplier.value = null;
+  }
+
+  store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
+}
 
 // Handle errors
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   alert(`Error: ${error.message}`);
+
+  // Handle invalid session error
+  if (
+    error.message === 'Session does not exist.' ||
+    error.message === 'No session ID provided.' // Add any other relevant backend error messages
+  ) {
+    // Redirect to home page
+    window.location.href = '/';
+  }
 });
 
 // Handle connection errors
@@ -609,27 +602,21 @@ socket.on('connect_error', (error: any) => {
 onMounted(() => {
   store.initSocket();
 
-  // Listen for team name updates from the backend
-  socket.on('team-names-updated', (teamNames: any) => {
-    store.teamNames = { ...store.teamNames, ...teamNames };
-  });
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
     return;
   }
-  // Join the session
-  socket.emit('join-session', { sessionId });
 
-  // Request the current game state from the backend
-  socket.emit('get-current-state', { sessionId });
+  socket.on('team-names-updated', (teamNames: any) => {
+    store.teamNames = { ...store.teamNames, ...teamNames };
+  });
 
-  // Listen for the current game state from the backend
   socket.on('current-state', (currentState: any) => {
     Object.assign(store.$state, currentState); // Update the global store with the current game state
 
     // Sync "Who Starts" state
     if (store.firstTeam) {
-      startingTeam.value = store.firstTeam;
+      store.startingTeam = store.firstTeam;
     }
 
     // Sync "Score Multiplier" state
@@ -638,40 +625,23 @@ onMounted(() => {
     }
   });
 
-  // Listen for game state updates
-  socket.on('update-game', (updatedGameState: any) => {
-    Object.assign(store.$state, updatedGameState);
+  socket.on('update-game', handleUpdatedGame);
 
-    isLoading.value = false;
-
-    // Sync "Who Starts" state
-    if (store.firstTeam) {
-      startingTeam.value = store.firstTeam;
-    } else {
-      startingTeam.value = null;
-    }
-
-    // Sync "Score Multiplier" state
-    if (store.scoreMultiplier) {
-      selectedMultiplier.value = store.scoreMultiplier;
-    } else {
-      selectedMultiplier.value = null;
-    }
-
-    store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
-  });
-
-  // Handle connection errors
   socket.on('connect_error', (error: any) => {
     console.error('WebSocket connection error:', error);
     alert('Failed to connect to the game session. Please try again.');
   });
+
+  socket.emit('join-session', { sessionId });
+
+  socket.emit('get-current-state', { sessionId });
 
   fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
 });
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
+  socket.off('update-game', handleUpdatedGame);
   socket.removeAllListeners();
 });
 </script>
@@ -720,23 +690,14 @@ button {
   cursor: pointer;
 }
 
-.session-id-box {
+.floating-buttons {
   position: fixed;
   bottom: 16px;
   right: 16px;
-  background-color: black;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
   z-index: 1000;
-  opacity: 0.7; /* Default opacity */
-  transition:
-    opacity 0.3s ease,
-    background-color 0.3s ease; /* Smooth transition for hover and color changes */
-  border: none;
-  cursor: pointer; /* Make it clear that it's clickable */
 }
 
 .session-id-box:hover {

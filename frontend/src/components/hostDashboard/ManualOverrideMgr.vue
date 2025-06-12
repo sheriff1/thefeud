@@ -3,26 +3,24 @@
     <h3>Manual Overrides</h3>
     <div class="form-row">
       <label :for="'team-a-score'">
-        <span class="info-key">{{ teamNames.A }} Points:</span>
+        <span class="info-key">{{ gameStore.teamNames.A }} Points:</span>
       </label>
       <input
         id="team-a-score"
         type="number"
-        v-model.number="localTeamScores.A"
-        @input="onTeamScoresInput(localTeamScores)"
+        v-model.number="gameStore.teamScores.A"
         min="0"
         step="1"
       />
     </div>
     <div class="form-row">
       <label :for="'team-b-score'">
-        <span class="info-key">{{ teamNames.B }} Points:</span>
+        <span class="info-key">{{ gameStore.teamNames.B }} Points:</span>
       </label>
       <input
         id="team-b-score"
         type="number"
-        v-model.number="localTeamScores.B"
-        @input="onTeamScoresInput(localTeamScores)"
+        v-model.number="gameStore.teamScores.B"
         min="0"
         step="1"
       />
@@ -34,8 +32,7 @@
       <input
         id="round-counter"
         type="number"
-        v-model.number="localRoundCounter"
-        @input="onRoundCounterInput(localRoundCounter)"
+        v-model.number="gameStore.roundCounter"
         min="0"
         step="1"
       />
@@ -47,10 +44,9 @@
       <input
         id="score-multiplier"
         type="number"
-        v-model.number="localScoreMultiplier"
+        v-model.number="gameStore.scoreMultiplier"
         min="1"
         max="3"
-        @input="onScoreMultiplierInput(localScoreMultiplier)"
       />
     </div>
     <div class="form-row">
@@ -60,9 +56,8 @@
       <input
         id="team-a-name"
         type="text"
-        v-model="teamNames.A"
+        v-model="gameStore.teamNames.A"
         placeholder="Enter Team A Name"
-        @input="onTeamNamesInput({ ...teamNames, A: ($event.target as HTMLInputElement).value })"
       />
     </div>
     <div class="form-row">
@@ -72,9 +67,8 @@
       <input
         id="team-b-name"
         type="text"
-        v-model="teamNames.B"
+        v-model="gameStore.teamNames.B"
         placeholder="Enter Team B Name"
-        @input="onTeamNamesInput({ ...teamNames, B: ($event.target as HTMLInputElement).value })"
       />
     </div>
     <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
@@ -82,18 +76,26 @@
       Team points must be nonnegative integers.
     </div>
     <div v-if="!roundCounterValid" class="error-message">Round must be a nonnegative integer.</div>
-    <button class="btn" @click="saveScoreMgmt" :disabled="!canSave">Save All</button>
+    <button
+      class="btn"
+      @click="
+        () => {
+          saveScoreMgmt();
+        }
+      "
+      :disabled="!canSave"
+    >
+      Save All
+    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, toRefs, computed } from 'vue';
+import { computed } from 'vue';
+import { useGameStore } from '../../stores/gamestore';
 
 interface ManualOverrideMgrProps {
-  teamNames: Record<string, string>;
-  teamScores: Record<string, number>;
-  roundCounter: number | string;
-  scoreMultiplier: number | string;
+  updateGameState: (state: any) => void;
   isTeamNamesUnique: boolean;
 }
 
@@ -108,48 +110,7 @@ const emit = defineEmits<{
 }>();
 
 // Use two-way binding for v-model
-const { teamNames } = toRefs(props);
-
-const localScoreMultiplier = ref(props.scoreMultiplier);
-// const localTeamNames = ref(props.teamNames);
-const localTeamScores = ref(props.teamScores);
-const localRoundCounter = ref(props.roundCounter);
-
-watch(
-  () => props.scoreMultiplier,
-  (val) => {
-    localScoreMultiplier.value = val;
-  },
-);
-
-function onScoreMultiplierInput(val: number | string) {
-  emit('update:scoreMultiplier', val);
-}
-function onTeamNamesInput(val: Record<string, string>) {
-  emit('update:teamNames', val);
-}
-
-function onTeamScoresInput(val: Record<string, number>) {
-  emit('update:teamScores', val);
-}
-
-function onRoundCounterInput(val: number | string) {
-  emit('update:roundCounter', val);
-}
-
-watch(
-  () => props.teamScores,
-  (val) => {
-    localTeamScores.value = val;
-  },
-);
-
-watch(
-  () => props.roundCounter,
-  (val) => {
-    localRoundCounter.value = val;
-  },
-);
+const gameStore = useGameStore();
 
 function saveScoreMgmt() {
   emit('saveScoreMgmt');
@@ -157,14 +118,14 @@ function saveScoreMgmt() {
 
 const teamScoresValid = computed(
   () =>
-    Number.isInteger(localTeamScores.value.A) &&
-    localTeamScores.value.A >= 0 &&
-    Number.isInteger(localTeamScores.value.B) &&
-    localTeamScores.value.B >= 0,
+    Number.isInteger(gameStore.teamScores.A) &&
+    gameStore.teamScores.A >= 0 &&
+    Number.isInteger(gameStore.teamScores.B) &&
+    gameStore.teamScores.B >= 0,
 );
 
 const roundCounterValid = computed(
-  () => Number.isInteger(Number(localRoundCounter.value)) && Number(localRoundCounter.value) >= 0,
+  () => Number.isInteger(Number(gameStore.roundCounter)) && Number(gameStore.roundCounter) >= 0,
 );
 
 const canSave = computed(
