@@ -2,11 +2,12 @@ name: Monorepo Deploy (Heroku & Vercel)
 
 on:
   push:
-    branches:
-      - main
+    branches: ['**']
+  pull_request:
+    branches: ['**']
 
 jobs:
-  all-of-the-jobs:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,8 +51,7 @@ jobs:
         working-directory: frontend
 
       - name: Install Heroku CLI
-        run: |
-          curl https://cli-assets.heroku.com/install.sh | sh
+        run: curl https://cli-assets.heroku.com/install.sh | sh
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
@@ -107,6 +107,27 @@ jobs:
       - name: Build frontend
         run: npm run build
         working-directory: frontend
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
