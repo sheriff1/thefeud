@@ -13,7 +13,7 @@
 
 ### 2. Host Dashboard
 
-![host-dashboard](https://github.com/user-attachments/assets/d8c9b88e-a581-4beb-8234-a4f8227199b1)
+![host-dashboard](https://github.com/user-attachments/assets/63ee3155-717d-40a7-80a3-e53a8edd4796)
 
 - The host can **administer the game** using the dashboard.
 - Features include:
