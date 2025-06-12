@@ -39,7 +39,8 @@ watch(
 
 <style scoped>
 .mute-btn,
-.session-id-box {
+.session-id-box,
+.logout-box {
   background-color: black;
   color: white;
   padding: 8px 16px;
@@ -54,16 +55,14 @@ watch(
   cursor: pointer;
 }
 
-.mute-btn:hover {
-  opacity: 1;
+.mute-btn:hover,
+.session-id-box:hover,
+.logout-box:hover {
+  opacity: 1; /* Fully opaque on hover */
 }
 
 .mute-btn.muted {
   background-color: gray;
-}
-
-.session-id-box:hover {
-  opacity: 1; /* Fully opaque on hover */
 }
 
 .session-id-box.copied {

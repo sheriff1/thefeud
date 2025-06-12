@@ -13,8 +13,8 @@
     />
     <div v-if="!timerValid" class="error-message">Timer value must be positive.</div>
     <div>
-      <p>Current Timer: {{ timer }} seconds</p>
-      <p v-if="timerRunning">Timer is running...</p>
+      <p>Current Timer: {{ gameStore.timer }} seconds</p>
+      <p v-if="gameStore.timerRunning">Timer is running...</p>
       <p v-else>Timer is stopped.</p>
       <button class="btn" @click="startTimer" :disabled="!timerValid">Start</button>
       <button class="btn" @click="stopTimer" :disabled="!timerValid">Stop</button>
@@ -25,10 +25,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useGameStore } from '../../stores/gamestore';
+const gameStore = useGameStore();
 
 interface TimerMgrProps {
-  timerRunning: boolean;
-  timer: number;
   timerInput: number;
   startTimer: () => void;
   stopTimer: () => void;

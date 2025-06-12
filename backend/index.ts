@@ -14,7 +14,7 @@ import helmet from 'helmet';
 dotenv.config();
 const projectId = process.env.FIREBASE_PROJECT_ID || 'family-feud-12345';
 // Set emulator environment variables if running in test or CI
-let credential;
+let credential: admin.credential.Credential;
 if (
   process.env.FIRESTORE_EMULATOR_HOST ||
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||
@@ -57,9 +57,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:5173'];
 
+// -------------------------- Express CORS -------------------------- //
 app.use(helmet());
 
-// Express CORS
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -74,22 +74,6 @@ app.use(
     credentials: true,
   }),
 );
-
-// Socket.IO CORS
-const io = new Server(server, {
-  cors: {
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
 
 app.use(express.json());
 app.use('/answers', express.static(path.join(__dirname, 'answers')));
@@ -130,6 +114,22 @@ app.get('/api/answers-library', (req, res) => {
 // WebSocket Communication
 const socketToPlayer = {};
 
+// -------------------------- Socket.IO CORS -------------------------- //
+const io = new Server(server, {
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
+
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
@@ -153,6 +153,12 @@ io.on('connection', (socket) => {
 
   socket.on('join-session', async ({ sessionId }) => {
     console.log(`User ${socket.id} is joining session: ${sessionId}`);
+    const sessionRef = db.collection('sessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+    if (!sessionDoc.exists) {
+      socket.emit('error', { message: 'Session does not exist.' });
+      return;
+    }
     socket.join(sessionId);
   });
 
@@ -185,9 +191,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Optionally: handle disconnects, etc.
-
-  // Handle request for the current game state
   socket.on('get-current-state', async ({ sessionId }) => {
     try {
       const sessionDoc = await db.collection('sessions').doc(sessionId).get();
@@ -251,7 +254,7 @@ io.on('connection', (socket) => {
         gameState.answers = []; // Reset answers
         gameState.guessedAnswers = []; // Reset guessedAnswers
         gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
+        gameState.currentStep = 1; // Reset currentStep to 'manage'
         gameState.nextRound = false;
         io.to(sessionId).emit('next-round');
         io.to(sessionId).emit('reset-buzzers');
@@ -277,7 +280,7 @@ io.on('connection', (socket) => {
         gameState.answers = []; // Reset answers
         gameState.guessedAnswers = []; // Reset guessedAnswers
         gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
+        gameState.currentStep = 1; // Reset currentStep to 'manage'
         gameState.roundReset = false;
 
         io.to(sessionId).emit('reset-round');
@@ -286,31 +289,7 @@ io.on('connection', (socket) => {
 
       // --- Reset the flag here, after logic that depends on it ---
       if (gameState.gameReset) {
-        gameState.roundReset = false;
-        gameState.roundOver = false; // Reset roundOver if roundReset is true
-        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
-        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
-        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
-        gameState.strikes = 0; // Reset strikes
-        gameState.pointPool = 0; // Reset point pool
-        gameState.firstTeam = null; // Reset firstTeam
-        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
-        gameState.scoreMultiplier = null; // Reset scoreMultiplier
-        gameState.timer = 0; // Reset timer
-        gameState.timerRunning = false; // Reset timerRunning
-        gameState.question = ''; // Reset question
-        gameState.pointsAwarded = 0; // Reset pointsAwarded
-        gameState.winningTeam = null; // Reset winningTeam
-        gameState.answers = []; // Reset answers
-        gameState.guessedAnswers = []; // Reset guessedAnswers
-        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-        gameState.currentStep = 'manage'; // Reset currentStep to 'manage'
-
-        gameState.roundCounter = 0; // Reset roundCounter
-        gameState.teamScores = { A: 0, B: 0 }; // Reset team scores
-
-        gameState.gameReset = false; // Reset gameReset flag
-
+        getResetGameState();
         io.to(sessionId).emit('reset-round');
         io.to(sessionId).emit('reset-buzzers');
       }
@@ -344,23 +323,6 @@ io.on('connection', (socket) => {
       // Do NOT emit 'update-game' here
     } catch (error) {
       console.error('Error updating team name:', error);
-    }
-  });
-
-  // When the starting team is set (add this in your relevant socket handler)
-  socket.on('set-starting-team', async ({ sessionId, startingTeam }) => {
-    try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      // Set startingTeam and startingTeamSet to true
-      await sessionRef.set({ startingTeam, startingTeamSet: true }, { merge: true });
-      // Fetch the updated state
-      const sessionDoc = await sessionRef.get();
-      const gameState = sessionDoc.data();
-      // Broadcast the updated game state to all clients
-      io.to(sessionId).emit('update-game', gameState);
-    } catch (error) {
-      console.error('Error setting starting team:', error);
-      socket.emit('error', { message: 'Failed to set starting team' });
     }
   });
 
@@ -399,18 +361,6 @@ io.on('connection', (socket) => {
       delete socketToPlayer[socket.id];
     }
   });
-  // Listen for reset-round from the host
-  socket.on('reset-round', async ({ sessionId }) => {
-    try {
-      // Emit to all clients in the session
-      io.to(sessionId).emit('reset-round');
-      // Optionally, also emit 'reset-buzzers' if you want to clear buzzers
-      io.to(sessionId).emit('reset-buzzers');
-    } catch (error) {
-      console.error('Error resetting round:', error);
-      socket.emit('error', { message: 'Failed to reset round' });
-    }
-  });
 });
 
 // Start the server
@@ -418,5 +368,38 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+function getResetGameState() {
+  return {
+    roundReset: false,
+    roundOver: false,
+    buzzedPlayer: '',
+    startingTeamSet: false,
+    currentTeam: 'A',
+    strikes: 0,
+    pointPool: 0,
+    firstTeam: null,
+    secondTeamGuessUsed: false,
+    scoreMultiplier: null,
+    timer: 0,
+    timerRunning: false,
+    question: '',
+    pointsAwarded: 0,
+    winningTeam: null,
+    answers: [],
+    guessedAnswers: [],
+    teamStrikes: { A: 0, B: 0 },
+    currentStep: 1,
+    multiplierSet: false,
+    answersSaved: false,
+    startingTeam: null,
+    questionSaved: false,
+    buzzerOnlyPressed: false,
+    correctAfterBuzzer: false,
+    roundCounter: 0,
+    teamScores: { A: 0, B: 0 },
+    gameReset: false,
+  };
+}
 
 export default app;
