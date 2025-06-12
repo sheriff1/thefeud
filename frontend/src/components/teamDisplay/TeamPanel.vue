@@ -23,7 +23,11 @@
     </div>
     <div class="team-row">
       <ul class="team-members-list">
-        <li v-for="member in members" :key="member" :class="{ buzzed: buzzedPlayer === member }">
+        <li
+          v-for="member in members"
+          :key="member"
+          :class="{ buzzed: store.buzzedPlayer === member }"
+        >
           😎 {{ member }}
         </li>
       </ul>
@@ -39,7 +43,7 @@
     </div>
     <div class="buzzer-container" v-if="showBuzzer && guessedAnswers.length == 0">
       <button class="buzzer-button" :disabled="buzzerDisabled" @click="$emit('buzz')">
-        {{ buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
+        {{ store.buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
       </button>
     </div>
   </div>
@@ -47,6 +51,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { useGameStore } from '../../stores/gamestore';
+const store = useGameStore();
 
 interface TeamPanelProps {
   team: string;
@@ -55,7 +61,6 @@ interface TeamPanelProps {
   members: string[];
   strikes: number;
   strikeCount: number;
-  buzzedPlayer: string;
   active: boolean;
   editing: boolean;
   isWinning: boolean;

@@ -49,7 +49,6 @@
           :members="teamMembers['A']"
           :strikes="store.teamStrikes['A']"
           :strikeCount="store.firstTeam === 'A' ? 3 : 1"
-          :buzzedPlayer="buzzedPlayer"
           :active="store.currentTeam === 'A'"
           :editing="editingTeam === 'A'"
           :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
@@ -90,7 +89,6 @@
           :members="teamMembers['B']"
           :strikes="store.teamStrikes['B']"
           :strikeCount="store.firstTeam === 'B' ? 3 : 1"
-          :buzzedPlayer="buzzedPlayer"
           :active="store.currentTeam === 'B'"
           :editing="editingTeam === 'B'"
           :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
@@ -134,8 +132,7 @@ const playerName = ref('');
 const selectedTeam = ref('');
 const hasJoined = ref(false);
 const hasBuzzed = ref(false);
-const buzzedPlayer = ref(''); // Name of the player who buzzed first
-const isBuzzerDisabled = computed(() => hasBuzzed.value || !!buzzedPlayer.value);
+const isBuzzerDisabled = computed(() => hasBuzzed.value || !!store.buzzedPlayer);
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
@@ -180,17 +177,16 @@ const playRoundOverSound = () => {
 
 const playNextRoundSound = () => {
   if (isMuted.value) return;
-  console.log('RANDOM LOG TO TEST GITHUB ACTIONS');
   const audio = new Audio('/sounds/next-round.mp3');
   audio.play();
 };
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
+    console.log(`NAHHHHH Player buzzed in!`);
+    hasBuzzed.value = true;
     socket.emit('buzz', { sessionId, name: playerName.value });
     playBuzzerSound();
-    buzzedPlayer.value = playerName.value;
-    hasBuzzed.value = true;
   }
 };
 
@@ -328,22 +324,19 @@ onMounted(() => {
   // Request the current game state from the backend
   socket.emit('get-current-state', { sessionId });
 
-  socket.on('buzzed', ({ name }: { name: string }) => {
-    buzzedPlayer.value = name;
-    playBuzzerSound(); // <-- Make sure this is here!
-  });
-
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
     Object.assign(store.$state, currentState);
-    buzzedPlayer.value = currentState?.buzzedPlayer || '';
+    store.buzzedPlayer = currentState?.buzzedPlayer || '';
   });
 
   // Listen for game state updates
   socket.on('update-game', (newState: { teamNames: any; buzzedPlayer: string }) => {
     Object.assign(store.$state, newState);
     store.teamNames = { ...store.teamNames, ...newState.teamNames };
-    buzzedPlayer.value = newState?.buzzedPlayer || '';
+    if ('buzzedPlayer' in newState) {
+      store.buzzedPlayer = newState.buzzedPlayer;
+    }
     hasBuzzed.value = false;
   });
 
@@ -372,14 +365,14 @@ onMounted(() => {
     playNextRoundSound();
   });
   socket.on('reset-round', () => {
-    buzzedPlayer.value = '';
+    store.buzzedPlayer = '';
     hasBuzzed.value = false;
     editingTeam.value = null;
     editedTeamName.value = '';
     showStrikeX.value = false;
   });
   socket.on('reset-buzzers', () => {
-    buzzedPlayer.value = '';
+    store.buzzedPlayer = '';
     hasBuzzed.value = false;
   });
 });

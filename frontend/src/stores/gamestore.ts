@@ -35,6 +35,7 @@ export const useGameStore = defineStore('game', {
     nextRound: false,
     enteredFromHome: localStorage.getItem('enteredFromHome') === 'true',
     sessionId: localStorage.getItem('sessionId') || '',
+    buzzedPlayer: null as string | null, // New property to track the buzzed player
   }),
   getters: {
     highestPointAnswerId(state) {

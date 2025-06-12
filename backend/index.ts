@@ -129,13 +129,21 @@ io.on('connection', (socket) => {
     const sessionDoc = await sessionRef.get();
 
     if (!sessionDoc.exists) {
-      const data = sessionDoc.data();
-      const currentBuzzed = data ? data.buzzedPlayer : undefined;
-      if (!currentBuzzed) {
-        await sessionRef.set({ buzzedPlayer: name }, { merge: true });
-        io.to(sessionId).emit('buzzed', { name }); // <--- This emits to all clients in the session
-      }
+      // Optionally, you can emit an error or just return
+      socket.emit('error', { message: 'Session does not exist.' });
+      return;
     }
+
+    // Update buzzedPlayer in Firestore
+    await sessionRef.set({ buzzedPlayer: name }, { merge: true });
+
+    // Fetch the latest session state
+    const updatedSessionDoc = await sessionRef.get();
+    const sessionData = updatedSessionDoc.data();
+
+    // Broadcast the updated state to all clients in the session
+    console.log('GERALLLLLLD Emitting update-game:', sessionData);
+    io.to(sessionId).emit('update-game', sessionData);
   });
 
   socket.on('play-strike-sound', async ({ sessionId }) => {
