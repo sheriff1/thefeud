@@ -1,12 +1,12 @@
 <template>
-  <div class="team-info" :class="{ active }">
+  <div class="container bg-base-300 text-base-content team-info" :class="{ active }">
     <span class="team-score">{{ score }}</span>
     <div class="team-header">
       <span class="team-name">
         <span v-if="!editing">
           <span v-if="isWinning">👑</span>
           {{ teamName.toUpperCase() }}
-          <button class="edit-team-btn" @click="$emit('edit-team', team)">✏️</button>
+          <button class="btn edit-team-btn" @click="$emit('edit-team', team)">✏️</button>
         </span>
         <span v-else>
           <input
@@ -17,7 +17,7 @@
             maxlength="20"
             autofocus
           />
-          <button class="save-team-btn" @click="saveTeamNameChange">💾</button>
+          <button class="btn save-team-btn" @click="saveTeamNameChange">💾</button>
         </span>
       </span>
     </div>
@@ -94,10 +94,8 @@ function saveTeamNameChange() {
 
 <style scoped>
 .team-info {
-  background: #f7f7f7;
   border-radius: 12px;
   padding: 1.5rem 1rem;
-  margin: 0.5rem 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
   display: flex;
   flex-direction: column;
@@ -108,13 +106,13 @@ function saveTeamNameChange() {
 }
 .team-info.active {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  border: 2px solid #3b82f6;
+  border: 2px solid var(--color-primary, #000);
 }
 
 .team-score {
   font-size: 2.2rem;
   font-weight: bold;
-  color: #3b82f6;
+  color: var(--color-primary, #000);
   margin-bottom: 0.5rem;
 }
 

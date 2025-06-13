@@ -1,5 +1,5 @@
 <template>
-  <div class="container game-info-container">
+  <div class="container bg-base-300 text-base-content">
     <h3>Active Game Info</h3>
 
     <!-- Team Strike Counts -->
@@ -30,20 +30,13 @@
       <span class="info-key">Score Multiplier:</span>
       {{ gameStore.scoreMultiplier }}x
     </p>
-
-    <!-- Reveal All Answers Button -->
-    <button class="btn" v-if="gameStore.roundOver" @click="revealAllAnswers">
-      Reveal All Answers
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useGameStore } from '../../stores/gamestore';
 const gameStore = useGameStore();
-interface ActiveGameInfoMgrProps {
-  revealAllAnswers: () => void;
-}
+interface ActiveGameInfoMgrProps {}
 
 defineProps<ActiveGameInfoMgrProps>();
 </script>

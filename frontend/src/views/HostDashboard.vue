@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <div class="flex flex-col items-center my-8">
+    <h1>The Feud Host Dashboard</h1>
     <div class="floating-buttons">
       <FloatingButton
         :label="sessionIdBoxText"
@@ -7,16 +8,10 @@
         className="session-id-box"
         :state="sessionIdBoxState"
       />
-      <FloatingButton label="Logout" :onClick="logout" className="logout-box" />
+      <FloatingButton label="Log Out" :onClick="logout" className="logout-box" />
     </div>
     <!-- Reset Game and Reset Round Container -->
 
-    <GameStatusMgr
-      :updateGameState="updateGameState"
-      :resetGame="resetGame"
-      :resetRound="resetRound"
-      :isLoading="isLoading"
-    />
     <!-- Manage Question and Answers Section -->
     <GameMgr
       :updateGameState="updateGameState"
@@ -40,29 +35,29 @@
       :showWhoStartsSection="showWhoStartsSection"
       :setStartingTeam="setStartingTeam"
       :guessedAnswersCount="guessedAnswersCount"
+      :revealAllAnswers="revealAllAnswers"
     />
-    <div class="flex-row">
-      <!-- Available Answers, Strikes, and Points Pool Container -->
+    <!-- Available Answers, Strikes, and Points Pool Container -->
 
-      <ActiveGameInfoMgr :revealAllAnswers="revealAllAnswers" />
-    </div>
+    <ActiveGameInfoMgr />
 
-    <div class="flex-row">
-      <ManualOverrideMgr
-        :updateGameState="updateGameState"
-        :isTeamNamesUnique="isTeamNamesUnique"
-        @saveScoreMgmt="saveScoreMgmt"
-      />
+    <ManualOverrideMgr
+      :updateGameState="updateGameState"
+      :isTeamNamesUnique="isTeamNamesUnique"
+      @saveScoreMgmt="saveScoreMgmt"
+      :resetGame="resetGame"
+      :resetRound="resetRound"
+      :isLoading="isLoading"
+    />
 
-      <!-- Timer Container -->
-      <TimerMgr
-        v-model:timerInput="timerInput"
-        :startTimer="startTimer"
-        :stopTimer="stopTimer"
-        :resetTimer="resetTimer"
-        :setTimer="setTimer"
-      />
-    </div>
+    <!-- Timer Container -->
+    <TimerMgr
+      v-model:timerInput="timerInput"
+      :startTimer="startTimer"
+      :stopTimer="stopTimer"
+      :resetTimer="resetTimer"
+      :setTimer="setTimer"
+    />
   </div>
 </template>
 
@@ -73,7 +68,6 @@ import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
-import GameStatusMgr from '../components/hostDashboard/GameStatusMgr.vue';
 import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue';
 import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
 import GameMgr from '../components/hostDashboard/GameMgr.vue';
@@ -651,28 +645,6 @@ onUnmounted(() => {
   padding: 1rem;
   margin: 1rem;
   border-radius: 0.5rem;
-  background-color: #f9f9f9;
-}
-
-.settings-container {
-  background-color: #e6f7ff;
-}
-
-.game-info-container {
-  background-color: #e6ffe6;
-}
-
-.score-container {
-  background-color: #fffbe6;
-}
-
-.timer-container {
-  background-color: #f0e6ff;
-}
-
-.answers-container {
-  background-color: #e6e6ff;
-  margin-bottom: 16px;
 }
 
 .question-container,

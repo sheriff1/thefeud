@@ -1,5 +1,5 @@
 <template>
-  <div v-if="answers.length > 0" class="answers-container">
+  <div v-if="answers.length > 0" class="container bg-base-300 text-base-content answers-container">
     <!-- Question Display -->
     <transition name="fade-x">
       <div v-if="showStrikeX" class="strike-x-overlay">
@@ -60,11 +60,9 @@ watch(
 
 <style scoped>
 .answers-container {
-  width: 90%;
   display: flex;
   flex-direction: column; /* Stack the question and answers vertically */
   gap: 16px; /* Space between the question and the answers grid */
-  margin-top: 16px;
   padding: 16px;
   background-color: #e0f3ff;
   border-radius: 8px;

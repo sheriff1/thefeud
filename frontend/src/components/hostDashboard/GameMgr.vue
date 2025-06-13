@@ -36,6 +36,7 @@ interface GameMgrProps {
   setStartingTeam: (team: string) => void;
   /* --- currentStep = 6 --- */
   /* --- currentStep = 7 --- */
+  revealAllAnswers: () => void;
   /* --- currentStep = TBD --- */
 }
 interface GameMgrEmits {
@@ -145,30 +146,46 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
 </script>
 
 <template>
-  <div class="container question-answers-container">
+  <div class="container bg-base-300 text-base-content">
+    <h3 class="mb-4">Game Manager</h3>
+    <ul class="steps text-xs w-full">
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 1 }">Start</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 2 }">Q&A</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 3 }">Multiplier</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 4 }">Buzzer</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 5 }">Who Starts</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 6 }">Guessing</li>
+      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 7 }">Award</li>
+    </ul>
+
+    <div class="divider"></div>
+
     <!-- 1. Start Next Round -->
     <div v-if="gameStore.currentStep === 1">
-      <h3>Let's get started!</h3>
-      <button @click="startRoundStep">Start Round</button>
+      <h4 class="mb-4">Let's get started!</h4>
+      <button class="btn btn-primary" @click="startRoundStep">Start Round</button>
     </div>
 
     <!-- 2. Add Question & Answers -->
     <div v-else-if="gameStore.currentStep === 2">
-      <h3>Add Question & Answers</h3>
+      <h4 class="mb-4">Add Question & Answers</h4>
       <!-- File Upload -->
-      <div>
+      <div class="flex flex-col my-4 p-4 rounded bg-base-100">
+        <button class="btn" @click="fetchLibraryFiles">Select From Library</button>
+        <div class="divider">OR</div>
         <label for="file-upload">Upload CSV File:</label>
-        <input id="file-upload" type="file" @change="handleUpload" />
-        <button class="btn" @click="fetchLibraryFiles">Select from library</button>
+        <input id="file-upload" type="file" class="file-input" @change="handleUpload" />
+        <div class="divider">OR</div>
+        <a :href="`${apiBase}/answers/Sample Template.csv`" download>Download Template</a>
       </div>
 
       <!-- Library Dialog -->
       <div v-if="showLibraryDialog" class="library-dialog-backdrop">
-        <div class="library-dialog">
-          <h4>Select a Question Set</h4>
-          <ul>
+        <div class="library-dialog bg-base-100">
+          <h5>Select a Question Set</h5>
+          <ul class="flex flex-col overflow-y-auto">
             <li v-for="file in libraryFiles" :key="file">
-              <button class="btn" @click="loadLibraryFile(file)">
+              <button class="btn w-full block" @click="loadLibraryFile(file)">
                 {{ file.replace(/\.csv$/i, '') }}
               </button>
             </li>
@@ -179,21 +196,25 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
 
       <!-- Question Input -->
       <div>
-        <h4>Question</h4>
-        <label for="question-input">Question:</label>
-        <input
-          id="question-input"
-          type="text"
-          :value="questionInput"
-          @input="(e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)"
-          :disabled="gameStore.questionSaved"
-        />
+        <div class="form-row mb-4 flex flex-col gap-2">
+          <label class="text-xl font-medium" for="question-input">Question</label>
+          <input
+            id="question-input"
+            type="text"
+            class="input"
+            :value="questionInput"
+            @input="
+              (e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)
+            "
+            :disabled="gameStore.questionSaved"
+          />
+        </div>
         <div v-if="questionError" class="error-message">{{ questionError }}</div>
       </div>
-
+      <div class="divider"></div>
       <!-- Answers Management -->
       <div>
-        <h4>Answers</h4>
+        <h5>Answers</h5>
         <div v-if="answersError" class="error-message">{{ answersError }}</div>
         <div v-if="answerPairs.length === 0" class="no-answers-message">
           No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
@@ -204,6 +225,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           <input
             :id="'answer-' + index"
             type="text"
+            class="input"
             v-model="pair.text"
             :disabled="gameStore.answersSaved"
           />
@@ -211,6 +233,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           <input
             :id="'points-' + index"
             type="number"
+            class="input"
             v-model.number="pair.points"
             :disabled="gameStore.answersSaved"
             min="1"
@@ -221,25 +244,28 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
             Remove
           </button>
         </div>
-        <button
-          class="btn success"
-          @click="addAnswerPair"
-          :disabled="gameStore.answersSaved || answerPairs.length >= 8"
-        >
-          Add Answer
-        </button>
-        <button
-          class="btn"
-          @click="removeAllAnswers"
-          :disabled="gameStore.answersSaved || answerPairs.length === 0"
-        >
-          Remove All Answers
-        </button>
-      </div>
 
+        <div class="flex gap-2 mt-4">
+          <button
+            class="btn success"
+            @click="addAnswerPair"
+            :disabled="gameStore.answersSaved || answerPairs.length >= 8"
+          >
+            Add Answer
+          </button>
+          <button
+            class="btn"
+            @click="removeAllAnswers"
+            :disabled="gameStore.answersSaved || answerPairs.length === 0"
+          >
+            Remove All Answers
+          </button>
+        </div>
+      </div>
+      <div class="divider"></div>
       <!-- Save Both Question and Answers -->
       <button
-        class="btn primary"
+        class="btn btn-primary"
         @click="saveQuestionAndAnswersStep"
         :disabled="
           !isFormValid ||
@@ -249,30 +275,42 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
       >
         Save Question and Answers
       </button>
-      <!-- Download Template Button -->
-      <a :href="`${apiBase}/answers/Sample Template.csv`" download class="btn">Download Template</a>
     </div>
 
     <!-- 3. Set Round Multiplier -->
-    <div v-else-if="gameStore.currentStep === 3">
-      <h3>Set Round Multiplier</h3>
-      <div>
-        <label v-for="mult in [1, 2, 3]" :key="mult">
-          <input type="radio" v-model="selectedMultiplier" :value="mult" />
-          x{{ mult }}
-        </label>
+    <div class="flex flex-col gap-2" v-else-if="gameStore.currentStep === 3">
+      <h4 class="mb-4">Set Round Multiplier</h4>
+      <div class="join mb-4">
+        <input
+          v-for="mult in [1, 2, 3]"
+          :key="mult"
+          type="radio"
+          class="btn join-item"
+          v-model="selectedMultiplier"
+          :value="mult"
+          :aria-label="`${mult}x`"
+        />
       </div>
-      <button @click="() => confirmMultiplierStep(selectedMultiplier)">Confirm</button>
+      <button class="btn btn-primary" @click="() => confirmMultiplierStep(selectedMultiplier)">
+        Confirm
+      </button>
     </div>
 
     <!-- 4. Start Buzzer Round -->
     <div v-else-if="gameStore.currentStep === 4">
-      <h3>Buzzer Round:</h3>
+      <h4 class="mb-4">Buzzer Round:</h4>
+      <h5>Question:</h5>
       <p>{{ gameStore.question }}</p>
-      <h4>Available Answers</h4>
+      <div class="divider"></div>
+      <h5>Available Answers:</h5>
       <ul>
-        <li v-for="answer in gameStore.answers" :key="answer.id">
+        <li
+          v-for="answer in gameStore.answers"
+          :key="answer.id"
+          class="flex items-center gap-4 mb-2"
+        >
           <span
+            class="flex-1"
             :style="{
               textDecoration: gameStore.guessedAnswers
                 .map((a) => String(a.id))
@@ -283,9 +321,8 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           >
             {{ answer.text }} ({{ answer.points }} pts)
           </span>
-          <!-- Correct Button: Only show if round is not over -->
           <button
-            class="btn"
+            class="btn btn-accent"
             v-if="
               !gameStore.guessedAnswers.map((a) => String(a.id)).includes(String(answer.id)) &&
               !gameStore.roundOver
@@ -304,7 +341,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
         </li>
       </ul>
       <button
-        class="btn"
+        class="btn btn-error"
         v-if="
           gameStore.answersSaved &&
           gameStore.multiplierSet &&
@@ -327,34 +364,42 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
 
     <!-- 5. Set Who Starts -->
     <div v-else-if="gameStore.currentStep === 5">
-      <h3>Who Starts?</h3>
-      <p v-if="gameStore.startingTeamSet && gameStore.startingTeam">
-        Starting Team: {{ gameStore.teamNames[gameStore.startingTeam as 'A' | 'B'] }}
-      </p>
-      <button
-        class="btn"
-        @click="confirmStartingTeamStep('A')"
-        :disabled="gameStore.startingTeamSet"
-      >
-        {{ gameStore.teamNames.A }}
-      </button>
-      <button
-        class="btn"
-        @click="confirmStartingTeamStep('B')"
-        :disabled="gameStore.startingTeamSet"
-      >
-        {{ gameStore.teamNames.B }}
-      </button>
+      <h4 class="mb-4">Who Starts?</h4>
+      <p class="mb-4">Select the team that will play first in the guessing round:</p>
+      <div class="flex gap-2">
+        <button
+          class="btn"
+          @click="confirmStartingTeamStep('A')"
+          :disabled="gameStore.startingTeamSet"
+        >
+          {{ gameStore.teamNames.A }}
+        </button>
+        <button
+          class="btn"
+          @click="confirmStartingTeamStep('B')"
+          :disabled="gameStore.startingTeamSet"
+        >
+          {{ gameStore.teamNames.B }}
+        </button>
+      </div>
     </div>
 
     <!-- 6. Start Guessing Round (Mark Guesses) -->
     <div v-else-if="gameStore.currentStep === 6">
-      <h3>Guessing Round:</h3>
+      <h4 class="mb-4">Guessing Round:</h4>
+      <h5>Question:</h5>
       <p>{{ gameStore.question }}</p>
-      <h4>Available Answers</h4>
+
+      <div class="divider"></div>
+      <h5>Available Answers:</h5>
       <ul>
-        <li v-for="answer in gameStore.answers" :key="answer.id">
+        <li
+          v-for="answer in gameStore.answers"
+          :key="answer.id"
+          class="flex items-center gap-4 mb-2"
+        >
           <span
+            class="flex-1"
             :style="{
               textDecoration: gameStore.guessedAnswers
                 .map((a) => String(a.id))
@@ -367,7 +412,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           </span>
           <!-- Correct Button: Only show if round is not over -->
           <button
-            class="btn"
+            class="btn btn-accent"
             v-if="
               !gameStore.guessedAnswers.map((a) => String(a.id)).includes(String(answer.id)) &&
               !gameStore.roundOver
@@ -385,7 +430,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
       </ul>
       <!-- Incorrect Button -->
       <button
-        class="btn"
+        class="btn btn-error"
         v-if="
           gameStore.answersSaved &&
           gameStore.multiplierSet &&
@@ -405,30 +450,26 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
 
     <!-- 7. Award Points Static State -->
     <div v-else-if="gameStore.currentStep === 7">
-      <h3>Points Awarded</h3>
-      <div v-if="awardedTeam">{{ awardedTeam }} earned {{ awardedPoints }} points!</div>
+      <h4 class="mb-4">Points Awarded</h4>
+      <p class="mb-4">
+        Team {{ gameStore.winningTeam }} earned {{ gameStore.pointsAwarded }} points!
+      </p>
       <div>
-        <h4>Current Scores</h4>
+        <h5>Current Scores</h5>
         <div v-for="(score, team) in gameStore.teamScores" :key="team">{{ team }}: {{ score }}</div>
       </div>
-      <button @click="startNextRound">Start next round</button>
+      <div class="mt-2">
+        <button class="btn btn-primary mr-2" @click="startNextRound">Start Next Round</button>
+        <!-- Reveal All Answers Button -->
+        <button class="btn" v-if="gameStore.roundOver" @click="revealAllAnswers">
+          Reveal All Answers
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.question-answers-container {
-  background-color: #e6e6ff;
-  margin-bottom: 16px;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.question-answers-container h3 {
-  margin-top: 0;
-}
-
 .no-answers-message {
   color: #555;
   font-size: 1rem;
@@ -449,7 +490,6 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
   z-index: 2000;
 }
 .library-dialog {
-  background: #fff;
   padding: 2rem;
   border-radius: 12px;
   min-width: 300px;

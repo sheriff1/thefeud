@@ -1,5 +1,5 @@
 <template>
-  <div class="game-info-container">
+  <div class="container bg-base-300 text-base-content game-info-container">
     <!-- Round Counter -->
     <div class="game-info-item">
       <div class="game-info-value">{{ formattedRoundCounter }}</div>
@@ -52,11 +52,11 @@ const formattedScoreMultiplier = computed(() =>
 /* Game Info Container Styles */
 .game-info-container {
   display: flex; /* Use flexbox for horizontal layout */
+  flex-wrap: wrap;
   justify-content: space-around; /* Space out the items evenly */
   align-items: center; /* Align items vertically in the center */
   margin-top: 16px;
   padding: 16px;
-  background-color: #f4f4f4;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -71,7 +71,7 @@ const formattedScoreMultiplier = computed(() =>
 .game-info-value {
   font-size: 2rem;
   font-weight: bold;
-  color: #007bff;
+  color: var(--color-primary, #000);
 }
 .game-info-label {
   font-size: 0.75rem;

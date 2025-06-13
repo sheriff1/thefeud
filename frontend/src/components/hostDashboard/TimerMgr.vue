@@ -1,10 +1,11 @@
 <template>
-  <div class="container timer-container">
+  <div class="container bg-base-300 text-base-content">
     <h3>Timer</h3>
-    <label for="timer-input">Set Timer (seconds):</label>
+    <label for="timer-input" class="w-32">Set Timer (seconds):</label>
     <input
       id="timer-input"
       type="number"
+      class="input"
       :value="timerInput"
       @input="onTimerInput"
       @change="setTimer"
@@ -16,9 +17,25 @@
       <p>Current Timer: {{ gameStore.timer }} seconds</p>
       <p v-if="gameStore.timerRunning">Timer is running...</p>
       <p v-else>Timer is stopped.</p>
-      <button class="btn" @click="startTimer" :disabled="!timerValid">Start</button>
-      <button class="btn" @click="stopTimer" :disabled="!timerValid">Stop</button>
-      <button class="btn" @click="resetTimer" :disabled="!timerValid">Reset</button>
+      <div class="join">
+        <button
+          class="btn btn-soft btn-success join-item"
+          @click="startTimer"
+          :disabled="!timerValid"
+        >
+          Start
+        </button>
+        <button class="btn btn-soft join-item" @click="stopTimer" :disabled="!timerValid">
+          Stop
+        </button>
+        <button
+          class="btn btn-soft btn-error join-item"
+          @click="resetTimer"
+          :disabled="!timerValid"
+        >
+          Reset
+        </button>
+      </div>
     </div>
   </div>
 </template>

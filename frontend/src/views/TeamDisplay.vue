@@ -1,106 +1,112 @@
 <template>
-  <!-- Join Team Dialog -->
-  <JoinTeamDialog
-    v-if="!isSpectator && !hasJoined"
-    :teamNames="store.teamNames"
-    @joinTeam="joinTeam"
-  />
+  <div class="flex flex-col items-center my-8">
+    <h1>The Feud!</h1>
+    <!-- Join Team Dialog -->
+    <JoinTeamDialog
+      v-if="!isSpectator && !hasJoined"
+      :teamNames="store.teamNames"
+      @joinTeam="joinTeam"
+    />
 
-  <!-- Main Gameboard -->
-  <div v-else>
-    <div class="floating-buttons">
-      <FloatingButton
-        :label="sessionIdBoxText"
-        @click="copySessionId"
-        className="session-id-box"
-        :state="sessionIdBoxState"
-      />
-      <FloatingButton
-        :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
-        @click="toggleMute"
-        className="mute-btn"
-        :state="isMuted ? 'muted' : ''"
-        :ariaPressed="isMuted"
-      />
-      <FloatingButton label="Logout" :onClick="logout" className="logout-box" />
-    </div>
+    <!-- Main Gameboard -->
+    <div v-else>
+      <div class="floating-buttons">
+        <FloatingButton
+          :label="sessionIdBoxText"
+          @click="copySessionId"
+          className="session-id-box"
+          :state="sessionIdBoxState"
+        />
+        <FloatingButton
+          :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
+          @click="toggleMute"
+          className="mute-btn"
+          :state="isMuted ? 'muted' : ''"
+          :ariaPressed="isMuted"
+        />
+        <FloatingButton label="Log Out" :onClick="logout" className="logout-box" />
+      </div>
 
-    <div class="gameboard-container">
-      <!-- Round Over Banner -->
-      <Banner
-        v-if="store.roundOver"
-        :heading="`Round ${store.roundCounter} Over! `"
-        :paragraph="
-          store.winningTeam
-            ? `${
-                store.teamNames[store.winningTeam]
-              } wins this round! They scored ${store.pointsAwarded} points!`
-            : 'No points were awarded this round.'
-        "
-      />
-
-      <!-- Scoreboard Section -->
-      <div class="scoreboard">
-        <!-- Team A Info -->
-        <TeamPanel
-          team="A"
-          :teamName="store.teamNames['A']"
-          :score="store.teamScores['A']"
-          :members="teamMembers['A']"
-          :strikes="store.teamStrikes['A']"
-          :strikeCount="store.firstTeam === 'A' ? 3 : 1"
-          :active="store.currentTeam === 'A'"
-          :editing="editingTeam === 'A'"
-          :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
-          :showBuzzer="isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet"
-          :startingTeamSet="store.startingTeamSet"
-          :buzzerDisabled="isBuzzerDisabled"
-          :initialEditedName="editedTeamName"
-          :guessedAnswers="store.guessedAnswers"
-          @edit-team="startEditingTeamName"
-          @save-team="saveTeamName"
-          @buzz="pressBuzzer"
+      <div class="gameboard-container">
+        <!-- Round Over Banner -->
+        <Banner
+          v-if="store.roundOver"
+          :heading="`Round ${store.roundCounter} Over! `"
+          :paragraph="
+            store.winningTeam
+              ? `${
+                  store.teamNames[store.winningTeam]
+                } wins this round! They scored ${store.pointsAwarded} points!`
+              : 'No points were awarded this round.'
+          "
         />
 
-        <!-- Answers & Game Info Section -->
-        <div class="center-info">
-          <AnswersBoard
-            :answers="store.answers.map((a) => ({ ...a, id: String(a.id) }))"
-            :question="store.question"
-            :guessedAnswers="store.guessedAnswers"
-            :showStrikeX="showStrikeX"
-            @strikeX="showStrikeX = false"
-          />
+        <!-- Scoreboard Section -->
+        <div class="scoreboard">
+          <!-- Team A Info -->
+          <div class="basis-1/4">
+            <TeamPanel
+              team="A"
+              :teamName="store.teamNames['A']"
+              :score="store.teamScores['A']"
+              :members="teamMembers['A']"
+              :strikes="store.teamStrikes['A']"
+              :strikeCount="store.firstTeam === 'A' ? 3 : 1"
+              :active="store.currentTeam === 'A'"
+              :editing="editingTeam === 'A'"
+              :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
+              :showBuzzer="isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet"
+              :startingTeamSet="store.startingTeamSet"
+              :buzzerDisabled="isBuzzerDisabled"
+              :initialEditedName="editedTeamName"
+              :guessedAnswers="store.guessedAnswers"
+              @edit-team="startEditingTeamName"
+              @save-team="saveTeamName"
+              @buzz="pressBuzzer"
+            />
+          </div>
+          <!-- Answers & Game Info Section -->
+          <div>
+            <AnswersBoard
+              :answers="store.answers.map((a) => ({ ...a, id: String(a.id) }))"
+              :question="store.question"
+              :guessedAnswers="store.guessedAnswers"
+              :showStrikeX="showStrikeX"
+              @strikeX="showStrikeX = false"
+            />
 
-          <!-- Game Info Container -->
-          <GameInfo
-            :roundCounter="store.roundCounter"
-            :timer="store.timer"
-            :pointPool="store.pointPool"
-            :scoreMultiplier="store.scoreMultiplier"
-          />
+            <!-- Game Info Container -->
+            <GameInfo
+              :roundCounter="store.roundCounter"
+              :timer="store.timer"
+              :pointPool="store.pointPool"
+              :scoreMultiplier="store.scoreMultiplier"
+            />
+          </div>
+
+          <!-- Team B Info -->
+          <div class="basis-1/4">
+            <TeamPanel
+              team="B"
+              :teamName="store.teamNames['B']"
+              :score="store.teamScores['B']"
+              :members="teamMembers['B']"
+              :strikes="store.teamStrikes['B']"
+              :strikeCount="store.firstTeam === 'B' ? 3 : 1"
+              :active="store.currentTeam === 'B'"
+              :editing="editingTeam === 'B'"
+              :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
+              :showBuzzer="isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet"
+              :startingTeamSet="store.startingTeamSet"
+              :buzzerDisabled="isBuzzerDisabled"
+              :initialEditedName="editedTeamName"
+              :guessedAnswers="store.guessedAnswers"
+              @edit-team="startEditingTeamName"
+              @save-team="saveTeamName"
+              @buzz="pressBuzzer"
+            />
+          </div>
         </div>
-
-        <!-- Team B Info -->
-        <TeamPanel
-          team="B"
-          :teamName="store.teamNames['B']"
-          :score="store.teamScores['B']"
-          :members="teamMembers['B']"
-          :strikes="store.teamStrikes['B']"
-          :strikeCount="store.firstTeam === 'B' ? 3 : 1"
-          :active="store.currentTeam === 'B'"
-          :editing="editingTeam === 'B'"
-          :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
-          :showBuzzer="isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet"
-          :startingTeamSet="store.startingTeamSet"
-          :buzzerDisabled="isBuzzerDisabled"
-          :initialEditedName="editedTeamName"
-          :guessedAnswers="store.guessedAnswers"
-          @edit-team="startEditingTeamName"
-          @save-team="saveTeamName"
-          @buzz="pressBuzzer"
-        />
       </div>
     </div>
   </div>
@@ -387,7 +393,7 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 /* Root Container Styles */
 .gameboard-container {
-  padding: 4rem; /* Add padding around the perimeter */
+  padding: 1rem 4rem; /* Add padding around the perimeter */
 }
 
 /* Scoreboard Styles */
@@ -397,15 +403,6 @@ onUnmounted(() => {
   align-items: stretch;
   gap: 1rem; /* 1rem gap between all 3 sections */
   margin-bottom: 16px;
-}
-
-.center-info {
-  width: 50vw; /* 50% of viewport width */
-  flex-shrink: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .floating-buttons {
