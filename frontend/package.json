@@ -13,6 +13,8 @@
     "type:check": "tsc --noEmit"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.1.10",
+    "daisyui": "^5.0.43",
     "firebase": "^11.8.1",
     "papaparse": "^5.5.2",
     "pinia": "^3.0.1",
@@ -23,9 +25,13 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.29",
+    "@types/papaparse": "^5.3.16",
     "@vitejs/plugin-vue": "^5.2.3",
+    "autoprefixer": "^10.4.21",
     "cypress": "^14.4.1",
+    "postcss": "^8.5.5",
     "start-server-and-test": "^2.0.12",
+    "tailwindcss": "^4.1.10",
     "typescript": "^5.8.3",
     "vite": "^6.2.4",
     "vite-plugin-vue-devtools": "^7.7.2"

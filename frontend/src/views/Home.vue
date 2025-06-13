@@ -1,18 +1,30 @@
 <template>
-  <div class="home-container">
-    <h1>Welcome to The Feud!</h1>
-    <p>Select an option to get started:</p>
-
-    <div class="actions">
-      <!-- Create a new session -->
-      <button @click="createSession">Create a New Session</button>
-
-      <!-- Join an existing session -->
-      <div class="join-session">
-        <input v-model="sessionId" type="text" placeholder="Enter Session ID" />
-        <button @click="joinAsHost">Join as Host</button>
-        <button @click="joinAsTeam">Join as a Team Member</button>
-        <button @click="joinAsSpectator">Join as Spectator</button>
+  <div class="min-h-screen flex items-center justify-center bg-base-200">
+    <div class="flex flex-col md:flex-row gap-8 md:gap-12 w-full max-w-4xl p-4 md:p-8">
+      <!-- Left: Welcome Section -->
+      <div
+        class="flex-1 bg-base-300 text-base-content rounded-xl shadow-lg p-8 flex flex-col justify-center mb-6 md:mb-0"
+      >
+        <h1 class="text-4xl font-bold mb-4">Welcome to The Feud!</h1>
+        <p class="text-lg">Select an option to get started:</p>
+      </div>
+      <!-- Right: Actions Section -->
+      <div
+        class="flex-1 bg-base-300 text-base-content rounded-xl shadow-lg p-8 flex flex-col justify-center"
+      >
+        <button class="btn btn-primary mb-4" @click="createSession">Create a New Session</button>
+        <div class="divider">OR</div>
+        <div class="flex flex-col gap-2">
+          <input
+            v-model="sessionId"
+            type="text"
+            class="input input-bordered mb-2"
+            placeholder="Enter Session ID"
+          />
+          <button class="btn btn-accent" @click="joinAsHost">Join as Host</button>
+          <button class="btn btn-secondary" @click="joinAsTeam">Join as a Team Member</button>
+          <button class="btn btn-info" @click="joinAsSpectator">Join as Spectator</button>
+        </div>
       </div>
     </div>
   </div>
@@ -126,28 +138,4 @@ function isValidSessionId(id: string) {
 }
 </script>
 
-<style>
-.home-container {
-  text-align: center;
-  margin-top: 50px;
-}
-
-.actions {
-  margin-top: 20px;
-}
-
-.join-session {
-  margin-top: 10px;
-}
-
-input {
-  padding: 8px;
-  margin-right: 5px;
-}
-
-button {
-  padding: 10px 15px;
-  margin: 5px;
-  cursor: pointer;
-}
-</style>
+<style></style>

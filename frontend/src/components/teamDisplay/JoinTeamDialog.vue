@@ -1,6 +1,6 @@
 <template>
   <div class="join-team-dialog-backdrop">
-    <div class="join-team-dialog">
+    <div class="join-team-dialog bg-base-100">
       <h2>Join the Game</h2>
       <h3 class="left-align">Enter your name:</h3>
       <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
@@ -12,11 +12,13 @@
           :key="team"
           :class="['radio-option', { selected: selectedTeam === team }]"
         >
-          <input type="radio" :value="team" v-model="selectedTeam" />
+          <input type="radio" class="radio" :value="team" v-model="selectedTeam" />
           Team {{ props.teamNames[team] || team }}
         </label>
       </div>
-      <button @click="handleJoin" :disabled="!playerName || !selectedTeam">Join</button>
+      <button class="btn btn-primary" @click="handleJoin" :disabled="!playerName || !selectedTeam">
+        Join
+      </button>
     </div>
   </div>
 </template>
@@ -66,10 +68,6 @@ watch(playerName, (newName) => {
 </script>
 
 <style scoped>
-hr {
-  display: none; /* Remove horizontal lines since items are now horizontal */
-}
-
 .join-team-dialog-backdrop {
   position: fixed;
   top: 0;
@@ -84,7 +82,6 @@ hr {
 }
 
 .join-team-dialog {
-  background: #fff;
   padding: 2rem 2.5rem;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
@@ -106,24 +103,6 @@ hr {
 .join-team-dialog label {
   margin-right: 1rem;
   font-size: 1rem;
-}
-
-.join-team-dialog button {
-  margin-top: 1rem;
-  padding: 0.5rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: none;
-  background: #007bff;
-  color: #fff;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.join-team-dialog button:disabled {
-  background: #ccc;
-  cursor: not-allowed;
 }
 
 .full-width-input {
@@ -163,7 +142,6 @@ hr {
   border: 2px solid #ccc;
   border-radius: 8px;
   cursor: pointer;
-  background: #f9f9f9;
   transition:
     border-color 0.2s,
     background 0.2s;
@@ -171,8 +149,7 @@ hr {
 }
 
 .radio-option.selected {
-  border-color: #007bff;
-  background: #e6f0ff;
+  border-color: var(--color-primary);
 }
 
 .radio-option input[type='radio'] {

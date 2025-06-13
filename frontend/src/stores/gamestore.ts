@@ -3,7 +3,7 @@ import socket from '../utils/socket';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
-    teamNames: { A: 'Team A', B: 'Team B' },
+    teamNames: { A: 'A', B: 'B' },
     teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
     answers: [] as { id: string; text: string; points: number }[],
     question: '',
@@ -164,7 +164,7 @@ export const useGameStore = defineStore('game', {
     },
 
     resetGame() {
-      this.teamNames = { A: 'Team A', B: 'Team B' };
+      this.teamNames = { A: 'A', B: 'B' };
       this.teamScores = { A: 0, B: 0 };
       this.roundCounter = 0;
       this.resetRound();

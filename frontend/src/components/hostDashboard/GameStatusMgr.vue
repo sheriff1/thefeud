@@ -1,5 +1,5 @@
 <template>
-  <div class="container reset-container">
+  <div class="container bg-base-300 text-base-content">
     <h3>Game Controls</h3>
     <button
       class="btn"
@@ -42,8 +42,4 @@ interface GameStatusMgrProps {
 const props = defineProps<GameStatusMgrProps>();
 </script>
 
-<style scoped>
-.reset-container {
-  background-color: #ffc4c4;
-}
-</style>
+<style scoped></style>
