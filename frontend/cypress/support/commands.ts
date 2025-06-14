@@ -1,4 +1,9 @@
 /// <reference types="cypress" />
+
+// cypress/support/urls.ts
+export const frontendUrl = Cypress.env('frontendUrl');
+export const backendUrl = Cypress.env('backendUrl');
+
 // ***********************************************
 // This example commands.ts shows you how to
 // create various custom commands and overwrite
