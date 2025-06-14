@@ -82,6 +82,22 @@ jobs:
       - name: Wait for Firestore Emulator
         run: npx wait-on tcp:8080
 
+      - name: Start backend server
+        run: |
+          cd backend
+          npm run start &
+        # Optionally, wait for the server to be ready
+      - name: Wait for backend to be ready
+        run: npx wait-on http://localhost:4000/api/health # or another health endpoint
+
+      - name: Start frontend server
+        run: |
+          cd frontend
+          npm run dev &
+        # Optionally, wait for the frontend to be ready
+      - name: Wait for frontend to be ready
+        run: npx wait-on http://localhost:5173
+
       - name: Run backend tests
         run: npm run test
         working-directory: backend
