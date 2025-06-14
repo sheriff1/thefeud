@@ -109,6 +109,11 @@ app.get('/api/answers-library', (req, res) => {
   });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // WebSocket Communication
 const socketToPlayer = {};
 
