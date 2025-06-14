@@ -1,15 +1,24 @@
 <template>
   <div class="container bg-base-300 text-base-content team-info" :class="{ active }">
-    <span class="team-score">{{ score }}</span>
+    <span class="team-score text-7xl">{{ score }}</span>
+    <span>points</span>
+    <div class="divider"></div>
     <div class="team-header">
-      <span class="team-name">
+      <span class="">
         <span v-if="!editing">
-          <span v-if="isWinning">👑</span>
+          <span v-if="isWinning">👑 </span> Team
           {{ teamName.toUpperCase() }}
-          <button class="btn edit-team-btn" @click="$emit('edit-team', team)">✏️</button>
+          <button
+            v-if="currentPlayerTeam === team"
+            class="btn btn-xs ml-4"
+            @click="$emit('edit-team', team)"
+          >
+            ✏️
+          </button>
         </span>
         <span v-else>
           <input
+            v-if="currentPlayerTeam === team"
             v-model="editedName"
             @keyup.enter="saveTeamNameChange"
             @blur="saveTeamNameChange"
@@ -17,7 +26,14 @@
             maxlength="20"
             autofocus
           />
-          <button class="btn save-team-btn" @click="saveTeamNameChange">💾</button>
+          <button
+            v-if="currentPlayerTeam === team"
+            class="btn btn-xs ml-4"
+            @click="saveTeamNameChange"
+          >
+            💾
+          </button>
+          <span v-else>{{ teamName.toUpperCase() }}</span>
         </span>
       </span>
     </div>
@@ -53,6 +69,7 @@
 import { ref, watch } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 const store = useGameStore();
+const currentPlayerTeam = localStorage.getItem('playerTeam');
 
 interface TeamPanelProps {
   team: string;
@@ -110,10 +127,7 @@ function saveTeamNameChange() {
 }
 
 .team-score {
-  font-size: 2.2rem;
-  font-weight: bold;
-  color: var(--color-primary, #000);
-  margin-bottom: 0.5rem;
+  color: var(--color-base-content, #000);
 }
 
 .team-header {
@@ -123,28 +137,28 @@ function saveTeamNameChange() {
   margin-bottom: 0.5rem;
 }
 
-.team-name {
+/* .team-name {
   font-size: 1.3rem;
   font-weight: 600;
   letter-spacing: 1px;
   display: flex;
   align-items: center;
-}
+} */
 
-.edit-team-btn,
+/* .edit-team-btn,
 .save-team-btn {
   background: none;
   border: none;
   margin-left: 0.5rem;
   cursor: pointer;
   font-size: 1.1rem;
-}
+} */
 
 .edit-team-input {
   font-size: 1.1rem;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-base-content, #fff);
   margin-left: 0.5rem;
   width: 120px;
 }
@@ -169,12 +183,11 @@ function saveTeamNameChange() {
   align-items: center;
 }
 .team-members-list li.buzzed {
-  background-color: #f87171;
+  background-color: var(--color-secondary, #f5425a);
   font-weight: bold;
   border-radius: 0.5rem;
-  padding: 0.125rem 0.2gi5rem;
-  color: #fff;
-  border: 0.25rem solid #f5425a;
+  padding: 0.125rem 0.25rem;
+  color: var(--color-base-content, #fff);
 }
 
 .team-strikes {
@@ -190,16 +203,16 @@ function saveTeamNameChange() {
   height: 16px;
   margin: 2px;
   border-radius: 50%;
-  background: #e5e7eb;
-  border: 1.5px solid #f87171;
+  background: var(--color-base-content, #fff);
+  border: 1.5px solid var(--color-secondary, #f5425a);
   transition: background 0.2s;
 }
 .strike-dot.active {
-  background: #f87171;
+  background: var(--color-secondary, #f5425a);
 }
 .game-info-label {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--color-base-content, #fff);
   margin-top: 0.2rem;
 }
 
@@ -210,7 +223,7 @@ function saveTeamNameChange() {
   margin-top: 0.7rem;
 }
 .buzzer-button {
-  background: #f5425a;
+  background-color: var(--color-secondary, #f5425a);
   color: #fff;
   font-weight: bold;
   font-size: 1.5rem;

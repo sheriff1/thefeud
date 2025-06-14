@@ -393,7 +393,7 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 /* Root Container Styles */
 .gameboard-container {
-  padding: 1rem 4rem; /* Add padding around the perimeter */
+  padding: 1rem; /* Add padding around the perimeter */
 }
 
 /* Scoreboard Styles */

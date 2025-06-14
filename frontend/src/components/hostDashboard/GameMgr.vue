@@ -72,13 +72,6 @@ function confirmMultiplierStep(multiplier: number) {
 }
 
 function startBuzzerRoundStep() {
-  // console.log('Starting Buzzer Round Step');
-  // console.log('props.highestPointAnswered: ', gameStore.highestPointAnswered);
-  // console.log('props.correctAfterBuzzer: ', gameStore.correctAfterBuzzer);
-  // console.log('props.buzzerOnlyPressed: ', gameStore.buzzerOnlyPressed);
-  // console.log('props.guessedAnswersCount >= 2?: ', gameStore.guessedAnswersCount >= 2);
-  // console.log('props.correctAfterBuzzer: ', gameStore.correctAfterBuzzer);
-
   console.log('startBuzzerRoundStep() called from GamgeMgr.vue');
   if (
     gameStore.highestPointAnswered ||
@@ -299,6 +292,9 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     <!-- 4. Start Buzzer Round -->
     <div v-else-if="gameStore.currentStep === 4">
       <h4 class="mb-4">Buzzer Round:</h4>
+      <div v-if="gameStore.buzzedPlayer" role="alert" class="alert alert-success alert-soft mb-4">
+        <span>🚨 - {{ gameStore.buzzedPlayer }} buzzed in!</span>
+      </div>
       <h5>Question:</h5>
       <p>{{ gameStore.question }}</p>
       <div class="divider"></div>
@@ -366,16 +362,17 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     <div v-else-if="gameStore.currentStep === 5">
       <h4 class="mb-4">Who Starts?</h4>
       <p class="mb-4">Select the team that will play first in the guessing round:</p>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
         <button
-          class="btn"
+          class="btn btn-wide"
           @click="confirmStartingTeamStep('A')"
           :disabled="gameStore.startingTeamSet"
         >
           {{ gameStore.teamNames.A }}
         </button>
+        <div class="divider divider-horizontal divider-secondary">OR</div>
         <button
-          class="btn"
+          class="btn btn-wide"
           @click="confirmStartingTeamStep('B')"
           :disabled="gameStore.startingTeamSet"
         >

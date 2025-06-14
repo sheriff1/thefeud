@@ -198,6 +198,7 @@ export const useGameStore = defineStore('game', {
       this.guessedAnswersCount = 0;
       this.roundReset = false; // New property to track if the round is reset
       this.nextRound = false; // New property to track if the next round is started
+      this.buzzedPlayer = null; // Reset the buzzed player
     },
 
     updateRoundCounter(round: number) {

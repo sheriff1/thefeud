@@ -2,9 +2,10 @@
   <div class="join-team-dialog-backdrop">
     <div class="join-team-dialog bg-base-100">
       <h2>Join the Game</h2>
+      <div class="divider"></div>
       <h3 class="left-align">Enter your name:</h3>
       <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
-      <hr class="dialog-divider" />
+      <div class="divider"></div>
       <h3 class="left-align">Select your team:</h3>
       <div class="radio-group">
         <label
@@ -12,11 +13,15 @@
           :key="team"
           :class="['radio-option', { selected: selectedTeam === team }]"
         >
-          <input type="radio" class="radio" :value="team" v-model="selectedTeam" />
+          <input type="radio" class="radio radio-xs" :value="team" v-model="selectedTeam" />
           Team {{ props.teamNames[team] || team }}
         </label>
       </div>
-      <button class="btn btn-primary" @click="handleJoin" :disabled="!playerName || !selectedTeam">
+      <button
+        class="btn btn-primary btn-block"
+        @click="handleJoin"
+        :disabled="!playerName || !selectedTeam"
+      >
         Join
       </button>
     </div>
@@ -38,6 +43,8 @@ const emit = defineEmits<{
 }>();
 
 function handleJoin() {
+  localStorage.setItem('playerName', playerName.value);
+  localStorage.setItem('playerTeam', selectedTeam.value);
   emit('joinTeam', { playerName: playerName.value, selectedTeam: selectedTeam.value });
 }
 // Watch for changes in team names to update the UI dynamically
@@ -101,7 +108,6 @@ watch(playerName, (newName) => {
 }
 
 .join-team-dialog label {
-  margin-right: 1rem;
   font-size: 1rem;
 }
 
@@ -139,7 +145,7 @@ watch(playerName, (newName) => {
   display: flex;
   align-items: center;
   padding: 0.5rem 1rem;
-  border: 2px solid #ccc;
+  border: 2px solid var(--color-base-content, #fff);
   border-radius: 8px;
   cursor: pointer;
   transition:
