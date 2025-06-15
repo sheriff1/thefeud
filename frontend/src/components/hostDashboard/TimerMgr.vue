@@ -1,23 +1,29 @@
 <template>
   <div class="container bg-base-300 text-base-content">
     <h3>Timer</h3>
-    <label for="timer-input" class="w-32">Set Timer (seconds):</label>
-    <input
-      id="timer-input"
-      type="number"
-      class="input"
-      :value="timerInput"
-      @input="onTimerInput"
-      @change="setTimer"
-      min="0"
-      step="1"
-    />
-    <div v-if="!timerValid" class="error-message">Timer value must be positive.</div>
     <div>
-      <p>Current Timer: {{ gameStore.timer }} seconds</p>
-      <p v-if="gameStore.timerRunning">Timer is running...</p>
-      <p v-else>Timer is stopped.</p>
-      <div class="join">
+      <p class="my-2">Current Timer: {{ gameStore.timer }} seconds</p>
+      <p class="mb-2" v-if="gameStore.timerRunning">Timer is running...</p>
+      <p class="mb-2" v-else>Timer is stopped.</p>
+    </div>
+    <div v-if="showTimerInput">
+      <div class="divider"></div>
+      <fieldset class="fieldset">
+        <label for="timer-input" class="w-32">Set Timer (seconds):</label>
+        <input
+          id="timer-input"
+          type="number"
+          class="input"
+          :value="timerInput"
+          @input="onTimerInput"
+          @change="setTimer"
+          min="0"
+          step="1"
+        />
+      </fieldset>
+    </div>
+    <div>
+      <div class="my-4 join">
         <button
           class="btn btn-soft btn-success join-item"
           @click="startTimer"
@@ -65,6 +71,8 @@ function onTimerInput(e: Event) {
 }
 
 const timerValid = computed(() => props.timerInput > 0);
+
+const showTimerInput = computed(() => !gameStore.timerRunning || gameStore.timer === 0);
 </script>
 
 <style scoped></style>

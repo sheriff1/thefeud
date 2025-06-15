@@ -6,6 +6,8 @@ const apiBase = import.meta.env.VITE_API_BASE || '';
 import { ref, computed, nextTick } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 const gameStore = useGameStore();
+const showQASection = ref(false);
+const showCsvUpload = ref(false);
 
 // Props
 interface GameMgrProps {
@@ -163,13 +165,54 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     <div v-else-if="gameStore.currentStep === 2">
       <h4 class="mb-4">Add Question & Answers</h4>
       <!-- File Upload -->
-      <div class="flex flex-col my-4 p-4 rounded bg-base-100">
-        <button class="btn" @click="fetchLibraryFiles">Select From Library</button>
-        <div class="divider">OR</div>
-        <label for="file-upload">Upload CSV File:</label>
-        <input id="file-upload" type="file" class="file-input" @change="handleUpload" />
-        <div class="divider">OR</div>
-        <a :href="`${apiBase}/answers/Sample Template.csv`" download>Download Template</a>
+      <div v-if="!showQASection" class="flex flex-col my-4 p-4 rounded bg-base-100">
+        <h5 class="mb-4">Select a method to add questions and answers:</h5>
+        <div class="flex flex-row flex-wrap md:flex-row flex-col gap-4 w-full justify-stretch">
+          <!-- Select from library -->
+          <button class="btn flex-1 min-w-[160px]" @click="fetchLibraryFiles">
+            Select from library
+          </button>
+          <!-- Upload CSV File -->
+          <button class="btn flex-1 min-w-[160px]" @click="showCsvUpload = true">
+            Upload CSV File
+          </button>
+          <!-- Enter manually -->
+          <button class="btn flex-1 min-w-[160px]" @click="showQASection = true">
+            Enter manually
+          </button>
+        </div>
+
+        <!-- CSV Upload Modal/Card -->
+        <div
+          v-if="showCsvUpload"
+          class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50"
+        >
+          <div class="card bg-base-100 shadow-xl p-8 w-96 relative">
+            <button
+              class="btn btn-sm btn-circle absolute right-2 top-2"
+              @click="showCsvUpload = false"
+            >
+              ✕
+            </button>
+            <h5 class="mb-4 text-lg font-semibold">Upload CSV File</h5>
+            <label for="file-upload" class="mb-2 block">Choose a CSV file:</label>
+            <input
+              id="file-upload"
+              type="file"
+              class="file-input file-input-bordered w-full mb-4"
+              @change="
+                (e) => {
+                  handleUpload(e);
+                  showQASection = true;
+                  showCsvUpload = false;
+                }
+              "
+            />
+            <a :href="`${apiBase}/answers/Sample Template.csv`" download class="link link-primary">
+              Download Template
+            </a>
+          </div>
+        </div>
       </div>
 
       <!-- Library Dialog -->
@@ -178,7 +221,15 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           <h5>Select a Question Set</h5>
           <ul class="flex flex-col overflow-y-auto">
             <li v-for="file in libraryFiles" :key="file">
-              <button class="btn w-full block" @click="loadLibraryFile(file)">
+              <button
+                class="btn w-full block"
+                @click="
+                  () => {
+                    loadLibraryFile(file);
+                    showQASection = true;
+                  }
+                "
+              >
                 {{ file.replace(/\.csv$/i, '') }}
               </button>
             </li>
@@ -187,87 +238,109 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
         </div>
       </div>
 
-      <!-- Question Input -->
-      <div>
-        <div class="form-row mb-4 flex flex-col gap-2">
-          <label class="text-xl font-medium" for="question-input">Question</label>
-          <input
-            id="question-input"
-            type="text"
-            class="input"
-            :value="questionInput"
-            @input="
-              (e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)
-            "
-            :disabled="gameStore.questionSaved"
-          />
+      <div v-if="showQASection" class="p-4 bg-base-100 rounded">
+        <!-- Question Input -->
+        <button
+          class="btn btn-sm btn-soft btn-outline flex items-center gap-2 mb-4"
+          @click="showQASection = false"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Change method
+        </button>
+        <div>
+          <div class="form-row mb-4 flex flex-col gap-2">
+            <label class="text-lg font-medium" for="question-input">Question</label>
+            <input
+              id="question-input"
+              type="text"
+              class="input"
+              :value="questionInput"
+              @input="
+                (e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)
+              "
+              :disabled="gameStore.questionSaved"
+            />
+          </div>
+          <div v-if="questionError" class="error-message">{{ questionError }}</div>
         </div>
-        <div v-if="questionError" class="error-message">{{ questionError }}</div>
-      </div>
-      <div class="divider"></div>
-      <!-- Answers Management -->
-      <div>
-        <h5>Answers</h5>
-        <div v-if="answersError" class="error-message">{{ answersError }}</div>
-        <div v-if="answerPairs.length === 0" class="no-answers-message">
-          No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
-          least 2 answers are required to save.
-        </div>
-        <div v-for="(pair, index) in answerPairs" :key="index" class="answer-pair">
-          <label :for="'answer-' + index">Answer:</label>
-          <input
-            :id="'answer-' + index"
-            type="text"
-            class="input"
-            v-model="pair.text"
-            :disabled="gameStore.answersSaved"
-          />
-          <label :for="'points-' + index">Points:</label>
-          <input
-            :id="'points-' + index"
-            type="number"
-            class="input"
-            v-model.number="pair.points"
-            :disabled="gameStore.answersSaved"
-            min="1"
-            step="1"
-            @input="onPointsInput($event, index)"
-          />
-          <button class="btn" @click="removeAnswerPair(index)" :disabled="gameStore.answersSaved">
-            Remove
-          </button>
-        </div>
+        <div class="divider"></div>
+        <!-- Answers Management -->
+        <div>
+          <h5>Answers</h5>
+          <div v-if="answersError" class="error-message">{{ answersError }}</div>
+          <div v-if="answerPairs.length === 0" class="no-answers-message">
+            No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
+            least 2 answers are required to save.
+          </div>
+          <div v-for="(pair, index) in answerPairs" :key="index" class="answer-pair">
+            <label :for="'answer-' + index">Answer:</label>
+            <input
+              :id="'answer-' + index"
+              type="text"
+              class="input"
+              v-model="pair.text"
+              :disabled="gameStore.answersSaved"
+            />
+            <label :for="'points-' + index">Points:</label>
+            <input
+              :id="'points-' + index"
+              type="number"
+              class="input"
+              v-model.number="pair.points"
+              :disabled="gameStore.answersSaved"
+              min="1"
+              step="1"
+              @input="onPointsInput($event, index)"
+            />
+            <button class="btn" @click="removeAnswerPair(index)" :disabled="gameStore.answersSaved">
+              Remove
+            </button>
+          </div>
 
-        <div class="flex gap-2 mt-4">
-          <button
-            class="btn success"
-            @click="addAnswerPair"
-            :disabled="gameStore.answersSaved || answerPairs.length >= 8"
-          >
-            Add Answer
-          </button>
-          <button
-            class="btn"
-            @click="removeAllAnswers"
-            :disabled="gameStore.answersSaved || answerPairs.length === 0"
-          >
-            Remove All Answers
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button
+              class="btn success"
+              @click="addAnswerPair"
+              :disabled="gameStore.answersSaved || answerPairs.length >= 8"
+            >
+              Add Answer
+            </button>
+            <button
+              class="btn"
+              @click="removeAllAnswers"
+              :disabled="gameStore.answersSaved || answerPairs.length === 0"
+            >
+              Remove All Answers
+            </button>
+          </div>
         </div>
+        <div class="divider"></div>
+        <!-- Save Both Question and Answers -->
+        <button
+          class="btn btn-primary"
+          @click="saveQuestionAndAnswersStep"
+          :disabled="
+            !isFormValid ||
+            (gameStore.questionSaved && gameStore.answersSaved) ||
+            answerPairs.length < 1
+          "
+        >
+          Save Question and Answers
+        </button>
       </div>
-      <div class="divider"></div>
-      <!-- Save Both Question and Answers -->
-      <button
-        class="btn btn-primary"
-        @click="saveQuestionAndAnswersStep"
-        :disabled="
-          !isFormValid ||
-          (gameStore.questionSaved && gameStore.answersSaved) ||
-          answerPairs.length < 1
-        "
-      >
-        Save Question and Answers
-      </button>
     </div>
 
     <!-- 3. Set Round Multiplier -->
@@ -284,7 +357,10 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           :aria-label="`${mult}x`"
         />
       </div>
-      <button class="btn btn-primary" @click="() => confirmMultiplierStep(selectedMultiplier)">
+      <button
+        class="btn btn-primary self-start"
+        @click="() => confirmMultiplierStep(selectedMultiplier)"
+      >
         Confirm
       </button>
     </div>
@@ -362,17 +438,16 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     <div v-else-if="gameStore.currentStep === 5">
       <h4 class="mb-4">Who Starts?</h4>
       <p class="mb-4">Select the team that will play first in the guessing round:</p>
-      <div class="flex gap-2 items-center">
+      <div class="flex flex-row flex-wrap md:flex-row flex-col gap-2 items-center">
         <button
-          class="btn btn-wide"
+          class="btn btn-wide flex-1 min-w-[160px]"
           @click="confirmStartingTeamStep('A')"
           :disabled="gameStore.startingTeamSet"
         >
           {{ gameStore.teamNames.A }}
         </button>
-        <div class="divider divider-horizontal divider-secondary">OR</div>
         <button
-          class="btn btn-wide"
+          class="btn btn-wide flex-1 min-w-[160px]"
           @click="confirmStartingTeamStep('B')"
           :disabled="gameStore.startingTeamSet"
         >
@@ -456,10 +531,29 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
         <div v-for="(score, team) in gameStore.teamScores" :key="team">{{ team }}: {{ score }}</div>
       </div>
       <div class="mt-2">
-        <button class="btn btn-primary mr-2" @click="startNextRound">Start Next Round</button>
+        <button
+          class="btn btn-primary mr-2"
+          @click="
+            () => {
+              startNextRound();
+              showQASection = false;
+            }
+          "
+        >
+          Start Next Round
+        </button>
         <!-- Reveal All Answers Button -->
-        <button class="btn" v-if="gameStore.roundOver" @click="revealAllAnswers">
-          Reveal All Answers
+        <button
+          class="btn"
+          v-if="gameStore.roundOver"
+          :disabled="gameStore.guessedAnswers.length == gameStore.answers.length"
+          @click="revealAllAnswers"
+        >
+          {{
+            gameStore.guessedAnswers.length == gameStore.answers.length
+              ? 'All Answers Revealed'
+              : 'Reveal All Answers'
+          }}
         </button>
       </div>
     </div>
@@ -524,7 +618,10 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
   font-size: 0.95rem;
   margin-top: 4px;
 }
-
+.answer-pair input {
+  padding: 4px;
+  width: 150px;
+}
 /* Responsive: Stack fields vertically on small screens */
 @media (max-width: 600px) {
   .answer-pair {
@@ -538,10 +635,5 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     width: 100%;
     min-width: 0;
   }
-}
-
-.answer-pair input {
-  padding: 4px;
-  width: 150px;
 }
 </style>
