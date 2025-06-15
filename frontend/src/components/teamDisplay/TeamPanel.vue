@@ -48,12 +48,23 @@
         </li>
       </ul>
       <div v-if="startingTeamSet" class="team-strikes">
-        <span
-          v-for="strike in strikeCount"
-          :key="team + '-' + strike"
-          class="strike-dot"
-          :class="{ active: strike <= strikes }"
-        ></span>
+        <span class="flex">
+          <span v-for="strike in strikes" :key="strike" class="strike-x">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="6" y1="18" x2="18" y2="6" />
+            </svg>
+          </span>
+        </span>
         <span class="game-info-label">Strikes</span>
       </div>
     </div>
@@ -197,19 +208,12 @@ function saveTeamNameChange() {
   min-width: 60px;
 }
 
-.strike-dot {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  margin: 2px;
-  border-radius: 50%;
-  background: var(--color-base-content, #fff);
-  border: 1.5px solid var(--color-secondary, #f5425a);
-  transition: background 0.2s;
+.strike-x svg {
+  color: #ef4444; /* Tailwind red-500 */
+  width: 1.5rem;
+  height: 1.5rem;
 }
-.strike-dot.active {
-  background: var(--color-secondary, #f5425a);
-}
+
 .game-info-label {
   font-size: 0.8rem;
   color: var(--color-base-content, #fff);

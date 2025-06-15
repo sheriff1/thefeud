@@ -9,7 +9,7 @@
     />
 
     <!-- Main Gameboard -->
-    <div v-else>
+    <div class="w-full" v-else>
       <div class="floating-buttons">
         <FloatingButton
           :label="sessionIdBoxText"
@@ -393,18 +393,18 @@ onUnmounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 /* Root Container Styles */
 .gameboard-container {
-  padding: 1rem; /* Add padding around the perimeter */
+  padding: 1rem;
+  width: 100%;
 }
 
-/* Scoreboard Styles */
 .scoreboard {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  gap: 1rem; /* 1rem gap between all 3 sections */
+  gap: 1rem;
   margin-bottom: 16px;
+  width: 100%;
 }
-
 .floating-buttons {
   position: fixed;
   bottom: 16px;
