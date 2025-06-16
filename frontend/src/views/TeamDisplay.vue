@@ -49,7 +49,7 @@
               team="A"
               :teamName="store.teamNames['A']"
               :score="store.teamScores['A']"
-              :members="teamMembers['A']"
+              :members="store.teamMembers['A']"
               :strikes="store.teamStrikes['A']"
               :strikeCount="store.firstTeam === 'A' ? 3 : 1"
               :active="store.currentTeam === 'A'"
@@ -90,7 +90,7 @@
               team="B"
               :teamName="store.teamNames['B']"
               :score="store.teamScores['B']"
-              :members="teamMembers['B']"
+              :members="store.teamMembers['B']"
               :strikes="store.teamStrikes['B']"
               :strikeCount="store.firstTeam === 'B' ? 3 : 1"
               :active="store.currentTeam === 'B'"
@@ -143,11 +143,12 @@ const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
 const isMuted = ref(false); // Mute state
-const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
+// const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
 const otherTeam = (team: string) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
 const showStrikeX = ref(false);
 const isSpectator = props.isSpectator ?? false;
 const router = useRouter();
+const emojiList = ['😎', '😄', '🤔', '😜', '🥸', '🥳', '🫠', '🤩', '🤯', '🤨'];
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -189,7 +190,6 @@ const playNextRoundSound = () => {
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
-    console.log(`NAHHHHH Player buzzed in!`);
     hasBuzzed.value = true;
     socket.emit('buzz', { sessionId, name: playerName.value });
     playBuzzerSound();
@@ -248,15 +248,21 @@ function saveTeamName({ team, name }: { team: string; name: string }) {
   }
 }
 
+function assignEmojiToPlayer(name: string) {
+  const emoji = emojiList[Math.floor(Math.random() * emojiList.length)];
+  return `${emoji} ${name}`;
+}
+
 function joinTeam(payload: { playerName: string; selectedTeam: string }) {
   const { playerName: name, selectedTeam: team } = payload;
+  const emojiAssignedName = assignEmojiToPlayer(name.trim());
   if (!name.trim() || !team) return;
   socket.emit('join-team', {
     sessionId,
-    name: name.trim(),
+    name: emojiAssignedName,
     team,
   });
-  playerName.value = name.trim();
+  playerName.value = emojiAssignedName;
   selectedTeam.value = team;
   hasJoined.value = true;
 }
@@ -265,6 +271,7 @@ const logout = () => {
   // Clear session data
   store.enteredFromHome = false;
   store.sessionId = '';
+  store.resetGame();
   localStorage.removeItem('enteredFromHome');
   localStorage.removeItem('sessionId');
   router.push({ name: 'Home' });
@@ -354,7 +361,7 @@ onMounted(() => {
   socket.on(
     'team-members-updated',
     (members: { A: never[]; B: never[] } | { A: never[]; B: never[] }) => {
-      teamMembers.value = members;
+      store.teamMembers = members;
     },
   );
 

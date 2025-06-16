@@ -7,6 +7,7 @@ export const useGameStore = defineStore('game', {
     teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
     answers: [] as { id: string; text: string; points: number }[],
     question: '',
+    teamMembers: { A: [] as string[], B: [] as string[] },
     guessedAnswers: [] as { id: string }[],
     currentTeam: 'A' as 'A' | 'B',
     strikes: 0, // Current team's strikes during the round

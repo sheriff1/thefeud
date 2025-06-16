@@ -189,7 +189,7 @@ const resetGame = async () => {
 
   store.resetGame();
   // const gameResetState = { ...store.$state, gameReset: true };
-  console.log('resetGame() called from HostDashboard.vue');
+  // console.log('resetGame() called from HostDashboard.vue');
   // updateGameState(gameResetState);
 };
 
@@ -220,7 +220,7 @@ const resetRound = async () => {
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
-  console.log('resetRoundState() called from HostDashboard.vue');
+  // console.log('resetRoundState() called from HostDashboard.vue');
 };
 
 const nextRound = async () => {
@@ -239,7 +239,7 @@ const nextRound = async () => {
   correctCount.value = 0;
   buzzerOnlyCount.value = 0;
 
-  console.log('nextRound() called from HostDashboard.vue');
+  // console.log('nextRound() called from HostDashboard.vue');
 };
 
 const handleIncorrectAndStrike = () => {
@@ -257,7 +257,7 @@ const startTimer = () => {
   timerInterval = setInterval(() => {
     if (store.timer > 0) {
       store.decrementTimer();
-      console.log('startTimer() called from HostDashboard.vue');
+      // console.log('startTimer() called from HostDashboard.vue');
       updateGameState(store.$state); // Emit the updated game state
     } else {
       stopTimer();
@@ -279,7 +279,7 @@ const resetTimer = () => {
   stopTimer();
   store.resetTimer();
   timerInput.value = 0;
-  console.log('resetTimer() called from HostDashboard.vue');
+  // console.log('resetTimer() called from HostDashboard.vue');
   updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -305,14 +305,12 @@ const handleCorrectGuess = (answerId: any) => {
   } else {
     // Normal gameplay: Award points to the current team
     if (store.currentTeam === store.firstTeam) {
-      console.log('HELLLLO');
       store.guessAnswer(answerId, updateGameState); // Use the store's method to handle guessing
     } else {
-      console.log('YERRRRR');
       store.secondTeamGuess(answerId, updateGameState);
     }
   }
-  console.log('handleCorrectGuess() called from HostDashboard.vue');
+  // console.log('handleCorrectGuess() called from HostDashboard.vue');
   //  updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -323,7 +321,6 @@ const handleIncorrectGuess = () => {
   if (store.currentTeam === store.firstTeam) {
     // If the starting team reaches 3 strikes, handle the three-strike logic
     if (store.strikes >= 3) {
-      console.log('HAAAHN');
       store.handleThreeStrikes(updateGameState);
     } else {
       // Increment the persistent strike count for the current team
@@ -332,14 +329,13 @@ const handleIncorrectGuess = () => {
   } else {
     // If the second team guesses incorrectly, award the points to the starting team
     if (store.strikes >= 1) {
-      console.log('BLERGH');
       store.handleThreeStrikes(updateGameState);
     } else {
       // Increment the persistent strike count for the second team
       store.teamStrikes[store.currentTeam]++;
     }
   }
-  console.log('handleIncorrectGuess() called from HostDashboard.vue');
+  // console.log('handleIncorrectGuess() called from HostDashboard.vue');
   // updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -381,7 +377,7 @@ function saveQuestionAndAnswers() {
 
   if (store.questionSaved && store.answersSaved) {
     store.incrementRoundCounter();
-    console.log('saveQuestionAndAnswers() called from HostDashboard.vue');
+    // console.log('saveQuestionAndAnswers() called from HostDashboard.vue');
   }
 }
 
@@ -408,7 +404,7 @@ const saveScoreMgmt = () => {
     },
   };
 
-  console.log('saveScoreMgmt() called from HostDashboard.vue');
+  // console.log('saveScoreMgmt() called from HostDashboard.vue');
   updateGameState(gameState2);
 };
 
@@ -421,7 +417,7 @@ const revealAllAnswers = () => {
     .map((answer: { id: any }) => ({ id: answer.id })); // Map to { id: ... } objects
 
   store.guessedAnswers.push(...unrevealedAnswers); // Add all unrevealed objects to guessedAnswers
-  console.log('revealAllAnswers() called from HostDashboard.vue');
+  // console.log('revealAllAnswers() called from HostDashboard.vue');
   updateGameState(store.$state); // Emit the updated game state
 };
 
@@ -471,6 +467,7 @@ const logout = () => {
   // Clear session data
   store.enteredFromHome = false;
   store.sessionId = '';
+  store.resetGame();
   localStorage.removeItem('enteredFromHome');
   localStorage.removeItem('sessionId');
   router.push({ name: 'Home' });
@@ -551,7 +548,7 @@ const loadLibraryFile = async (filename: string) => {
 };
 
 function handleUpdatedGame(updatedGameState: any) {
-  console.log(`Session ${sessionId} currentStep updated to:`, updatedGameState.currentStep);
+  // (`Session ${sessionId} currentStep updated to:`, updatedGameState.currentStep);
   Object.assign(store.$state, updatedGameState);
 
   isLoading.value = false;
@@ -604,6 +601,13 @@ onMounted(() => {
   socket.on('team-names-updated', (teamNames: any) => {
     store.teamNames = { ...store.teamNames, ...teamNames };
   });
+
+  socket.on(
+    'team-members-updated',
+    (members: { A: never[]; B: never[] } | { A: never[]; B: never[] }) => {
+      store.teamMembers = members;
+    },
+  );
 
   socket.on('current-state', (currentState: any) => {
     Object.assign(store.$state, currentState); // Update the global store with the current game state

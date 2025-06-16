@@ -44,7 +44,7 @@
           :key="member"
           :class="{ buzzed: store.buzzedPlayer === member }"
         >
-          😎 {{ member }}
+          {{ member }}
         </li>
       </ul>
       <div v-if="startingTeamSet" class="team-strikes">
