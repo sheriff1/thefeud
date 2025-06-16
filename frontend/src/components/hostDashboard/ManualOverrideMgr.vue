@@ -100,6 +100,7 @@
         @click="
           () => {
             props.resetRound();
+            emit('resetShowQASection');
             props.updateGameState(gameStore.$state);
           }
         "
@@ -112,6 +113,7 @@
         @click="
           () => {
             props.resetGame();
+            emit('resetShowQASection');
             props.updateGameState(gameStore.$state);
           }
         "
@@ -143,6 +145,7 @@ const emit = defineEmits<{
   'update:roundCounter': [number | string];
   'update:scoreMultiplier': [number | string];
   saveScoreMgmt: [];
+  resetShowQASection: [];
 }>();
 
 // Use two-way binding for v-model

@@ -36,6 +36,8 @@
       :setStartingTeam="setStartingTeam"
       :guessedAnswersCount="guessedAnswersCount"
       :revealAllAnswers="revealAllAnswers"
+      :showQASection="showQASection"
+      @update:showQASection="(val: boolean) => (showQASection = val)"
     />
     <!-- Available Answers, Strikes, and Points Pool Container -->
 
@@ -44,10 +46,11 @@
     <ManualOverrideMgr
       :updateGameState="updateGameState"
       :isTeamNamesUnique="isTeamNamesUnique"
-      @saveScoreMgmt="saveScoreMgmt"
       :resetGame="resetGame"
       :resetRound="resetRound"
       :isLoading="isLoading"
+      @saveScoreMgmt="saveScoreMgmt"
+      @resetShowQASection="resetShowQASection"
     />
 
     <!-- Timer Container -->
@@ -93,6 +96,7 @@ const showAvailableAnswers = ref(false); // Track whether to show the Available 
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const isLoading = ref(false);
+const showQASection = ref(false);
 
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
@@ -496,6 +500,9 @@ const fetchLibraryFiles = async () => {
 
 function setShowLibraryDialog(value: boolean) {
   showLibraryDialog.value = value;
+}
+function resetShowQASection() {
+  showQASection.value = false;
 }
 
 function parseCsv<T>(

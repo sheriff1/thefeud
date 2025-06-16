@@ -6,7 +6,6 @@ const apiBase = import.meta.env.VITE_API_BASE || '';
 import { ref, computed, nextTick } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 const gameStore = useGameStore();
-const showQASection = ref(false);
 const showCsvUpload = ref(false);
 
 // Props
@@ -26,6 +25,7 @@ interface GameMgrProps {
   addAnswerPair: () => void;
   removeAllAnswers: () => void;
   saveQuestionAndAnswers: () => void;
+  showQASection: boolean;
   /* --- currentStep = 3 --- */
   setMultiplier: (multiplier: number) => void;
   /* --- currentStep = 4 --- */
@@ -43,6 +43,7 @@ interface GameMgrProps {
 }
 interface GameMgrEmits {
   (e: 'update:questionInput', value: string): void;
+  (e: 'update:showQASection', value: boolean): void;
 }
 const props = defineProps<GameMgrProps>();
 const emit = defineEmits<GameMgrEmits>();
@@ -176,7 +177,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
             Upload CSV File
           </button>
           <!-- Enter manually -->
-          <button class="btn flex-1 min-w-[160px]" @click="showQASection = true">
+          <button class="btn flex-1 min-w-[160px]" @click="emit('update:showQASection', true)">
             Enter manually
           </button>
         </div>
@@ -202,7 +203,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
               @change="
                 (e) => {
                   handleUpload(e);
-                  showQASection = true;
+                  emit('update:showQASection', true);
                   showCsvUpload = false;
                 }
               "
@@ -227,7 +228,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
                 @click="
                   () => {
                     loadLibraryFile(file);
-                    showQASection = true;
+                    emit('update:showQASection', true);
                   }
                 "
               >
@@ -243,7 +244,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
         <!-- Question Input -->
         <button
           class="btn btn-sm btn-soft btn-outline flex items-center gap-2 mb-4"
-          @click="showQASection = false"
+          @click="emit('update:showQASection', false)"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -537,7 +538,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           @click="
             () => {
               startNextRound();
-              showQASection = false;
+              emit('update:showQASection', false);
             }
           "
         >
