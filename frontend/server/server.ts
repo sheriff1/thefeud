@@ -13,5 +13,5 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`WebSocket server listening on port ${PORT}`);
+  // console.log(`WebSocket server listening on port ${PORT}`);
 });

@@ -127,7 +127,7 @@ const io = new Server(server, {
 });
 
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+  // console.log('A user connected:', socket.id);
 
   socket.on('buzz', async ({ sessionId, name }) => {
     const sessionRef = db.collection('sessions').doc(sessionId);
@@ -147,7 +147,6 @@ io.on('connection', (socket) => {
     const sessionData = updatedSessionDoc.data();
 
     // Broadcast the updated state to all clients in the session
-    console.log('GERALLLLLLD Emitting update-game:', sessionData);
     io.to(sessionId).emit('update-game', sessionData);
   });
 
@@ -156,7 +155,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join-session', async ({ sessionId }) => {
-    console.log(`User ${socket.id} is joining session: ${sessionId}`);
+    // console.log(`User ${socket.id} is joining session: ${sessionId}`);
     const sessionRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionRef.get();
     if (!sessionDoc.exists) {
@@ -338,7 +337,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', async () => {
-    console.log('A user disconnected:', socket.id);
+    // console.log('A user disconnected:', socket.id);
 
     const player = socketToPlayer[socket.id];
     if (player) {
@@ -351,7 +350,7 @@ io.on('connection', (socket) => {
           let members = sessionData.teamMembers;
           // Remove player from their team
           if (members[team]) {
-            members[team] = members[team].filter((memberName) => memberName !== name);
+            members[team] = members[team].filter((memberName: string) => memberName !== name);
             // Update Firestore
             await sessionRef.set({ teamMembers: members }, { merge: true });
             // Broadcast updated team members
@@ -370,7 +369,7 @@ io.on('connection', (socket) => {
 // Start the server
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  // console.log(`Server is running on port ${PORT}`);
 });
 
 function getResetGameState() {

@@ -55,7 +55,7 @@ const selectedMultiplier = ref<number>(1);
 // Handlers for transitions
 function startRoundStep() {
   gameStore.currentStep = 2;
-  console.log('startRoundStep() called from GamgeMgr.vue');
+  // console.log('startRoundStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
 
@@ -69,12 +69,11 @@ function saveQuestionAndAnswersStep() {
 function confirmMultiplierStep(multiplier: number) {
   props.setMultiplier(multiplier);
   gameStore.currentStep = 4;
-  console.log('confirmMultiplierStep() called from GamgeMgr.vue');
+  // console.log('confirmMultiplierStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
 
 function startBuzzerRoundStep() {
-  console.log('startBuzzerRoundStep() called from GamgeMgr.vue');
   if (
     gameStore.highestPointAnswered ||
     (gameStore.buzzerOnlyPressed && gameStore.correctAfterBuzzer) ||
@@ -82,7 +81,7 @@ function startBuzzerRoundStep() {
     gameStore.correctAfterBuzzer
   ) {
     gameStore.currentStep = 5;
-    console.log('startBuzzerRoundStep() condition met in GamgeMgr.vue');
+    // console.log('startBuzzerRoundStep() condition met in GamgeMgr.vue');
   }
   props.updateGameState(gameStore.$state);
 }
@@ -90,7 +89,7 @@ function startBuzzerRoundStep() {
 function confirmStartingTeamStep(startingTeam: string) {
   props.setStartingTeam(startingTeam);
   gameStore.currentStep = 6;
-  console.log('confirmStartingTeamStep() called from GamgeMgr.vue');
+  // console.log('confirmStartingTeamStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
 
@@ -217,12 +216,14 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
 
       <!-- Library Dialog -->
       <div v-if="showLibraryDialog" class="library-dialog-backdrop">
-        <div class="library-dialog bg-base-100">
-          <h5>Select a Question Set</h5>
-          <ul class="flex flex-col overflow-y-auto">
+        <div
+          class="library-dialog bg-base-100 p-8 rounded-lg shadow-xl w-[500px] max-w-full mx-auto"
+        >
+          <h5 class="mb-4 text-xl font-semibold text-center">Select a Question Set</h5>
+          <ul class="library-grid">
             <li v-for="file in libraryFiles" :key="file">
               <button
-                class="btn w-full block"
+                class="btn library-btn text-sm break-words"
                 @click="
                   () => {
                     loadLibraryFile(file);
@@ -234,7 +235,7 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
               </button>
             </li>
           </ul>
-          <button class="btn" @click="closeLibraryDialog">Cancel</button>
+          <button class="btn btn-block mt-4" @click="closeLibraryDialog">Cancel</button>
         </div>
       </div>
 
@@ -622,6 +623,27 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
   padding: 4px;
   width: 150px;
 }
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.library-btn {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 80px;
+  font-size: 0.875rem; /* text-sm */
+  word-break: break-word;
+  white-space: normal;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 /* Responsive: Stack fields vertically on small screens */
 @media (max-width: 600px) {
   .answer-pair {
@@ -633,6 +655,13 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
   .answer-pair label,
   .answer-pair button {
     width: 100%;
+    min-width: 0;
+  }
+  .library-grid {
+    grid-template-columns: 1fr;
+  }
+  .library-dialog {
+    width: 95vw;
     min-width: 0;
   }
 }
