@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run",
-    "test:ci": "start-server-and-test dev http://localhost:5173 cypress:run",
+    "test": "cypress run",
+    "test:ci": "start-server-and-test dev http://localhost:5173 test",
     "type:check": "tsc --noEmit"
   },
   "dependencies": {
