@@ -31,7 +31,9 @@
             About</a
           >
         </li>
-        <li><a @click="logout" class="text-base-content !text-base-content">Log Out</a></li>
+        <li v-if="store.sessionId">
+          <a @click="logout" class="text-base-content !text-base-content">Log Out</a>
+        </li>
       </ul>
     </div>
   </div>
@@ -42,18 +44,40 @@
 import { auth, signInAnonymously } from './firebase';
 import { useRouter } from 'vue-router';
 import { useGameStore } from './stores/gamestore'; // adjust path if needed
+import socket from './utils/socket';
 const router = useRouter();
-
 const store = useGameStore();
 signInAnonymously(auth);
 
 const logout = () => {
-  store.enteredFromHome = false;
-  store.sessionId = '';
-  store.resetGame();
+  // Get the player's name and team from localStorage or store
+  const playerName = localStorage.getItem('playerName');
+  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
+
+  // Remove from Pinia store
+  if (playerName && playerTeam) {
+    store.removeTeamMember(playerTeam, playerName);
+
+    // Emit to backend to remove from session data
+    socket.emit('remove-team-member', {
+      sessionId: store.sessionId,
+      team: playerTeam,
+      name: playerName,
+    });
+  }
+  socket.removeAllListeners();
+  socket.disconnect();
+
   localStorage.removeItem('enteredFromHome');
   localStorage.removeItem('sessionId');
-  router.push({ name: 'Home' });
+  localStorage.removeItem('playerName');
+  localStorage.removeItem('playerTeam');
+  // Clear session data
+  store.$reset();
+
+  router.push({ name: 'Home' }).then(() => {
+    window.location.reload();
+  });
 };
 </script>
 

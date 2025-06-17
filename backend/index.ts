@@ -336,6 +336,24 @@ io.on('connection', (socket) => {
     socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
   });
 
+  socket.on('remove-team-member', async ({ sessionId, team, name }) => {
+    try {
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      const sessionDoc = await sessionRef.get();
+      const sessionData = sessionDoc.data();
+      if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
+        let members = sessionData.teamMembers;
+        if (members[team]) {
+          members[team] = members[team].filter((memberName: string) => memberName !== name);
+          await sessionRef.set({ teamMembers: members }, { merge: true });
+          io.to(sessionId).emit('team-members-updated', members);
+        }
+      }
+    } catch (error) {
+      console.error('Error removing team member:', error);
+    }
+  });
+
   socket.on('disconnect', async () => {
     // console.log('A user disconnected:', socket.id);
 
