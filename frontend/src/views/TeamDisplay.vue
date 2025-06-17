@@ -10,11 +10,37 @@
 
     <!-- Main Gameboard -->
     <div class="w-full" v-else>
+      <!-- Session ID Modal -->
+      <input
+        type="checkbox"
+        id="session-id-modal"
+        class="modal-toggle"
+        v-model="showSessionIdDialog"
+      />
+      <div class="modal" v-if="showSessionIdDialog">
+        <div class="modal-box">
+          <h3 class="font-bold text-lg mb-4">Share Session</h3>
+          <div class="flex flex-col gap-3">
+            <button class="btn btn-outline" @click="copySessionIdOption('id')">
+              Copy Session ID
+            </button>
+            <button class="btn btn-outline" @click="copySessionIdOption('team')">
+              Invite Team Member Link
+            </button>
+            <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
+              Invite Spectator Link
+            </button>
+          </div>
+          <div class="modal-action">
+            <label class="btn" @click="showSessionIdDialog = false">Close</label>
+          </div>
+        </div>
+      </div>
       <div class="floating-buttons">
         <FloatingButton
           :label="sessionIdBoxText"
-          @click="copySessionId"
-          className="session-id-box"
+          :onClick="() => (showSessionIdDialog = true)"
+          class="session-id-box"
           :state="sessionIdBoxState"
         />
         <FloatingButton
@@ -133,7 +159,7 @@ const props = defineProps<TeamDisplayProps>();
 
 const store = useGameStore();
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
-const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
+const sessionIdBoxText = ref(`🔗  Share Session`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const playerName = ref('');
 const selectedTeam = ref('');
@@ -150,6 +176,7 @@ const showStrikeX = ref(false);
 const isSpectator = props.isSpectator ?? false;
 const router = useRouter();
 const emojiList = ['😎', '😄', '🤔', '😜', '🥸', '🥳', '🫠', '🤩', '🤯', '🤨'];
+const showSessionIdDialog = ref(false);
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -200,37 +227,6 @@ const pressBuzzer = () => {
 const startEditingTeamName = (team: string | number | null) => {
   editingTeam.value = team as 'A' | 'B' | null;
   editedTeamName.value = store.teamNames[team as 'A' | 'B'] || '';
-};
-
-const copySessionId = () => {
-  if (sessionId) {
-    navigator.clipboard
-      .writeText(sessionId)
-      .then(() => {
-        // Show "Copied" and turn the box green
-        sessionIdBoxText.value = 'Copied!';
-        sessionIdBoxState.value = 'copied';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy session ID:', err);
-
-        // Show "Error" and turn the box red
-        sessionIdBoxText.value = 'Error';
-        sessionIdBoxState.value = 'error';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      });
-  }
 };
 
 function toggleMute() {
@@ -303,6 +299,40 @@ const logout = () => {
 // @ts-ignore
 const isTest = window.Cypress; // Cypress sets this global variable
 useSessionTimeout(logout, isTest ? 1000 : 1800000);
+
+function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  let textToCopy = '';
+  const baseUrl = window.location.origin;
+  if (type === 'id') {
+    textToCopy = sessionId || '';
+  } else if (type === 'host') {
+    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
+  } else if (type === 'team') {
+    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
+  } else if (type === 'spectator') {
+    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
+  }
+  navigator.clipboard
+    .writeText(textToCopy)
+    .then(() => {
+      sessionIdBoxText.value = 'Copied!';
+      sessionIdBoxState.value = 'copied';
+      showSessionIdDialog.value = false;
+      setTimeout(() => {
+        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxState.value = '';
+      }, 2000);
+    })
+    .catch(() => {
+      sessionIdBoxText.value = 'Error';
+      sessionIdBoxState.value = 'error';
+      showSessionIdDialog.value = false;
+      setTimeout(() => {
+        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxState.value = '';
+      }, 2000);
+    });
+}
 
 socket.on('play-strike-sound', () => {
   playStrikeSound();

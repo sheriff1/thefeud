@@ -54,6 +54,10 @@
 
 // Test timeout
 
+// Test invite dialog showing correctly
+
+// Test invite dialog closing correctly
+
 ///// SAMPLE FOR simulating with posted data
 // describe('Team Display', () => {
 //   it('shows correct info after host setup', () => {
