@@ -92,4 +92,7 @@ describe('Home Page', () => {
     cy.url().should('include', '/home');
     cy.contains('Welcome to The Feud!'); // or whatever your home page shows
   });
+
+  /* ------------ Miscellaneous Tests ------------ */
+  // Test theme toggle
 });
