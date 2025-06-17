@@ -468,37 +468,6 @@ const emitStrikeSound = () => {
   socket.emit('play-strike-sound', { sessionId });
 };
 
-const copySessionId = () => {
-  if (sessionId) {
-    navigator.clipboard
-      .writeText(sessionId)
-      .then(() => {
-        // Show "Copied" and turn the box green
-        sessionIdBoxText.value = 'Copied!';
-        sessionIdBoxState.value = 'copied';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy session ID:', err);
-
-        // Show "Error" and turn the box red
-        sessionIdBoxText.value = 'Error';
-        sessionIdBoxState.value = 'error';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      });
-  }
-};
-
 const logout = () => {
   // Get the player's name and team from localStorage or store
   const playerName = localStorage.getItem('playerName');

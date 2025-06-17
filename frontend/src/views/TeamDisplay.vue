@@ -229,37 +229,6 @@ const startEditingTeamName = (team: string | number | null) => {
   editedTeamName.value = store.teamNames[team as 'A' | 'B'] || '';
 };
 
-const copySessionId = () => {
-  if (sessionId) {
-    navigator.clipboard
-      .writeText(sessionId)
-      .then(() => {
-        // Show "Copied" and turn the box green
-        sessionIdBoxText.value = 'Copied!';
-        sessionIdBoxState.value = 'copied';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      })
-      .catch((err) => {
-        console.error('Failed to copy session ID:', err);
-
-        // Show "Error" and turn the box red
-        sessionIdBoxText.value = 'Error';
-        sessionIdBoxState.value = 'error';
-
-        // Revert back to the original state after 2 seconds
-        setTimeout(() => {
-          sessionIdBoxText.value = `Session ID: ${sessionId}`;
-          sessionIdBoxState.value = '';
-        }, 2000);
-      });
-  }
-};
-
 function toggleMute() {
   isMuted.value = !isMuted.value;
 }
