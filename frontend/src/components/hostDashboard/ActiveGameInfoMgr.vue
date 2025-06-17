@@ -81,10 +81,14 @@ const gameStore = useGameStore();
 <style scoped>
 .active-game-info-grid {
   display: flex;
+  flex-wrap: wrap; /* Allow wrapping */
   gap: 2rem;
   justify-content: center;
   align-items: stretch;
   margin: 2rem 0;
+  width: 100%; /* Prevent overflow */
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box;
 }
 
 /* Team Panel Styles (reuse from TeamPanel.vue) */
@@ -184,5 +188,27 @@ const gameStore = useGameStore();
   height: 1px;
   background: #444;
   margin: 1rem 0;
+}
+.team-info,
+.game-info-container {
+  min-width: 220px;
+  max-width: 100%;
+  flex: 1 1; /* Allow shrinking and growing */
+  box-sizing: border-box;
+}
+
+/* Responsive: stack vertically on small screens */
+@media (max-width: 900px) {
+  .active-game-info-grid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .team-info,
+  .game-info-container {
+    min-width: 0;
+    width: 100%;
+    margin: 0 auto;
+  }
 }
 </style>

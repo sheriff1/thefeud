@@ -4,13 +4,43 @@
     <div class="floating-buttons">
       <FloatingButton
         :label="sessionIdBoxText"
-        :onClick="copySessionId"
-        className="session-id-box"
+        :onClick="() => (showSessionIdDialog = true)"
+        class="session-id-box"
         :state="sessionIdBoxState"
       />
       <FloatingButton label="Log Out" :onClick="logout" className="logout-box" />
     </div>
     <!-- Reset Game and Reset Round Container -->
+
+    <!-- Session ID Modal -->
+    <input
+      type="checkbox"
+      id="session-id-modal"
+      class="modal-toggle"
+      v-model="showSessionIdDialog"
+    />
+    <div class="modal" v-if="showSessionIdDialog">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Share Session</h3>
+        <div class="flex flex-col gap-3">
+          <button class="btn btn-outline" @click="copySessionIdOption('id')">
+            Copy Session ID
+          </button>
+          <button class="btn btn-outline" @click="copySessionIdOption('host')">
+            Invite Host Link
+          </button>
+          <button class="btn btn-outline" @click="copySessionIdOption('team')">
+            Invite Team Member Link
+          </button>
+          <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
+            Invite Spectator Link
+          </button>
+        </div>
+        <div class="modal-action">
+          <label class="btn" @click="showSessionIdDialog = false">Close</label>
+        </div>
+      </div>
+    </div>
 
     <!-- Manage Question and Answers Section -->
     <GameMgr
@@ -91,13 +121,14 @@ const timerInput = ref(0);
 const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
 const previousRound = ref(store.roundCounter); // Track the previous round value
-const sessionIdBoxText = ref(`Session ID: ${sessionId}`); // Default text
+const sessionIdBoxText = ref(`🔗  Share Session`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const isLoading = ref(false);
 const showQASection = ref(false);
+const showSessionIdDialog = ref(false);
 
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
@@ -603,6 +634,40 @@ function handleUpdatedGame(updatedGameState: any) {
   store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
 }
 
+function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  let textToCopy = '';
+  const baseUrl = window.location.origin;
+  if (type === 'id') {
+    textToCopy = sessionId || '';
+  } else if (type === 'host') {
+    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
+  } else if (type === 'team') {
+    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
+  } else if (type === 'spectator') {
+    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
+  }
+  navigator.clipboard
+    .writeText(textToCopy)
+    .then(() => {
+      sessionIdBoxText.value = 'Copied!';
+      sessionIdBoxState.value = 'copied';
+      showSessionIdDialog.value = false;
+      setTimeout(() => {
+        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxState.value = '';
+      }, 2000);
+    })
+    .catch(() => {
+      sessionIdBoxText.value = 'Error';
+      sessionIdBoxState.value = 'error';
+      showSessionIdDialog.value = false;
+      setTimeout(() => {
+        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxState.value = '';
+      }, 2000);
+    });
+}
+
 // Handle errors
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
@@ -737,66 +802,6 @@ button {
 .flex-row > .container {
   flex: 1 1 350px;
   min-width: 300px;
-}
-
-/* Generic Button Style */
-.btn {
-  display: inline-block;
-  padding: 8px 16px;
-  margin-top: 8px;
-  margin-bottom: 8px;
-  background-color: #888; /* Gray shade */
-  color: white !important;
-  border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: 600;
-  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  text-decoration: none;
-  transition:
-    background-color 0.2s,
-    box-shadow 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-.btn:hover {
-  background-color: #666;
-}
-
-.btn:active {
-  background-color: #444;
-}
-
-.btn:disabled,
-.btn[disabled] {
-  background-color: #ccc;
-  cursor: not-allowed;
-  color: #666 !important;
-}
-
-.btn.primary {
-  background-color: #007bff;
-}
-
-.btn.primary:hover {
-  background-color: #0056b3;
-}
-
-.btn.primary:active {
-  background-color: #003f7f;
-}
-
-.btn.success {
-  background-color: #28a745;
-}
-.btn.success:hover {
-  background-color: #218838;
-}
-.btn.success:active {
-  background-color: #007f3d;
 }
 
 .info-key {
