@@ -263,18 +263,40 @@ function joinTeam(payload: { playerName: string; selectedTeam: string }) {
     team,
   });
   playerName.value = emojiAssignedName;
+  localStorage.setItem('playerName', playerName.value);
   selectedTeam.value = team;
   hasJoined.value = true;
 }
 
 const logout = () => {
-  // Clear session data
-  store.enteredFromHome = false;
-  store.sessionId = '';
-  store.resetGame();
+  // Get the player's name and team from localStorage or store
+  const playerName = localStorage.getItem('playerName');
+  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
+
+  // Remove from Pinia store
+  if (playerName && playerTeam) {
+    store.removeTeamMember(playerTeam, playerName);
+
+    // Emit to backend to remove from session data
+    socket.emit('remove-team-member', {
+      sessionId,
+      team: playerTeam,
+      name: playerName,
+    });
+  }
+  socket.removeAllListeners();
+  socket.disconnect();
+
   localStorage.removeItem('enteredFromHome');
   localStorage.removeItem('sessionId');
-  router.push({ name: 'Home' });
+  localStorage.removeItem('playerName');
+  localStorage.removeItem('playerTeam');
+  // Clear session data
+  store.$reset();
+
+  router.push({ name: 'Home' }).then(() => {
+    window.location.reload();
+  });
 };
 
 socket.on('play-strike-sound', () => {
@@ -339,12 +361,14 @@ onMounted(() => {
 
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
+    if (!store.sessionId) return; // Don't update if logged out
     Object.assign(store.$state, currentState);
     store.buzzedPlayer = currentState?.buzzedPlayer || '';
   });
 
   // Listen for game state updates
   socket.on('update-game', (newState: { teamNames: any; buzzedPlayer: string }) => {
+    if (!store.sessionId) return;
     Object.assign(store.$state, newState);
     store.teamNames = { ...store.teamNames, ...newState.teamNames };
     if ('buzzedPlayer' in newState) {

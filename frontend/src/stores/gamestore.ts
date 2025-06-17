@@ -171,6 +171,14 @@ export const useGameStore = defineStore('game', {
       this.resetRound();
     },
 
+    logout() {
+      this.resetGame();
+      this.sessionId = '';
+      this.enteredFromHome = false;
+      localStorage.removeItem('sessionId');
+      localStorage.removeItem('enteredFromHome');
+    },
+
     resetRound() {
       this.answers = [];
       this.guessedAnswers = [];
@@ -255,6 +263,9 @@ export const useGameStore = defineStore('game', {
         updateGameState(this.$state);
       }
       console.log('Ending round: ', this.currentStep);
+    },
+    removeTeamMember(team: 'A' | 'B', memberName: string) {
+      this.teamMembers[team] = this.teamMembers[team].filter((name) => name !== memberName);
     },
   },
 });

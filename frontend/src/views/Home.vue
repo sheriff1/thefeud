@@ -34,6 +34,7 @@
 import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gamestore';
+
 const store = useGameStore();
 
 const apiBase = import.meta.env.VITE_API_BASE || '';
@@ -52,7 +53,7 @@ const createSession = async () => {
     method: 'POST',
   });
   store.enteredFromHome = true;
-  store.sessionId = sessionId.value;
+  store.sessionId = newSessionId;
   localStorage.setItem('enteredFromHome', 'true');
   localStorage.setItem('sessionId', sessionId.value);
   router.push(`/host?sessionId=${newSessionId}`);
@@ -74,7 +75,7 @@ const joinAsHost = async () => {
   const data = await response.json();
   if (data.exists) {
     store.enteredFromHome = true;
-    store.sessionId = sessionId.value;
+    store.sessionId = id;
     localStorage.setItem('enteredFromHome', 'true');
     localStorage.setItem('sessionId', sessionId.value);
     router.push(`/host?sessionId=${id}`);
@@ -99,9 +100,9 @@ const joinAsTeam = async () => {
   const data = await response.json();
   if (data.exists) {
     store.enteredFromHome = true;
-    store.sessionId = sessionId.value;
+    store.sessionId = id;
     localStorage.setItem('enteredFromHome', 'true');
-    localStorage.setItem('sessionId', sessionId.value);
+    localStorage.setItem('sessionId', id);
     router.push(`/team?sessionId=${id}`);
   } else {
     alert('Session does not exist. Please check the Session ID.');
@@ -123,7 +124,7 @@ const joinAsSpectator = async () => {
   const data = await response.json();
   if (data.exists) {
     store.enteredFromHome = true;
-    store.sessionId = sessionId.value;
+    store.sessionId = id;
     localStorage.setItem('enteredFromHome', 'true');
     localStorage.setItem('sessionId', sessionId.value);
     router.push(`/spectator?sessionId=${id}`);
