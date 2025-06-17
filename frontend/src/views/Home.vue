@@ -18,7 +18,7 @@
           <input
             v-model="sessionId"
             type="text"
-            class="input input-bordered mb-2"
+            class="input input-bordered mb-2 w-full"
             placeholder="Enter Session ID"
           />
           <button class="btn btn-accent" @click="joinAsHost">Join as Host</button>
