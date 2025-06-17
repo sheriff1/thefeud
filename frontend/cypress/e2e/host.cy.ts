@@ -81,3 +81,7 @@
 // Test for floating button showing correctly on host dashboard
 
 // Test for floating button copying session ID to clipboard
+
+/* ---- Misc. ----- */
+
+// Test timeout

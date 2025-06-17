@@ -75,7 +75,7 @@ const logout = () => {
   // Clear session data
   store.$reset();
 
-  router.push({ name: 'Home' }).then(() => {
+  router.push({ name: 'HomeAlias' }).then(() => {
     window.location.reload();
   });
 };

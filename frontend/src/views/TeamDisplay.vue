@@ -123,6 +123,7 @@ import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
 import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 import { useRouter } from 'vue-router';
+import { useSessionTimeout } from '@/composables/useSessionTimeout';
 
 interface TeamDisplayProps {
   isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
@@ -294,10 +295,14 @@ const logout = () => {
   // Clear session data
   store.$reset();
 
-  router.push({ name: 'Home' }).then(() => {
+  router.push({ name: 'HomeAlias' }).then(() => {
     window.location.reload();
   });
 };
+
+// @ts-ignore
+const isTest = window.Cypress; // Cypress sets this global variable
+useSessionTimeout(logout, isTest ? 1000 : 1800000);
 
 socket.on('play-strike-sound', () => {
   playStrikeSound();
