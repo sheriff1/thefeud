@@ -8,6 +8,7 @@ import NotFound from './views/NotFound.vue';
 
 const routes = [
   { path: '/', name: 'Home', component: Home },
+  { path: '/home', name: 'HomeAlias', component: Home },
   { path: '/host', name: 'HostDashboard', component: HostDashboard },
   { path: '/team', name: 'TeamDisplay', component: TeamDisplay },
   { path: '/spectator', name: 'Spectator', component: Spectator },
