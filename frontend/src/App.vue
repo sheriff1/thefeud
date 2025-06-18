@@ -5,7 +5,11 @@
     </div>
     <div class="flex-none">
       <ul class="menu menu-horizontal px-1 flex-row items-center">
-        <li><a class="text-base-content !text-base-content">How To Play</a></li>
+        <li>
+          <button class="text-base-content !text-base-content" @click="showHowToPlay = true">
+            How To Play
+          </button>
+        </li>
         <li>
           <a
             href="https://github.com/sheriff1/thefeud"
@@ -82,6 +86,175 @@
   >
     <span class="loading loading-spinner loading-lg text-primary"></span>
   </div>
+  <!-- How to Play Modal -->
+  <input type="checkbox" class="modal-toggle" v-model="showHowToPlay" />
+  <div class="modal" v-if="showHowToPlay">
+    <div class="modal-box">
+      <h3 class="mb-4">How to Play</h3>
+      <div class="carousel carousel-center bg-neutral rounded-box w-full mt-4">
+        <!-- Card 1: Roles -->
+        <div id="slide1" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">Welcome to The Feud</h4>
+              <p class="mb-2">
+                The Feud is a multiplayer game where players can join as one of three roles:
+              </p>
+              <ul class="list-disc ml-6">
+                <li><b>Host</b></li>
+                <li><b>Team Member</b></li>
+                <li><b>Spectator</b></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- Card 2: Host Responsibilities -->
+        <div id="slide2" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">Hosts</h4>
+              <p class="mb-2">
+                The host access the host dashboard where they can manage the game flow by:
+              </p>
+              <ul class="list-disc ml-6">
+                <li>Loading question and answers from library or via CSV</li>
+                <li>Marking answers correct as team members guess</li>
+                <li>Selecting who plays or passes</li>
+                <li>Setting score multiplier</li>
+                <li>And general management of the flow of rounds</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- Card 3: Team Members -->
+        <div id="slide3" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">Team Members & Spectators</h4>
+              <p class="mb-2">
+                Team members access the team member view, where they see the live Feud experience.
+                In gameplay they:
+              </p>
+              <ul class="list-disc ml-6">
+                <li>Give the host answers for the host to mark correct or incorrect</li>
+                <li>
+                  Get a <span class="text-success font-bold">ding</span> if they provide a correct
+                  answer
+                </li>
+                <li>
+                  Or an <span class="text-error font-bold">X</span> if they provide a incorrect
+                  answer
+                </li>
+                <li>
+                  If you join as a Spectator, you see the team member view without access to the
+                  buzzer
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- Card 4: Buzzer Round -->
+        <div id="slide4" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">Buzzer Round</h4>
+              <p class="mb-2">
+                In the Buzzer Round, team members can buzz in to provide what they think the top
+                answer on the board is
+              </p>
+              <ul class="list-disc ml-6">
+                <li>Both teams see a buzzer button underneath their scores</li>
+                <li>First team to buzz in guesses first</li>
+                <li>If they guess the top answer, they choose to play or pass</li>
+                <li>
+                  If they do not guess the top answer, the second team gets to guess the top answer
+                </li>
+                <li>
+                  If neither team guesses the top answer, whichever team guesses the highest point
+                  answer gets to decide if they play or pass
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- Card 5: Guessing Round -->
+        <div id="slide5" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">Guessing Round</h4>
+              <p class="mb-2">
+                After the Buzzer Round, the Guessing Round starts with whichever team plays. In this
+                round, the team tries to guess all answers on the board
+              </p>
+              <ul class="list-disc ml-6">
+                <li>Correct guesses reveal the answer and points get added to the points pool</li>
+                <li>Incorrect guesses, on the other hand, give a team a strike</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <!-- Card 6: How to Get Points -->
+        <div id="slide6" class="carousel-item relative w-full flex justify-center">
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body flex-none">
+              <h4 class="card-title">How to Score Points</h4>
+              <p class="mb-2">
+                Points are awarded from the points pool when one of the following happens:
+              </p>
+              <ol class="list-decimal ml-6">
+                <li>Initial guessing team gets all answers correct</li>
+                <li>If 3 strikes, other team can steal with one correct guess</li>
+                <li>If the steal fails, initial team gets the points pool</li>
+              </ol>
+              <p class="mt-2">
+                At the end, the host can reveal any remaining answers before starting the next
+                round.
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Card 7: Ready to Play? (only if no sessionId) -->
+        <div
+          id="slide7"
+          class="carousel-item relative w-full flex justify-center"
+          v-if="!store.sessionId"
+        >
+          <div class="card w-full max-w-lg bg-base-100 shadow-xl m-8">
+            <div class="card-body items-center justify-center text-center">
+              <h4 class="card-title">Ready to play?</h4>
+              <button class="btn btn-primary mt-4" @click="createSessionFromModal">
+                Create a New Session
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- If sessionId exists, loop back to slide1 from slide6 -->
+        <div
+          id="slide7"
+          class="carousel-item relative w-full flex justify-center"
+          v-else
+          style="display: none"
+        ></div>
+      </div>
+      <div class="flex w-full justify-center gap-2 py-2">
+        <a href="#slide1" class="btn btn-circle btn-xs !text-base-content">1</a>
+        <a href="#slide2" class="btn btn-circle btn-xs !text-base-content">2</a>
+        <a href="#slide3" class="btn btn-circle btn-xs !text-base-content">3</a>
+        <a href="#slide4" class="btn btn-circle btn-xs !text-base-content">4</a>
+        <a href="#slide5" class="btn btn-circle btn-xs !text-base-content">5</a>
+        <a href="#slide6" class="btn btn-circle btn-xs !text-base-content">6</a>
+        <a v-if="!store.sessionId" href="#slide7" class="btn btn-circle btn-xs !text-base-content"
+          >7</a
+        >
+      </div>
+      <div class="modal-action">
+        <form method="dialog">
+          <!-- if there is a button in form, it will close the modal -->
+          <button class="btn" @click="showHowToPlay = false">Close</button>
+        </form>
+      </div>
+    </div>
+  </div>
   <router-view />
 </template>
 
@@ -96,6 +269,21 @@ const theme = ref('light');
 const router = useRouter();
 const store = useGameStore();
 signInAnonymously(auth);
+const showHowToPlay = ref(false);
+const apiBase = import.meta.env.VITE_API_BASE || '';
+
+const createSessionFromModal = async () => {
+  const newSessionId = Math.random().toString(36).substring(2, 6).toUpperCase();
+  await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
+    method: 'POST',
+  });
+  store.enteredFromHome = true;
+  store.sessionId = newSessionId;
+  localStorage.setItem('enteredFromHome', 'true');
+  localStorage.setItem('sessionId', newSessionId);
+  showHowToPlay.value = false;
+  router.push(`/host?sessionId=${newSessionId}`);
+};
 
 const logout = () => {
   // Get the player's name and team from localStorage or store
