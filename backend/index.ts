@@ -316,7 +316,7 @@ io.on('connection', (socket) => {
       const sessionRef = db.collection('sessions').doc(sessionId);
       const sessionDoc = await sessionRef.get();
       const sessionData = sessionDoc.data() || {};
-      const currentTeamNames = sessionData.teamNames || { A: 'Team A', B: 'Team B' };
+      const currentTeamNames = sessionData.teamNames || { A: 'A', B: 'B' };
       const updatedTeamNames = { ...currentTeamNames, [team]: name };
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
 
