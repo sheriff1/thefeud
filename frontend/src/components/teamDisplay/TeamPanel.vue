@@ -16,21 +16,23 @@
             ✏️
           </button>
         </span>
-        <span v-else>
-          <input
-            v-if="currentPlayerTeam === team"
-            v-model="editedName"
-            @keyup.enter="saveTeamNameChange"
-            @blur="saveTeamNameChange"
-            class="edit-team-input"
-            maxlength="20"
-            autofocus
-          />
-          <button
-            v-if="currentPlayerTeam === team"
-            class="btn btn-xs ml-4"
-            @click="saveTeamNameChange"
-          >
+        <span class="flex flex-row" v-else>
+          <div class="flex flex-col">
+            <input
+              type="text"
+              v-if="currentPlayerTeam === team"
+              v-model="editedName"
+              @keyup.enter="saveTeamNameChange"
+              @blur="saveTeamNameChange"
+              class="input validator"
+              maxlength="20"
+              autofocus
+              minlength="1"
+              required
+            />
+            <div class="validator-hint text-xs hidden">Cannot be blank</div>
+          </div>
+          <button v-if="currentPlayerTeam === team" class="btn ml-4" @click="saveTeamNameChange">
             💾
           </button>
           <span v-else>{{ teamName.toUpperCase() }}</span>
@@ -165,14 +167,14 @@ function saveTeamNameChange() {
   font-size: 1.1rem;
 } */
 
-.edit-team-input {
+/* .edit-team-input {
   font-size: 1.1rem;
   padding: 0.2rem 0.4rem;
   border-radius: 4px;
   border: 1px solid var(--color-base-content, #fff);
   margin-left: 0.5rem;
   width: 120px;
-}
+} */
 
 .team-row {
   display: flex;

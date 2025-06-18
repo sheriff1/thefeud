@@ -11,15 +11,17 @@
       <fieldset class="fieldset">
         <label for="timer-input" class="w-32">Set Timer (seconds):</label>
         <input
-          id="timer-input"
           type="number"
-          class="input"
+          id="timer-input"
+          class="input validator"
           :value="timerInput"
           @input="onTimerInput"
           @change="setTimer"
+          @keydown="preventNonNumeric"
           min="0"
           step="1"
         />
+        <div class="validator-hint text-xs hidden" v-if="timerInput < 0">Cannot be less than 0</div>
       </fieldset>
     </div>
     <div>
@@ -49,6 +51,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
+import { preventNonNumeric } from '@/composables/preventNonNumeric';
+
 const gameStore = useGameStore();
 
 interface TimerMgrProps {

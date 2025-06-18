@@ -4,7 +4,15 @@
       <h2>Join the Game</h2>
       <div class="divider"></div>
       <h3 class="left-align">Enter your name:</h3>
-      <input v-model="playerName" placeholder="Enter your name" class="full-width-input" />
+      <input
+        type="text"
+        v-model="playerName"
+        placeholder="Enter your name"
+        class="input validator full-width-input"
+        required
+        minlength="1"
+      />
+      <div class="validator-hint text-xs hidden left-align">Cannot be blank</div>
       <div class="divider"></div>
       <h3 class="left-align">Select your team:</h3>
       <div class="radio-group">
@@ -96,29 +104,6 @@ watch(playerName, (newName) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.join-team-dialog input[type='text'] {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  font-size: 1rem;
-  width: 100%;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
-
-.join-team-dialog label {
-  font-size: 1rem;
-}
-
-.full-width-input {
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
 }
 
 .left-align {

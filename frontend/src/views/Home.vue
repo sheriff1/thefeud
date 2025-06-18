@@ -15,12 +15,18 @@
         <button class="btn btn-primary mb-4" @click="createSession">Create a New Session</button>
         <div class="divider">OR</div>
         <div class="flex flex-col gap-2">
-          <input
-            v-model="sessionId"
-            type="text"
-            class="input input-bordered mb-2 w-full"
-            placeholder="Enter Session ID"
-          />
+          <div class="flex flex-col">
+            <input
+              type="text"
+              v-model="sessionId"
+              class="input validator input-bordered w-full"
+              placeholder="Enter Session ID"
+              required
+              minlength="4"
+              maxlength="4"
+            />
+            <div class="validator-hint text-xs hidden left-align">Session ID invalid</div>
+          </div>
           <button class="btn btn-accent" @click="joinAsHost">Join as Host</button>
           <button class="btn btn-secondary" @click="joinAsTeam">Join as a Team Member</button>
           <button class="btn btn-info" @click="joinAsSpectator">Join as Spectator</button>

@@ -1,145 +1,3 @@
-<script setup lang="ts">
-// Project variables
-const apiBase = import.meta.env.VITE_API_BASE || '';
-
-// State management
-import { ref, computed, nextTick } from 'vue';
-import { useGameStore } from '../../stores/gamestore';
-const gameStore = useGameStore();
-const showCsvUpload = ref(false);
-
-// Props
-interface GameMgrProps {
-  updateGameState: (state: any) => void;
-  nextRound: () => void;
-  /* --- currentStep = 2 --- */
-  handleUpload: (event: Event) => void;
-  fetchLibraryFiles: () => void;
-  showLibraryDialog: boolean;
-  libraryFiles: string[];
-  loadLibraryFile: (fileName: string) => void;
-  setShowLibraryDialog?: (show: boolean) => void;
-  questionInput: string;
-  answerPairs: { text: string; points: number }[];
-  removeAnswerPair: (index: number) => void;
-  addAnswerPair: () => void;
-  removeAllAnswers: () => void;
-  saveQuestionAndAnswers: () => void;
-  showQASection: boolean;
-  /* --- currentStep = 3 --- */
-  setMultiplier: (multiplier: number) => void;
-  /* --- currentStep = 4 --- */
-  handleCorrectGuess?: (answerId: string) => void;
-  handleIncorrectAndStrike?: () => void;
-  emitStrikeSound?: () => void;
-  // roundOver: boolean;
-  /* --- currentStep = 5 --- */
-  showWhoStartsSection?: boolean;
-  setStartingTeam: (team: string) => void;
-  /* --- currentStep = 6 --- */
-  /* --- currentStep = 7 --- */
-  revealAllAnswers: () => void;
-  /* --- currentStep = TBD --- */
-}
-interface GameMgrEmits {
-  (e: 'update:questionInput', value: string): void;
-  (e: 'update:showQASection', value: boolean): void;
-}
-const props = defineProps<GameMgrProps>();
-const emit = defineEmits<GameMgrEmits>();
-
-// Local variables
-const awardedTeam = ref<string | null>(null);
-const awardedPoints = ref<number>(0);
-const selectedMultiplier = ref<number>(1);
-
-// Handlers for transitions
-function startRoundStep() {
-  gameStore.currentStep = 2;
-  // console.log('startRoundStep() called from GamgeMgr.vue');
-  props.updateGameState(gameStore.$state);
-}
-
-function saveQuestionAndAnswersStep() {
-  props.saveQuestionAndAnswers();
-  gameStore.currentStep = 3;
-  // console.log('saveQuestionAndAnswersStep() called from GamgeMgr.vue');
-  props.updateGameState(gameStore.$state);
-}
-
-function confirmMultiplierStep(multiplier: number) {
-  props.setMultiplier(multiplier);
-  gameStore.currentStep = 4;
-  // console.log('confirmMultiplierStep() called from GamgeMgr.vue');
-  props.updateGameState(gameStore.$state);
-}
-
-function startBuzzerRoundStep() {
-  if (
-    gameStore.highestPointAnswered ||
-    (gameStore.buzzerOnlyPressed && gameStore.correctAfterBuzzer) ||
-    gameStore.guessedAnswers.length >= 2 ||
-    gameStore.correctAfterBuzzer
-  ) {
-    gameStore.currentStep = 5;
-    // console.log('startBuzzerRoundStep() condition met in GamgeMgr.vue');
-  }
-  props.updateGameState(gameStore.$state);
-}
-
-function confirmStartingTeamStep(startingTeam: string) {
-  props.setStartingTeam(startingTeam);
-  gameStore.currentStep = 6;
-  // console.log('confirmStartingTeamStep() called from GamgeMgr.vue');
-  props.updateGameState(gameStore.$state);
-}
-
-function startNextRound() {
-  awardedTeam.value = null;
-  awardedPoints.value = 0;
-  props.nextRound();
-  props.updateGameState(gameStore.$state);
-}
-
-/* ---- helper functions ---- */
-
-/* --- currentStep = 2 --- */
-function closeLibraryDialog() {
-  if (props.setShowLibraryDialog) {
-    props.setShowLibraryDialog(false);
-  }
-}
-const questionError = computed(() => {
-  if (!props.questionInput.trim()) return 'Question cannot be empty.';
-  return '';
-});
-const answersError = computed(() => {
-  if (props.answerPairs.length < 2) return 'At least 2 answers are required.';
-  for (const [i, pair] of props.answerPairs.entries()) {
-    if (!pair || typeof pair.text !== 'string' || pair.text.trim() === '')
-      return `Answer ${i + 1} cannot be empty.`;
-    if (isNaN(pair.points) || pair.points < 2 || !Number.isInteger(pair.points))
-      return `Points for answer ${i + 1} must be an integer greater than 1.`;
-  }
-  return '';
-});
-function onPointsInput(event: Event, idx: number) {
-  const value = Math.floor(Number((event.target as HTMLInputElement).value));
-  if (isNaN(value) || value < 1) {
-    props.answerPairs[idx].points = 1;
-  } else {
-    props.answerPairs[idx].points = value;
-  }
-}
-const isFormValid = computed(() => !questionError.value && !answersError.value);
-
-/* --- currentStep = 3 --- */
-/* --- currentStep = 4 --- */
-/* --- currentStep = 5 --- */
-/* --- currentStep = 6 --- */
-/* --- currentStep = 7 --- */
-</script>
-
 <template>
   <div class="container bg-base-300 text-base-content">
     <h3 class="mb-4">Game Manager</h3>
@@ -197,17 +55,12 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
             <h5 class="mb-4 text-lg font-semibold">Upload CSV File</h5>
             <label for="file-upload" class="mb-2 block">Choose a CSV file:</label>
             <input
-              id="file-upload"
               type="file"
+              id="file-upload"
               class="file-input file-input-bordered w-full mb-4"
-              @change="
-                (e) => {
-                  handleUpload(e);
-                  emit('update:showQASection', true);
-                  showCsvUpload = false;
-                }
-              "
+              @change="onCsvFileChange"
             />
+            <div v-if="csvUploadError" class="text-error mb-2">{{ csvUploadError }}</div>
             <a :href="`${apiBase}/answers/Sample Template.csv`" download class="link link-primary">
               Download Template
             </a>
@@ -263,26 +116,27 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           Change method
         </button>
         <div>
-          <div class="form-row mb-4 flex flex-col gap-2">
+          <div class="form-row mb-4 flex flex-col">
             <label class="text-lg font-medium" for="question-input">Question</label>
             <input
-              id="question-input"
               type="text"
-              class="input"
+              id="question-input"
+              class="input validator"
+              required
+              placeholder="Enter the question here"
               :value="questionInput"
               @input="
                 (e: Event) => emit('update:questionInput', (e.target as HTMLInputElement).value)
               "
               :disabled="gameStore.questionSaved"
             />
+            <div class="validator-hint text-xs">{{ questionError }}</div>
           </div>
-          <div v-if="questionError" class="error-message">{{ questionError }}</div>
         </div>
         <div class="divider"></div>
         <!-- Answers Management -->
         <div>
           <h5>Answers</h5>
-          <div v-if="answersError" class="error-message">{{ answersError }}</div>
           <div v-if="answerPairs.length === 0" class="no-answers-message">
             No answers added yet. Upload CSV or press "Add Answer" below to start adding answers. At
             least 2 answers are required to save.
@@ -290,23 +144,29 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
           <div v-for="(pair, index) in answerPairs" :key="index" class="answer-pair">
             <label :for="'answer-' + index">Answer:</label>
             <input
-              :id="'answer-' + index"
               type="text"
-              class="input"
+              :id="'answer-' + index"
+              class="input validator"
+              required
+              minlength="1"
+              :placeholder="'Enter answer ' + (index + 1)"
               v-model="pair.text"
               :disabled="gameStore.answersSaved"
             />
+            <div class="validator-hint text-xs">Cannot be blank</div>
             <label :for="'points-' + index">Points:</label>
             <input
-              :id="'points-' + index"
               type="number"
-              class="input"
+              :id="'points-' + index"
+              class="input validator"
+              required
               v-model.number="pair.points"
               :disabled="gameStore.answersSaved"
               min="1"
               step="1"
               @input="onPointsInput($event, index)"
             />
+            <div class="validator-hint text-xs" v-if="pair.points < 1">Cannot be less than 1</div>
             <button class="btn" @click="removeAnswerPair(index)" :disabled="gameStore.answersSaved">
               Remove
             </button>
@@ -350,9 +210,9 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
       <h4 class="mb-4">Set Round Multiplier</h4>
       <div class="join mb-4">
         <input
+          type="radio"
           v-for="mult in [1, 2, 3]"
           :key="mult"
-          type="radio"
           class="btn join-item"
           v-model="selectedMultiplier"
           :value="mult"
@@ -561,6 +421,163 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+// Project variables
+const apiBase = import.meta.env.VITE_API_BASE || '';
+
+// State management
+import { ref, computed, nextTick } from 'vue';
+import { useGameStore } from '../../stores/gamestore';
+const gameStore = useGameStore();
+const showCsvUpload = ref(false);
+const csvUploadError = ref('');
+
+// Props
+interface GameMgrProps {
+  updateGameState: (state: any) => void;
+  nextRound: () => void;
+  /* --- currentStep = 2 --- */
+  handleUpload: (event: Event) => Promise<boolean>;
+  fetchLibraryFiles: () => void;
+  showLibraryDialog: boolean;
+  libraryFiles: string[];
+  loadLibraryFile: (fileName: string) => void;
+  setShowLibraryDialog?: (show: boolean) => void;
+  questionInput: string;
+  answerPairs: { text: string; points: number }[];
+  removeAnswerPair: (index: number) => void;
+  addAnswerPair: () => void;
+  removeAllAnswers: () => void;
+  saveQuestionAndAnswers: () => void;
+  showQASection: boolean;
+  /* --- currentStep = 3 --- */
+  setMultiplier: (multiplier: number) => void;
+  /* --- currentStep = 4 --- */
+  handleCorrectGuess?: (answerId: string) => void;
+  handleIncorrectAndStrike?: () => void;
+  emitStrikeSound?: () => void;
+  // roundOver: boolean;
+  /* --- currentStep = 5 --- */
+  showWhoStartsSection?: boolean;
+  setStartingTeam: (team: string) => void;
+  /* --- currentStep = 6 --- */
+  /* --- currentStep = 7 --- */
+  revealAllAnswers: () => void;
+  /* --- currentStep = TBD --- */
+}
+interface GameMgrEmits {
+  (e: 'update:questionInput', value: string): void;
+  (e: 'update:showQASection', value: boolean): void;
+}
+const props = defineProps<GameMgrProps>();
+const emit = defineEmits<GameMgrEmits>();
+
+// Local variables
+const awardedTeam = ref<string | null>(null);
+const awardedPoints = ref<number>(0);
+const selectedMultiplier = ref<number>(1);
+
+// Handlers for transitions
+function startRoundStep() {
+  gameStore.currentStep = 2;
+  // console.log('startRoundStep() called from GamgeMgr.vue');
+  props.updateGameState(gameStore.$state);
+}
+
+function saveQuestionAndAnswersStep() {
+  props.saveQuestionAndAnswers();
+  gameStore.currentStep = 3;
+  // console.log('saveQuestionAndAnswersStep() called from GamgeMgr.vue');
+  props.updateGameState(gameStore.$state);
+}
+
+function confirmMultiplierStep(multiplier: number) {
+  props.setMultiplier(multiplier);
+  gameStore.currentStep = 4;
+  // console.log('confirmMultiplierStep() called from GamgeMgr.vue');
+  props.updateGameState(gameStore.$state);
+}
+
+function startBuzzerRoundStep() {
+  if (
+    gameStore.highestPointAnswered ||
+    (gameStore.buzzerOnlyPressed && gameStore.correctAfterBuzzer) ||
+    gameStore.guessedAnswers.length >= 2 ||
+    gameStore.correctAfterBuzzer
+  ) {
+    gameStore.currentStep = 5;
+    // console.log('startBuzzerRoundStep() condition met in GamgeMgr.vue');
+  }
+  props.updateGameState(gameStore.$state);
+}
+
+function confirmStartingTeamStep(startingTeam: string) {
+  props.setStartingTeam(startingTeam);
+  gameStore.currentStep = 6;
+  // console.log('confirmStartingTeamStep() called from GamgeMgr.vue');
+  props.updateGameState(gameStore.$state);
+}
+
+function startNextRound() {
+  awardedTeam.value = null;
+  awardedPoints.value = 0;
+  props.nextRound();
+  props.updateGameState(gameStore.$state);
+}
+
+/* ---- helper functions ---- */
+
+/* --- currentStep = 2 --- */
+function closeLibraryDialog() {
+  if (props.setShowLibraryDialog) {
+    props.setShowLibraryDialog(false);
+  }
+}
+const questionError = computed(() => {
+  if (!props.questionInput.trim()) return 'Question cannot be empty.';
+  return '';
+});
+const answersError = computed(() => {
+  if (props.answerPairs.length < 2) return 'At least 2 answers are required.';
+  for (const [i, pair] of props.answerPairs.entries()) {
+    if (!pair || typeof pair.text !== 'string' || pair.text.trim() === '')
+      return `Answer ${i + 1} cannot be empty.`;
+    if (isNaN(pair.points) || pair.points < 1 || !Number.isInteger(pair.points))
+      return `Points for answer ${i + 1} must be an integer greater than 0.`;
+  }
+  return '';
+});
+function onPointsInput(event: Event, idx: number) {
+  const value = Math.floor(Number((event.target as HTMLInputElement).value));
+  if (isNaN(value) || value < 1) {
+    props.answerPairs[idx].points = 1;
+  } else {
+    props.answerPairs[idx].points = value;
+  }
+}
+async function onCsvFileChange(e: Event) {
+  csvUploadError.value = '';
+  const result = await props.handleUpload(e);
+  if (result === true) {
+    emit('update:showQASection', true);
+    showCsvUpload.value = false;
+  } else {
+    csvUploadError.value = 'Invalid CSV file. Please try again.';
+    // Clear the file input so user can re-upload the same file
+    const input = document.getElementById('file-upload') as HTMLInputElement;
+    if (input) input.value = '';
+    input?.focus();
+  }
+}
+const isFormValid = computed(() => !questionError.value && !answersError.value);
+
+/* --- currentStep = 3 --- */
+/* --- currentStep = 4 --- */
+/* --- currentStep = 5 --- */
+/* --- currentStep = 6 --- */
+/* --- currentStep = 7 --- */
+</script>
 
 <style scoped>
 .no-answers-message {

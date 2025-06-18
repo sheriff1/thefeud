@@ -21,19 +21,19 @@
     />
     <div class="modal" v-if="showSessionIdDialog">
       <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Invite Others</h3>
+        <h3 class="font-bold text-lg mb-4">🔗 Invite Others</h3>
         <div class="flex flex-col gap-3">
           <button class="btn btn-outline" @click="copySessionIdOption('id')">
             Copy Session ID
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('host')">
-            Copy Invite Host Link
+            Invite Host Link
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('team')">
-            Copy Invite Team Member Link
+            Invite Team Member Link
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-            Copy Invite Spectator Link
+            Invite Spectator Link
           </button>
         </div>
         <div class="modal-action">
@@ -139,57 +139,56 @@ const updateGameState = (gameState: any) => {
     alert('Session ID is missing. Cannot update game state.');
     return;
   }
-
+  //console.log('-------- updateGameState called in parent -------- ', gameState);
   socket.emit('update-game', { sessionId, gameState });
 };
 
-const handleUpload = (event: Event) => {
-  const file = (event.target as HTMLInputElement).files?.[0];
-  if (!file) return;
+const handleUpload = (event: Event): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return resolve(false);
 
-  // Validate file type (MIME) and extension
-  const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
-
-  if (!isCsv) {
-    alert('Please upload a valid CSV file.');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const text = e.target?.result as string;
-    const lines = text.split(/\r?\n/).filter(Boolean);
-
-    // Validate header
-    const expectedHeader = 'Question,Answer,Points';
-    if (lines[0].trim() !== expectedHeader) {
-      alert(`CSV header must be exactly: ${expectedHeader}`);
-      return;
+    const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+    if (!isCsv) {
+      alert('Please upload a valid CSV file.');
+      return resolve(false);
     }
 
-    // Validate each row
-    for (let i = 1; i < lines.length; i++) {
-      const columns = lines[i].split(',');
-      if (columns.length !== 3) {
-        alert(`Row ${i + 1} is invalid. Each row must have exactly 3 columns.`);
-        return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split(/\r?\n/).filter(Boolean);
+
+      const expectedHeader = 'Question,Answer,Points';
+      if (lines[0].trim() !== expectedHeader) {
+        alert(`CSV header must be exactly: ${expectedHeader}`);
+        return resolve(false);
       }
-    }
 
-    parseCsv(
-      file,
-      (row) => ({
-        id: uuidv4(),
-        text: row.Answer,
-        points: Number(row.Points),
-      }),
-      (parsedAnswers, rawData) => {
-        questionInput.value = rawData[0]?.Question || '';
-        answerPairs.value = parsedAnswers;
-      },
-    );
-  };
-  reader.readAsText(file);
+      for (let i = 1; i < lines.length; i++) {
+        const columns = lines[i].split(',');
+        if (columns.length !== 3) {
+          alert(`Row ${i + 1} is invalid. Each row must have exactly 3 columns.`);
+          return resolve(false);
+        }
+      }
+
+      parseCsv(
+        file,
+        (row) => ({
+          id: uuidv4(),
+          text: row.Answer,
+          points: Number(row.Points),
+        }),
+        (parsedAnswers, rawData) => {
+          questionInput.value = rawData[0]?.Question || '';
+          answerPairs.value = parsedAnswers;
+        },
+      );
+      resolve(true);
+    };
+    reader.readAsText(file);
+  });
 };
 
 const setStartingTeam = (team: string) => {
