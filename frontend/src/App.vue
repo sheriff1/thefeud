@@ -1,7 +1,7 @@
 <template>
   <div class="navbar bg-base-100 shadow-sm">
     <div class="flex-1">
-      <p class="btn btn-ghost text-base-content !text-base-content">The Feud</p>
+      <a href="/" class="btn btn-ghost text-base-content !text-base-content">The Feud</a>
     </div>
     <div class="flex-none">
       <ul class="menu menu-horizontal px-1 flex-row items-center">
@@ -75,6 +75,12 @@
         </li>
       </ul>
     </div>
+  </div>
+  <div
+    v-if="store.isLoading"
+    class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50"
+  >
+    <span class="loading loading-spinner loading-lg text-primary"></span>
   </div>
   <router-view />
 </template>

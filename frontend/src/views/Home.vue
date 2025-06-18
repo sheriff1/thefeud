@@ -55,7 +55,7 @@ const createSession = async () => {
   store.enteredFromHome = true;
   store.sessionId = newSessionId;
   localStorage.setItem('enteredFromHome', 'true');
-  localStorage.setItem('sessionId', sessionId.value);
+  localStorage.setItem('sessionId', store.sessionId);
   router.push(`/host?sessionId=${newSessionId}`);
 };
 

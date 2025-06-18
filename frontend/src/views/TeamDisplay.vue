@@ -19,16 +19,16 @@
       />
       <div class="modal" v-if="showSessionIdDialog">
         <div class="modal-box">
-          <h3 class="font-bold text-lg mb-4">Share Session</h3>
+          <h3 class="font-bold text-lg mb-4">Invite Others</h3>
           <div class="flex flex-col gap-3">
             <button class="btn btn-outline" @click="copySessionIdOption('id')">
               Copy Session ID
             </button>
             <button class="btn btn-outline" @click="copySessionIdOption('team')">
-              Invite Team Member Link
+              Copy Invite Team Member Link
             </button>
             <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-              Invite Spectator Link
+              Copy Invite Spectator Link
             </button>
           </div>
           <div class="modal-action">
@@ -159,7 +159,7 @@ const props = defineProps<TeamDisplayProps>();
 
 const store = useGameStore();
 const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
-const sessionIdBoxText = ref(`🔗  Share Session`); // Default text
+const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const playerName = ref('');
 const selectedTeam = ref('');
@@ -319,7 +319,7 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
       sessionIdBoxState.value = 'copied';
       showSessionIdDialog.value = false;
       setTimeout(() => {
-        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxText.value = `🔗  Invite Others`;
         sessionIdBoxState.value = '';
       }, 2000);
     })
@@ -328,7 +328,7 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
       sessionIdBoxState.value = 'error';
       showSessionIdDialog.value = false;
       setTimeout(() => {
-        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxText.value = `🔗  Invite Others`;
         sessionIdBoxState.value = '';
       }, 2000);
     });

@@ -354,6 +354,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('validate-session', async (sessionId, callback) => {
+    try {
+      const sessionDoc = await db.collection('sessions').doc(sessionId).get();
+      callback({ exists: sessionDoc.exists });
+    } catch (error) {
+      console.error('validate-session error:', error);
+      callback({ exists: false });
+    }
+  });
+
   socket.on('disconnect', async () => {
     // console.log('A user disconnected:', socket.id);
 

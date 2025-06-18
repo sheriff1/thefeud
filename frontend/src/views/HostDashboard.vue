@@ -21,19 +21,19 @@
     />
     <div class="modal" v-if="showSessionIdDialog">
       <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">Share Session</h3>
+        <h3 class="font-bold text-lg mb-4">Invite Others</h3>
         <div class="flex flex-col gap-3">
           <button class="btn btn-outline" @click="copySessionIdOption('id')">
             Copy Session ID
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('host')">
-            Invite Host Link
+            Copy Invite Host Link
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('team')">
-            Invite Team Member Link
+            Copy Invite Team Member Link
           </button>
           <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-            Invite Spectator Link
+            Copy Invite Spectator Link
           </button>
         </div>
         <div class="modal-action">
@@ -121,7 +121,7 @@ const timerInput = ref(0);
 const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
 const previousRound = ref(store.roundCounter); // Track the previous round value
-const sessionIdBoxText = ref(`🔗  Share Session`); // Default text
+const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
 const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const correctCount = ref(0);
@@ -136,10 +136,10 @@ const isTeamNamesUnique = computed(() => {
 
 const updateGameState = (gameState: any) => {
   if (!sessionId) {
-    alert('YERRRR Session ID is missing. Cannot update game state.');
+    alert('Session ID is missing. Cannot update game state.');
     return;
   }
-  console.log('-------- updateGameState called in parent -------- ', gameState);
+
   socket.emit('update-game', { sessionId, gameState });
 };
 
@@ -622,7 +622,7 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
       sessionIdBoxState.value = 'copied';
       showSessionIdDialog.value = false;
       setTimeout(() => {
-        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxText.value = `🔗  Invite Others`;
         sessionIdBoxState.value = '';
       }, 2000);
     })
@@ -631,7 +631,7 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
       sessionIdBoxState.value = 'error';
       showSessionIdDialog.value = false;
       setTimeout(() => {
-        sessionIdBoxText.value = `Session ID: ${sessionId}`;
+        sessionIdBoxText.value = `🔗  Invite Others`;
         sessionIdBoxState.value = '';
       }, 2000);
     });
