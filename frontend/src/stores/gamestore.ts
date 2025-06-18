@@ -37,6 +37,7 @@ export const useGameStore = defineStore('game', {
     enteredFromHome: localStorage.getItem('enteredFromHome') === 'true',
     sessionId: localStorage.getItem('sessionId') || '',
     buzzedPlayer: null as string | null, // New property to track the buzzed player
+    isLoading: false, // New property to track loading state,
   }),
   getters: {
     highestPointAnswerId(state) {
@@ -262,10 +263,17 @@ export const useGameStore = defineStore('game', {
         this.currentStep = 7;
         updateGameState(this.$state);
       }
-      console.log('Ending round: ', this.currentStep);
     },
     removeTeamMember(team: 'A' | 'B', memberName: string) {
       this.teamMembers[team] = this.teamMembers[team].filter((name) => name !== memberName);
+    },
+    setSessionId(id: string) {
+      this.sessionId = id;
+      localStorage.setItem('sessionId', id);
+    },
+    clearSessionId() {
+      this.sessionId = '';
+      localStorage.removeItem('sessionId');
     },
   },
 });

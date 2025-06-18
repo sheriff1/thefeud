@@ -85,7 +85,7 @@ const gameStore = useGameStore();
   gap: 2rem;
   justify-content: center;
   align-items: stretch;
-  margin: 2rem 0;
+  margin: 0.5rem 0;
   width: 100%; /* Prevent overflow */
   max-width: 100%; /* Prevent overflow */
   box-sizing: border-box;
@@ -99,7 +99,6 @@ const gameStore = useGameStore();
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 220px;
   position: relative;
   transition:
     box-shadow 0.2s,
@@ -107,6 +106,8 @@ const gameStore = useGameStore();
   background: var(--color-base-300, #23272f);
   border: 2px solid transparent;
   gap: calc(0.5rem);
+  flex: 0 1 25%;
+  max-width: 25%;
 }
 .team-info.active {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -165,13 +166,13 @@ const gameStore = useGameStore();
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
-  min-width: 280px;
+  flex: 0 1 50%;
+  max-width: 50%;
 }
 .game-info-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 16px;
 }
 .game-info-value {
   font-size: 2rem;
@@ -191,7 +192,6 @@ const gameStore = useGameStore();
 }
 .team-info,
 .game-info-container {
-  min-width: 220px;
   max-width: 100%;
   flex: 1 1; /* Allow shrinking and growing */
   box-sizing: border-box;
