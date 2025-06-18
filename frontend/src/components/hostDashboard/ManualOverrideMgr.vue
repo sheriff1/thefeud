@@ -5,83 +5,119 @@
       <label :for="'team-a-score'" class="w-32">
         <span class="info-key">{{ gameStore.teamNames.A }} Points:</span>
       </label>
-      <input
-        id="team-a-score"
-        type="number"
-        class="input"
-        v-model.number="gameStore.teamScores.A"
-        min="0"
-        step="1"
-      />
+      <div class="flex flex-col">
+        <input
+          type="number"
+          id="team-a-score"
+          class="input validator"
+          v-model.number="gameStore.teamScores.A"
+          min="0"
+          step="1"
+          @keydown="preventNonNumeric"
+        />
+        <div class="validator-hint text-xs hidden" v-if="gameStore.teamScores.A < 0">
+          Cannot be less than 0
+        </div>
+      </div>
     </div>
     <div class="form-row mb-4 flex items-center gap-2">
       <label :for="'team-b-score'" class="w-32">
         <span class="info-key">{{ gameStore.teamNames.B }} Points:</span>
       </label>
-      <input
-        id="team-b-score"
-        type="number"
-        class="input"
-        v-model.number="gameStore.teamScores.B"
-        min="0"
-        step="1"
-      />
+      <div class="flex flex-col">
+        <input
+          type="number"
+          id="team-b-score"
+          class="input validator"
+          v-model.number="gameStore.teamScores.B"
+          min="0"
+          step="1"
+          @keydown="preventNonNumeric"
+        />
+        <div class="validator-hint text-xs hidden" v-if="gameStore.teamScores.B < 0">
+          Cannot be less than 0
+        </div>
+      </div>
     </div>
     <div class="form-row mb-4 flex items-center gap-2">
       <label for="round-counter" class="w-32">
         <span class="info-key">Round:</span>
       </label>
-      <input
-        id="round-counter"
-        type="number"
-        class="input"
-        v-model.number="gameStore.roundCounter"
-        min="0"
-        step="1"
-      />
+      <div class="flex flex-col">
+        <input
+          type="number"
+          id="round-counter"
+          class="input validator"
+          v-model.number="gameStore.roundCounter"
+          min="0"
+          step="1"
+          @keydown="preventNonNumeric"
+        />
+        <div class="validator-hint text-xs hidden" v-if="gameStore.roundCounter < 0">
+          Cannot be less than 0
+        </div>
+      </div>
     </div>
     <div class="form-row mb-4 flex items-center gap-2">
       <label for="score-multiplier" class="w-32">
         <span class="info-key">Score Multiplier:</span>
       </label>
-      <input
-        id="score-multiplier"
-        type="number"
-        class="input"
-        v-model.number="gameStore.scoreMultiplier"
-        min="1"
-        max="3"
-      />
+      <div class="flex flex-col">
+        <input
+          type="number"
+          id="score-multiplier"
+          class="input validator"
+          v-model.number="gameStore.scoreMultiplier"
+          min="1"
+          max="3"
+          @keydown="preventNonNumeric"
+        />
+        <div
+          class="validator-hint text-xs hidden"
+          v-if="
+            gameStore.scoreMultiplier !== null &&
+            (gameStore.scoreMultiplier < 1 || gameStore.scoreMultiplier > 3)
+          "
+        >
+          Multiplier has to be between 1 and 3
+        </div>
+      </div>
     </div>
     <div class="form-row mb-4 flex items-center gap-2">
       <label for="team-a-name" class="w-32">
         <span class="info-key">Team A Name:</span>
       </label>
-      <input
-        id="team-a-name"
-        type="text"
-        class="input"
-        v-model="gameStore.teamNames.A"
-        placeholder="Enter Team A Name"
-      />
+
+      <div class="flex flex-col">
+        <input
+          type="text"
+          id="team-a-name"
+          class="input validator"
+          required
+          minlength="1"
+          v-model="gameStore.teamNames.A"
+          placeholder="Enter Team A Name"
+        />
+        <div class="validator-hint text-xs hidden">Cannot be blank</div>
+      </div>
     </div>
     <div class="form-row mb-4 flex items-center gap-2">
       <label for="team-b-name" class="w-32">
         <span class="info-key">Team B Name:</span>
       </label>
-      <input
-        id="team-b-name"
-        type="text"
-        class="input"
-        v-model="gameStore.teamNames.B"
-        placeholder="Enter Team B Name"
-      />
+      <div class="flex flex-col">
+        <input
+          type="text"
+          id="team-b-name"
+          class="input validator"
+          required
+          minlength="1"
+          v-model="gameStore.teamNames.B"
+          placeholder="Enter Team B Name"
+        />
+        <div class="validator-hint text-xs hidden">Cannot be blank</div>
+      </div>
     </div>
-    <p v-if="!isTeamNamesUnique" class="error-message">Team names must be unique.</p>
-    <div v-if="!teamScoresValid" class="error-message">
-      Team points must be nonnegative integers.
-    </div>
-    <div v-if="!roundCounterValid" class="error-message">Round must be a nonnegative integer.</div>
 
     <div class="flex gap-2">
       <button
@@ -122,16 +158,20 @@
         Reset Game
       </button>
     </div>
+
+    <div v-if="!(gameStore.teamNames.A !== gameStore.teamNames.B)" class="mt-2 text-error text-xs">
+      Team names must be unique.
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
+import { preventNonNumeric } from '@/composables/preventNonNumeric';
 
 interface ManualOverrideMgrProps {
   updateGameState: (state: any) => void;
-  isTeamNamesUnique: boolean;
   resetGame: () => void;
   resetRound: () => void;
   isLoading: boolean;
@@ -167,15 +207,16 @@ const roundCounterValid = computed(
   () => Number.isInteger(Number(gameStore.roundCounter)) && Number(gameStore.roundCounter) >= 0,
 );
 
+const teamNamesValid = computed(
+  () =>
+    gameStore.teamNames.A.trim() !== '' &&
+    gameStore.teamNames.B.trim() !== '' &&
+    gameStore.teamNames.A !== gameStore.teamNames.B,
+);
+
 const canSave = computed(
-  () => props.isTeamNamesUnique && teamScoresValid.value && roundCounterValid.value,
+  () => teamNamesValid.value && teamScoresValid.value && roundCounterValid.value,
 );
 </script>
 
-<style scoped>
-.error-message {
-  color: #d32f2f;
-  font-size: 0.95rem;
-  margin-top: 4px;
-}
-</style>
+<style scoped></style>
