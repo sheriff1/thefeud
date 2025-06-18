@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import socket from '../utils/socket';
-import { ref } from 'vue';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
