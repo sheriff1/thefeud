@@ -1,51 +1,28 @@
-# family-feud
+# The Feud
 
 ## Game Overview
 
-**The Feud** is a multiplayer game with four main interfaces:
+**The Feud** is a multiplayer game
 
-### 1. Home Page
-
-![home](https://github.com/user-attachments/assets/fad93376-0705-4140-bffd-216a9ba7f5e3)
-
-- Users can **create a new game session** or **join an existing session** using a session ID.
-- The home page is the starting point for hosts, team members, and spectators.
-
-### 2. Host Dashboard
-
-![host-dashboard](https://github.com/user-attachments/assets/63ee3155-717d-40a7-80a3-e53a8edd4796)
-
-- The host can **administer the game** using the dashboard.
-- Features include:
-  - **Loading questions and answers** from a CSV file or selecting from a built-in library.
-  - **Setting the score multiplier** for each round.
-  - **Marking answers as correct or incorrect** as teams guess.
-  - **Game controls** to start/stop timers, reset rounds, and manage team scores.
-- The host dashboard is the control center for running the game and updating the game state in real time.
-
-### 3. Team Display
-
-- Team members can **join a session** using the session ID provided by the host.
-![join-team](https://github.com/user-attachments/assets/fd5ae385-88b6-42c0-8c94-fa9d8b2f2d2b)
-- Players can **press buzzers** when the round is open to answer questions.
-![in-game-1](https://github.com/user-attachments/assets/429b85d1-9b52-4056-9688-1a3b638cd40d)
-- The team display updates in real time based on the host's actions, showing current questions, scores, and round status.
-![in-game-2](https://github.com/user-attachments/assets/85e456f1-5ccf-4e39-a3c0-7206e32dc038)
-- Round end condition is met: all answers guessed, 1st team gets 3 strikes and 2nd team guesses 1 correct answer, or 1st team gets 3 strikes and 2nd team gets 1 strike.
-![round-end](https://github.com/user-attachments/assets/6ef9d5b5-396f-40e7-876f-88c7fe6daf88)
-- Host reveals all answers
-![reveal-all](https://github.com/user-attachments/assets/0e57855d-baeb-4b65-9010-ca7f46495b41)
-
-### 4. Specator Mode
-
-- People who want to spectate can **join a session** using the session ID provided by the host.
-- Spectators see the Team Display without any controls.
-
----
-
-This setup allows for interactive, real-time gameplay where the host manages the flow and teams participate live.
-
-This template should help get you started developing with Vue 3 in Vite.
+![Screenshot 2025-06-18 at 11-38-04 The Feud](https://github.com/user-attachments/assets/48722220-b00a-49b5-8aad-58e776b374f5)
+![Screenshot 2025-06-18 at 11-38-16 The Feud](https://github.com/user-attachments/assets/34953557-7a9d-4460-8f39-7e2ff5ebdc45)
+![Screenshot 2025-06-18 at 11-38-32 The Feud](https://github.com/user-attachments/assets/fc338287-c53c-4a39-99f8-3e442caf010e)
+![Screenshot 2025-06-18 at 11-38-40 The Feud](https://github.com/user-attachments/assets/6b11b6a6-8eda-4b38-9ae3-b164df83a250)
+![Screenshot 2025-06-18 at 11-40-04 The Feud](https://github.com/user-attachments/assets/c25af6d9-9188-45f9-aa07-d877204282c3)
+![Screenshot 2025-06-18 at 11-40-12 The Feud](https://github.com/user-attachments/assets/480d00cd-b930-4f27-9996-57fae574fb09)
+![Screenshot 2025-06-18 at 11-40-19 The Feud](https://github.com/user-attachments/assets/61fc7340-8b66-4544-82e9-dcd5f0472e07)
+![Screenshot 2025-06-18 at 11-40-37 The Feud](https://github.com/user-attachments/assets/03a1ff4a-97cf-4226-8eb9-0c159e60fe4e)
+![Screenshot 2025-06-18 at 11-40-54 The Feud](https://github.com/user-attachments/assets/9ca07611-937d-4018-b983-350c95c435a0)
+![Screenshot 2025-06-18 at 11-41-05 The Feud](https://github.com/user-attachments/assets/eae58454-fb88-407e-94e8-0625fef8d342)
+![Screenshot 2025-06-18 at 11-41-20 The Feud](https://github.com/user-attachments/assets/30be5eca-11e3-42ba-9e3d-04862eb53969)
+![Screenshot 2025-06-18 at 11-41-26 The Feud](https://github.com/user-attachments/assets/8b5d4af3-6b25-4baa-a2c4-d1789c5b1ac9)
+![Screenshot 2025-06-18 at 11-41-31 The Feud](https://github.com/user-attachments/assets/8068a24f-3993-4335-945e-35c40710338f)
+![Screenshot 2025-06-18 at 11-41-57 The Feud](https://github.com/user-attachments/assets/5869184a-011d-4baf-91e0-67f24557b361)
+![Screenshot 2025-06-18 at 11-42-10 The Feud](https://github.com/user-attachments/assets/bf23068d-db4b-4bb8-8105-dbb7db2902ce)
+![Screenshot 2025-06-18 at 11-42-27 The Feud](https://github.com/user-attachments/assets/f7008e45-8585-4a47-baec-9a5796483dae)
+![Screenshot 2025-06-18 at 11-42-42 The Feud](https://github.com/user-attachments/assets/ef61af80-9885-44d2-9b1a-b067b0a18425)
+![Screenshot 2025-06-18 at 11-42-49 The Feud](https://github.com/user-attachments/assets/f1442bb9-46f3-4c89-930d-a786fd591ec9)
+![Screenshot 2025-06-18 at 11-43-00 The Feud](https://github.com/user-attachments/assets/56924cd9-2eee-4312-8f89-2a1b8b4e5be7)
 
 ## Recommended IDE Setup
 
