@@ -47,7 +47,7 @@ describe('Socket.io - validate-session', () => {
       });
       socket.on('error', (data) => {
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - getValidSessionDoc');
         resolve();
       });
     });
@@ -58,7 +58,7 @@ describe('Socket.io - validate-session', () => {
     await new Promise<void>((resolve) => {
       socket.on('error', (data) => {
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - validate-session');
         resolve();
       });
       socket.emit('validate-session', { sessionId, invalidField: '1234' });

@@ -8,18 +8,22 @@ const __dirname = path.dirname(__filename);
 
 const GameStateSchema = z
   .object({
-    answers: z.array(z.object({ answer: z.string(), points: z.number() })),
+    answers: z.array(z.object({ id: z.string(), text: z.string(), points: z.number() })),
     answersSaved: z.boolean(),
-    buzzedPlayer: z.string(),
+    buzzedPlayer: z.string().nullable(),
     buzzerOnlyPressed: z.boolean(),
     correctAfterBuzzer: z.boolean(),
     correctBeforeBuzzer: z.boolean(),
+    createdAt: z.object({ _seconds: z.number(), _nanoseconds: z.number() }).optional(),
     currentStep: z.number(),
     currentTeam: z.string(),
+    enteredFromHome: z.boolean(),
     expiryTime: z.string().optional(), // Optional expiry time for the game state
     firstTeam: z.string().nullable(),
     gameReset: z.boolean(),
-    guessedAnswers: z.array(z.string()),
+    guessedAnswers: z.array(z.object({ id: z.string() })),
+    guessedAnswersCount: z.number(),
+    isLoading: z.boolean(),
     multiplierSet: z.boolean(),
     nextRound: z.boolean(), // New property to track if the next round is started
     pointPool: z.number(),
@@ -36,6 +40,7 @@ const GameStateSchema = z
     startingTeamSet: z.boolean(),
     strikes: z.number(),
     teamMembers: z.object({ A: z.array(z.string()), B: z.array(z.string()) }),
+    teamNames: z.object({ A: z.string(), B: z.string() }),
     teamScores: z.object({ A: z.number(), B: z.number() }),
     teamStrikes: z.object({ A: z.number(), B: z.number() }),
     timer: z.number(),
@@ -228,7 +233,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Name is required to buzz' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - buzz' });
       return;
     }
     const { sessionId, name } = parseResult.data;
@@ -256,7 +261,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - play-strike-sound' });
       return;
     }
     const { sessionId } = parseResult.data;
@@ -275,7 +280,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - join-session' });
       return;
     }
     const { sessionId } = parseResult.data;
@@ -303,7 +308,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Team is required to join team' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - join-team' });
       return;
     }
     const { sessionId, name, team } = parseResult.data;
@@ -340,7 +345,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - get-current-state' });
       return;
     }
     const { sessionId } = parseResult.data;
@@ -364,7 +369,8 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Game state is required to update game' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+
+      socket.emit('error', { message: 'Invalid request - update-game' });
       return;
     }
     const { sessionId, gameState } = parseResult.data;
@@ -452,7 +458,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Team is required to update team name' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - update-team-name' });
       return;
     }
     const { sessionId, name, team } = parseResult.data;
@@ -479,7 +485,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - get-team-members' });
       return;
     }
     const { sessionId } = parseResult.data;
@@ -512,7 +518,7 @@ io.on('connection', (socket) => {
         socket.emit('error', { message: 'Team is required to remove team member' });
         return;
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - remove-team-member' });
       return;
     }
 
@@ -541,7 +547,7 @@ io.on('connection', (socket) => {
       if (typeof callback === 'function') {
         callback({ exists: false });
       }
-      socket.emit('error', { message: 'Invalid request' });
+      socket.emit('error', { message: 'Invalid request - validate-session' });
       return;
     }
     const { sessionId } = parseResult.data;
@@ -592,7 +598,7 @@ async function getValidSessionDoc(sessionId: string) {
   const sessionRef = db.collection('sessions').doc(sessionId);
   const sessionDoc = await sessionRef.get();
   if (!sessionDoc.exists) {
-    throw new Error('Invalid request');
+    throw new Error('Invalid request - getValidSessionDoc');
   }
   return { sessionRef, sessionDoc };
 }
