@@ -72,3 +72,5 @@ firestore-debug.log
 *.p12
 
 .secrets
+
+/frontend/cypress/screenshots

@@ -94,7 +94,7 @@
           <!-- Answers & Game Info Section -->
           <div>
             <AnswersBoard
-              :answers="store.answers.map((a) => ({ ...a, id: String(a.id) }))"
+              :answers="store.answers.map((a: any) => ({ ...a, id: String(a.id) }))"
               :question="store.question"
               :guessedAnswers="store.guessedAnswers"
               :showStrikeX="showStrikeX"
@@ -333,10 +333,6 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
       }, 2000);
     });
 }
-
-socket.on('play-strike-sound', () => {
-  playStrikeSound();
-});
 
 socket.on('team-names-updated', (teamNames: any) => {
   store.teamNames = { ...store.teamNames, ...teamNames };
