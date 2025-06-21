@@ -4,12 +4,13 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
-    "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node index.ts\" \"cd frontend && npm run dev\"",
+    "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && tsc -w\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 nodemon dist/server.js\" \"cd frontend && npm run dev\"",
     "lint": "eslint --ext .js,.vue frontend/src backend",
     "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
     "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\"",
     "build": "cd backend && tsc -p ./tsconfig.json",
     "postbuild": "cd backend && cp -r answers dist/answers",
+    "start": "cd backend && node dist/server.js",
     "heroku-postbuild": "cd backend && npm install && npm run build"
   },
   "devDependencies": {
@@ -23,6 +24,7 @@
     "eslint-plugin-prettier": "^5.4.0",
     "eslint-plugin-vue": "^10.1.0",
     "globals": "^16.2.0",
+    "nodemon": "^3.1.10",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vue-eslint-parser": "^10.1.3"

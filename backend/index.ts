@@ -1,20 +1,110 @@
-// filepath: family-feud/backend/index.ts
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import { z } from 'zod';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const GameStateSchema = z
+  .object({
+    answers: z.array(z.object({ answer: z.string(), points: z.number() })),
+    answersSaved: z.boolean(),
+    buzzedPlayer: z.string(),
+    buzzerOnlyPressed: z.boolean(),
+    correctAfterBuzzer: z.boolean(),
+    correctBeforeBuzzer: z.boolean(),
+    currentStep: z.number(),
+    currentTeam: z.string(),
+    expiryTime: z.string().optional(), // Optional expiry time for the game state
+    firstTeam: z.string().nullable(),
+    gameReset: z.boolean(),
+    guessedAnswers: z.array(z.string()),
+    multiplierSet: z.boolean(),
+    nextRound: z.boolean(), // New property to track if the next round is started
+    pointPool: z.number(),
+    pointsAwarded: z.number(),
+    question: z.string(),
+    questionSaved: z.boolean(),
+    roundCounter: z.number(),
+    roundOver: z.boolean(),
+    roundReset: z.boolean(),
+    scoreMultiplier: z.number().nullable(),
+    secondTeamGuessUsed: z.boolean(),
+    sessionId: z.string().optional(), // Optional session ID for the game state
+    startingTeam: z.string().nullable(),
+    startingTeamSet: z.boolean(),
+    strikes: z.number(),
+    teamMembers: z.object({ A: z.array(z.string()), B: z.array(z.string()) }),
+    teamScores: z.object({ A: z.number(), B: z.number() }),
+    teamStrikes: z.object({ A: z.number(), B: z.number() }),
+    timer: z.number(),
+    timerRunning: z.boolean(),
+    winningTeam: z.string().nullable(),
+  })
+  .strict();
+
+const sessionIdSchema = z
+  .string()
+  .regex(/^[A-Z0-9]{4}$/, { message: 'Session ID must be exactly 4 characters: A-Z, 0-9' });
+const nameSchema = z.string();
+const teamSchema = z.string();
+
+const SNTSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+    name: nameSchema,
+    team: teamSchema,
+  })
+  .strict();
+
+const SNSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+    name: nameSchema,
+  })
+  .strict();
+
+const SGSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+    gameState: GameStateSchema,
+  })
+  .strict();
+
+const SCSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+  })
+  .strict();
+
+const SessionIdSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+  })
+  .strict();
+
+// Use .env.test if NODE_ENV is 'test' or CI is set, otherwise use .env
+if (process.env.NODE_ENV === 'test' || process.env.CI) {
+  dotenv.config({ path: path.resolve(__dirname, '.env.test') });
+} else {
+  dotenv.config();
+}
+
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import admin from 'firebase-admin';
-import dotenv from 'dotenv';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-import path from 'path';
 import helmet from 'helmet';
 
 // Load environment variables
-dotenv.config();
-const projectId = process.env.FIREBASE_PROJECT_ID || 'family-feud-12345';
+const projectId = process.env.FIREBASE_PROJECT_ID || 'fam-feud-2';
 // Set emulator environment variables if running in test or CI
 let credential: admin.credential.Credential;
+
 if (
   process.env.FIRESTORE_EMULATOR_HOST ||
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||
@@ -31,23 +121,18 @@ if (
 }
 
 // Initialize Firebase
-if (!process.env.FIREBASE_CREDENTIALS) {
+// Only require FIREBASE_CREDENTIALS if not using the emulator
+const usingEmulator =
+  process.env.FIRESTORE_EMULATOR_HOST ||
+  process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+  process.env.NODE_ENV === 'test' ||
+  process.env.CI;
+
+if (!usingEmulator && !process.env.FIREBASE_CREDENTIALS) {
   throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
 }
-
-// Only use import.meta.url if module is ESM
-let __filename: string;
-let __dirname: string;
-if (typeof fileURLToPath === 'function' && typeof import.meta !== 'undefined') {
-  __filename = fileURLToPath(import.meta.url);
-  __dirname = path.dirname(__filename);
-} else {
-  __filename = __filename || '';
-  __dirname = __dirname || '';
-}
-
 admin.initializeApp({ credential, projectId });
-const db = admin.firestore();
+export const db = admin.firestore();
 
 // Initialize Express and Socket.IO
 const app = express();
@@ -91,7 +176,7 @@ app.post('/api/create-session/:sessionId', async (req, res) => {
   const sessionRef = db.collection('sessions').doc(sessionId);
   const sessionDoc = await sessionRef.get();
   if (!sessionDoc.exists) {
-    await sessionRef.set({ createdAt: new Date() });
+    await sessionRef.set({ sessionId, createdAt: new Date() });
   }
   res.json({ ok: true });
 });
@@ -101,7 +186,6 @@ app.get('/api/answers-library', (req, res) => {
   const answersDir = path.join(__dirname, 'answers');
   fs.readdir(answersDir, (err, files) => {
     if (err) {
-      console.error('Failed to list files:', err);
       return res.status(500).json({ error: 'Failed to list files' });
     }
     const csvFiles = files.filter((f) => f.endsWith('.csv'));
@@ -113,7 +197,13 @@ app.get('/api/answers-library', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
-
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err && err.message === 'Not allowed by CORS') {
+    res.status(403).json({ error: err.message });
+  } else {
+    next(err);
+  }
+});
 // WebSocket Communication
 const socketToPlayer = {};
 
@@ -127,52 +217,103 @@ const io = new Server(server, {
 });
 
 io.on('connection', (socket) => {
-  // console.log('A user connected:', socket.id);
-
-  socket.on('buzz', async ({ sessionId, name }) => {
-    const sessionRef = db.collection('sessions').doc(sessionId);
-    const sessionDoc = await sessionRef.get();
-
-    if (!sessionDoc.exists) {
-      // Optionally, you can emit an error or just return
-      socket.emit('error', { message: 'Session does not exist.' });
+  socket.on('buzz', async (payload) => {
+    const parseResult = SNSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (!payload.name) {
+        socket.emit('error', { message: 'Name is required to buzz' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
       return;
     }
-
-    // Update buzzedPlayer in Firestore
-    await sessionRef.set({ buzzedPlayer: name }, { merge: true });
-
-    // Fetch the latest session state
-    const updatedSessionDoc = await sessionRef.get();
-    const sessionData = updatedSessionDoc.data();
-
-    // Broadcast the updated state to all clients in the session
-    io.to(sessionId).emit('update-game', sessionData);
-  });
-
-  socket.on('play-strike-sound', async ({ sessionId }) => {
-    io.to(sessionId).emit('play-strike-sound');
-  });
-
-  socket.on('join-session', async ({ sessionId }) => {
-    // console.log(`User ${socket.id} is joining session: ${sessionId}`);
-    const sessionRef = db.collection('sessions').doc(sessionId);
-    const sessionDoc = await sessionRef.get();
-    if (!sessionDoc.exists) {
-      socket.emit('error', { message: 'Session does not exist.' });
-      return;
-    }
-    socket.join(sessionId);
-  });
-
-  socket.on('join-team', async ({ sessionId, name, team }) => {
+    const { sessionId, name } = parseResult.data;
     try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      const sessionDoc = await sessionRef.get();
-      let members = { A: [], B: [] };
+      const { sessionRef } = await getValidSessionDoc(sessionId);
 
+      // Update buzzedPlayer in Firestore
+      await sessionRef.set({ buzzedPlayer: name }, { merge: true });
+
+      // Fetch the latest session state
+      const updatedSessionDoc = await sessionRef.get();
+      const sessionData = updatedSessionDoc.data();
+
+      // Broadcast the updated state to all clients in the session
+      io.to(sessionId).emit('update-game', sessionData);
+    } catch (error) {
+      socket.emit('error', { message: error.message || 'Failed to buzz' });
+    }
+  });
+
+  socket.on('play-strike-sound', async (payload) => {
+    const parseResult = SessionIdSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId } = parseResult.data;
+    try {
+      await getValidSessionDoc(sessionId); // Throws if session doesn't exist
+      io.to(sessionId).emit('play-strike-sound');
+    } catch (error) {
+      socket.emit('error', { message: error.message || 'Failed to play strike sound' });
+    }
+  });
+
+  socket.on('join-session', async (payload) => {
+    const parseResult = SessionIdSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId } = parseResult.data;
+    try {
+      await getValidSessionDoc(sessionId);
+      socket.join(sessionId);
+      socket.emit('joined-session', { sessionId });
+    } catch (error) {
+      socket.emit('error', { message: error.message || 'Failed to join session' });
+    }
+  });
+
+  socket.on('join-team', async (payload) => {
+    const parseResult = SNTSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (!payload.name) {
+        socket.emit('error', { message: 'Name is required to join team' });
+        return;
+      }
+      if (!payload.team) {
+        socket.emit('error', { message: 'Team is required to join team' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId, name, team } = parseResult.data;
+
+    try {
+      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
+
+      let members = { A: [], B: [] };
       const sessionData = sessionDoc.data();
-      if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
+      if (sessionData && sessionData.teamMembers) {
         members = sessionData.teamMembers;
       }
 
@@ -181,45 +322,54 @@ io.on('connection', (socket) => {
       // Update Firestore with new team members
       await sessionRef.set({ teamMembers: members }, { merge: true });
 
-      // Broadcast updated team members to all clients in the session
-      io.to(sessionId).emit('team-members-updated', members);
-
       socket.join(sessionId);
+
+      io.to(sessionId).emit('team-members-updated', members);
 
       // Track player info for disconnect
       socketToPlayer[socket.id] = { sessionId, name, team };
     } catch (error) {
-      console.error('Error joining team:', error);
-      socket.emit('error', { message: 'Failed to join team' });
+      socket.emit('error', { message: error.message || 'Failed to join team' });
     }
   });
 
-  socket.on('get-current-state', async ({ sessionId }) => {
-    try {
-      const sessionDoc = await db.collection('sessions').doc(sessionId).get();
-      if (sessionDoc.exists) {
-        const currentState = sessionDoc.data();
-        socket.emit('current-state', currentState); // Send the current state to the client
-      } else {
-        console.error(`Session ${sessionId} not found.`);
-        socket.emit('current-state', null); // Send null if the session does not exist
+  socket.on('get-current-state', async (payload) => {
+    const parseResult = SessionIdSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching current state:', error);
-      socket.emit('current-state', null); // Send null in case of an error
-    }
-  });
-
-  socket.on('update-game', async ({ sessionId, gameState }) => {
-    if (!sessionId) {
-      console.error('Error: sessionId is missing or undefined');
-      socket.emit('error', { message: 'Session ID is required to update the game state.' });
+      socket.emit('error', { message: 'Invalid request' });
       return;
     }
-
+    const { sessionId } = parseResult.data;
     try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      const sessionDoc = await sessionRef.get();
+      const { sessionDoc } = await getValidSessionDoc(sessionId);
+      const currentState = sessionDoc.data();
+      socket.emit('current-state', currentState); // Send the current state to the client
+    } catch (error) {
+      socket.emit('error', { message: error.message || 'Failed to get current game state' });
+    }
+  });
+
+  socket.on('update-game', async (payload) => {
+    const parseResult = SGSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (!payload.gameState) {
+        socket.emit('error', { message: 'Game state is required to update game' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId, gameState } = parseResult.data;
+    try {
+      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
       const firestoreState = sessionDoc.data() || {};
 
       // Get previous roundOver value
@@ -229,7 +379,7 @@ io.on('connection', (socket) => {
       if (!gameState.expiryTime) {
         // Add expiryTime to the gameState object
         const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        gameState.expiryTime = new Date(Date.now() + expiryDuration);
+        gameState.expiryTime = new Date(Date.now() + expiryDuration).toISOString();
       }
 
       // Emit "round-over" ONLY if transitioning from not over to over
@@ -265,34 +415,14 @@ io.on('connection', (socket) => {
 
       // --- Reset the flag here, after logic that depends on it ---
       if (gameState.roundReset) {
-        gameState.roundReset = false;
-        gameState.roundOver = false; // Reset roundOver if roundReset is true
-        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
-        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
-        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
-        gameState.strikes = 0; // Reset strikes
-        gameState.pointPool = 0; // Reset point pool
-        gameState.firstTeam = null; // Reset firstTeam
-        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
-        gameState.scoreMultiplier = null; // Reset scoreMultiplier
-        gameState.timer = 0; // Reset timer
-        gameState.timerRunning = false; // Reset timerRunning
-        gameState.question = ''; // Reset question
-        gameState.pointsAwarded = 0; // Reset pointsAwarded
-        gameState.winningTeam = null; // Reset winningTeam
-        gameState.answers = []; // Reset answers
-        gameState.guessedAnswers = []; // Reset guessedAnswers
-        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-        gameState.currentStep = 1; // Reset currentStep to 'manage'
-        gameState.roundReset = false;
-
+        Object.assign(gameState, getResetRoundState());
         io.to(sessionId).emit('reset-round');
         io.to(sessionId).emit('reset-buzzers');
       }
 
       // --- Reset the flag here, after logic that depends on it ---
       if (gameState.gameReset) {
-        getResetGameState();
+        Object.assign(gameState, getResetGameState());
         io.to(sessionId).emit('reset-round');
         io.to(sessionId).emit('reset-buzzers');
       }
@@ -300,67 +430,131 @@ io.on('connection', (socket) => {
       // Save the updated gameState to Firestore
       await sessionRef.set(gameState);
 
-      // Optionally reset buzzedPlayer if this is a round/game reset
-      await sessionRef.set({ buzzedPlayer: '' }, { merge: true });
-
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('update-game', gameState);
     } catch (error) {
-      console.error('Error updating game state:', error);
-      socket.emit('error', { message: 'Failed to update game state' });
+      socket.emit('error', { message: error.message || 'Failed to update game state' });
     }
   });
 
-  socket.on('update-team-name', async ({ sessionId, team, name }) => {
+  socket.on('update-team-name', async (payload) => {
+    const parseResult = SNTSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (!payload.name) {
+        socket.emit('error', { message: 'Name is required to update team name' });
+        return;
+      }
+      if (!payload.team) {
+        socket.emit('error', { message: 'Team is required to update team name' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId, name, team } = parseResult.data;
     try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      const sessionDoc = await sessionRef.get();
+      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
       const sessionData = sessionDoc.data() || {};
       const currentTeamNames = sessionData.teamNames || { A: 'A', B: 'B' };
       const updatedTeamNames = { ...currentTeamNames, [team]: name };
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
-
-      // Emit only the team-names-updated event
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
-
-      // Do NOT emit 'update-game' here
     } catch (error) {
-      console.error('Error updating team name:', error);
+      if (error.message === 'Session does not exist') {
+        socket.emit('error', { message: error.message || 'Session does not exist' });
+      } else {
+        socket.emit('error', { message: error.message || 'Failed to update team name' });
+      }
     }
   });
 
-  socket.on('get-team-members', async ({ sessionId }) => {
-    const sessionRef = db.collection('sessions').doc(sessionId);
-    const sessionDoc = await sessionRef.get();
-    const data = sessionDoc.data() || {};
-    socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
+  socket.on('get-team-members', async (payload) => {
+    const parseResult = SessionIdSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId } = parseResult.data;
+
+    try {
+      const { sessionDoc } = await getValidSessionDoc(sessionId);
+      const data = sessionDoc.data() || {};
+      socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
+    } catch (error) {
+      if (error.message === 'Session does not exist') {
+        socket.emit('error', { message: error.message || 'Session does not exist' });
+      } else {
+        socket.emit('error', { message: error.message || 'Failed to get team members' });
+      }
+    }
   });
 
-  socket.on('remove-team-member', async ({ sessionId, team, name }) => {
+  socket.on('remove-team-member', async (payload) => {
+    const parseResult = SNTSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (!payload.name) {
+        socket.emit('error', { message: 'Name is required to remove team member' });
+        return;
+      }
+      if (!payload.team) {
+        socket.emit('error', { message: 'Team is required to remove team member' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+
+    const { sessionId, name, team } = parseResult.data;
     try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      const sessionDoc = await sessionRef.get();
+      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
       const sessionData = sessionDoc.data();
-      if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
-        let members = sessionData.teamMembers;
-        if (members[team]) {
-          members[team] = members[team].filter((memberName: string) => memberName !== name);
-          await sessionRef.set({ teamMembers: members }, { merge: true });
-          io.to(sessionId).emit('team-members-updated', members);
-        }
+      let members = sessionData.teamMembers;
+      if (members[team]) {
+        members[team] = members[team].filter((memberName: string) => memberName !== name);
+        await sessionRef.set({ teamMembers: members }, { merge: true });
+        io.to(sessionId).emit('team-members-updated', members);
       }
     } catch (error) {
-      console.error('Error removing team member:', error);
+      socket.emit('error', { message: error.message || `Error removing team member` });
     }
   });
 
-  socket.on('validate-session', async (sessionId, callback) => {
+  socket.on('validate-session', async (payload, callback) => {
+    const parseResult = SCSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      if (typeof callback === 'function') {
+        callback({ exists: false });
+      }
+      socket.emit('error', { message: 'Invalid request' });
+      return;
+    }
+    const { sessionId } = parseResult.data;
     try {
-      const sessionDoc = await db.collection('sessions').doc(sessionId).get();
-      callback({ exists: sessionDoc.exists });
+      const { sessionDoc } = await getValidSessionDoc(sessionId);
+      if (typeof callback === 'function') {
+        callback({ exists: sessionDoc.exists });
+      }
     } catch (error) {
-      console.error('validate-session error:', error);
-      callback({ exists: false });
+      socket.emit('error', { message: error.message || `Error validating session` });
+      if (typeof callback === 'function') {
+        callback({ exists: false });
+      }
     }
   });
 
@@ -394,11 +588,44 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start the server
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
-  // console.log(`Server is running on port ${PORT}`);
-});
+async function getValidSessionDoc(sessionId: string) {
+  const sessionRef = db.collection('sessions').doc(sessionId);
+  const sessionDoc = await sessionRef.get();
+  if (!sessionDoc.exists) {
+    throw new Error('Invalid request');
+  }
+  return { sessionRef, sessionDoc };
+}
+
+function getResetRoundState() {
+  return {
+    roundReset: false,
+    roundOver: false, // Reset roundOver if roundReset is true
+    buzzedPlayer: '', // Reset buzzedPlayer if roundReset is true
+    startingTeamSet: false, // Reset startingTeamSet if roundReset is true
+    currentTeam: 'A', // Reset currentTeam to 'A'
+    strikes: 0, // Reset strikes
+    pointPool: 0, // Reset point pool
+    firstTeam: null, // Reset firstTeam
+    secondTeamGuessUsed: false, // Reset secondTeamGuessUsed
+    scoreMultiplier: null, // Reset scoreMultiplier
+    timer: 0, // Reset timer
+    timerRunning: false, // Reset timerRunning
+    question: '', // Reset question
+    pointsAwarded: 0, // Reset pointsAwarded
+    winningTeam: null, // Reset winningTeam
+    answers: [], // Reset answers
+    guessedAnswers: [], // Reset guessedAnswers
+    teamStrikes: { A: 0, B: 0 }, // Reset team strikes
+    currentStep: 1, // Reset currentStep to 'manage'
+    multiplierSet: false,
+    answersSaved: false,
+    startingTeam: null, // Reset startingTeam
+    questionSaved: false, // Reset questionSaved
+    buzzerOnlyPressed: false, // Reset buzzerOnlyPressed
+    correctAfterBuzzer: false, // Reset correctAfterBuzzer
+  };
+}
 
 function getResetGameState() {
   return {
@@ -406,7 +633,7 @@ function getResetGameState() {
     roundOver: false,
     buzzedPlayer: '',
     startingTeamSet: false,
-    currentTeam: 'A',
+    currentTeam: 'a',
     strikes: 0,
     pointPool: 0,
     firstTeam: null,
@@ -430,7 +657,9 @@ function getResetGameState() {
     roundCounter: 0,
     teamScores: { A: 0, B: 0 },
     gameReset: false,
+    nextRound: false, // Added to handle next round logic
   };
 }
 
 export default app;
+export { server, io };

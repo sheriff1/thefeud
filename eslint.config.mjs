@@ -34,5 +34,6 @@ export default defineConfig([
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error'],
     },
+    ignores: ['backend/dist/', 'frontend/dist/', 'node_modules/'],
   },
 ]);
