@@ -87,7 +87,7 @@ describe('Socket.io', () => {
       socket.on('error', (data) => {
         clearTimeout(timeout);
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - update-team-name');
         socket.disconnect();
         resolve();
       });
@@ -127,7 +127,7 @@ describe('Socket.io', () => {
       socket.on('error', (data) => {
         clearTimeout(timeout);
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - update-team-name');
         socket.disconnect();
         resolve();
       });

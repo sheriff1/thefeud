@@ -3,41 +3,44 @@ import socket from '../utils/socket';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
-    teamNames: { A: 'A', B: 'B' },
-    teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
     answers: [] as { id: string; text: string; points: number }[],
-    question: '',
-    teamMembers: { A: [] as string[], B: [] as string[] },
-    guessedAnswers: [] as { id: string }[],
+    answersSaved: false, // New property to track if answers are saved
+    buzzedPlayer: null as string | null, // New property to track the buzzed player
+    buzzerOnlyPressed: false, // <-- Add this if not present
+    correctAfterBuzzer: false, // <-- Add this if not present
+    correctBeforeBuzzer: false, // <-- Add this if not present
+    createdAt: undefined as { _seconds: number; _nanoseconds: number } | undefined,
+    currentStep: 1,
     currentTeam: 'A' as 'A' | 'B',
-    strikes: 0, // Current team's strikes during the round
-    teamStrikes: { A: 0, B: 0 }, // Persistent strike count for each team
-    pointPool: 0,
+    enteredFromHome: localStorage.getItem('enteredFromHome') === 'true',
+    expiryTime: '' as string | undefined,
     firstTeam: null as 'A' | 'B' | null,
-    secondTeamGuessUsed: false,
-    scoreMultiplier: null as number | null,
-    timer: 0,
-    timerRunning: false,
+    gameReset: false, // <-- Add this if not present
+    guessedAnswers: [] as { id: string }[],
+    guessedAnswersCount: 0, // <-- Add this if not present
+    isLoading: false, // New property to track loading state,
+    multiplierSet: false, // New property to track if the multiplier is set
+    nextRound: false,
+    pointPool: 0,
+    pointsAwarded: 0, // New property to store awarded points
+    question: '',
+    questionSaved: false, // <-- Add this if not present
     roundCounter: 0,
     roundOver: false, // New flag to track if the round is over
-    pointsAwarded: 0, // New property to store awarded points
-    winningTeam: null as 'A' | 'B' | null, // New property to store the winning team
-    startingTeamSet: false,
-    currentStep: 1,
-    multiplierSet: false, // New property to track if the multiplier is set
-    answersSaved: false, // New property to track if answers are saved
-    questionSaved: false, // <-- Add this if not present
-    startingTeam: null as 'A' | 'B' | null, // <-- Add this if not present
-    correctBeforeBuzzer: false, // <-- Add this if not present
-    correctAfterBuzzer: false, // <-- Add this if not present
-    buzzerOnlyPressed: false, // <-- Add this if not present
-    guessedAnswersCount: 0, // <-- Add this if not present
     roundReset: false,
-    nextRound: false,
-    enteredFromHome: localStorage.getItem('enteredFromHome') === 'true',
+    scoreMultiplier: null as number | null,
+    secondTeamGuessUsed: false,
     sessionId: localStorage.getItem('sessionId') || '',
-    buzzedPlayer: null as string | null, // New property to track the buzzed player
-    isLoading: false, // New property to track loading state,
+    startingTeam: null as 'A' | 'B' | null, // <-- Add this if not present
+    startingTeamSet: false,
+    strikes: 0, // Current team's strikes during the round
+    teamMembers: { A: [] as string[], B: [] as string[] },
+    teamNames: { A: 'A', B: 'B' },
+    teamScores: { A: 0, B: 0 } as Record<'A' | 'B', number>,
+    teamStrikes: { A: 0, B: 0 }, // Persistent strike count for each team
+    timer: 0,
+    timerRunning: false,
+    winningTeam: null as 'A' | 'B' | null, // New property to store the winning team
   }),
   getters: {
     highestPointAnswerId(state) {

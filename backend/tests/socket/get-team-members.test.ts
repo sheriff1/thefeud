@@ -15,11 +15,16 @@ let gameState = {
   buzzerOnlyPressed: false,
   correctAfterBuzzer: false,
   correctBeforeBuzzer: false,
+  createdAt: undefined as { _seconds: number; _nanoseconds: number } | undefined,
   currentStep: 1,
   currentTeam: 'ABCD',
+  enteredFromHome: false,
+  expiryTime: '' as string | undefined,
   firstTeam: null,
   gameReset: false,
-  guessedAnswers: [],
+  guessedAnswers: [] as { id: string }[],
+  guessedAnswersCount: 0,
+  isLoading: false,
   multiplierSet: false,
   nextRound: false,
   pointPool: 0,
@@ -29,19 +34,20 @@ let gameState = {
   roundCounter: 0,
   roundOver: false,
   roundReset: false,
-  scoreMultiplier: null,
+  scoreMultiplier: null as number | null,
   secondTeamGuessUsed: false,
-  startingTeam: null,
+  sessionId: '', // or your session id
+  startingTeam: null as 'A' | 'B' | null,
   startingTeamSet: false,
   strikes: 0,
   teamMembers: { A: [], B: [] },
+  teamNames: { A: 'A', B: 'B' },
   teamScores: { A: 0, B: 0 },
   teamStrikes: { A: 0, B: 0 },
   timer: 0,
   timerRunning: false,
   winningTeam: null,
 };
-
 beforeEach(async () => {
   sessionId = Math.random().toString(36).substring(2, 6).toUpperCase();
   await db.collection('sessions').doc(sessionId).set({ sessionId, createdAt: Date.now() });
@@ -53,11 +59,16 @@ beforeEach(async () => {
     buzzerOnlyPressed: false,
     correctAfterBuzzer: false,
     correctBeforeBuzzer: false,
+    createdAt: undefined,
     currentStep: 1,
     currentTeam: 'ABCD',
+    enteredFromHome: false,
+    expiryTime: '',
     firstTeam: null,
     gameReset: false,
     guessedAnswers: [],
+    guessedAnswersCount: 0,
+    isLoading: false,
     multiplierSet: false,
     nextRound: false,
     pointPool: 0,
@@ -69,10 +80,12 @@ beforeEach(async () => {
     roundReset: false,
     scoreMultiplier: null,
     secondTeamGuessUsed: false,
+    sessionId: '',
     startingTeam: null,
     startingTeamSet: false,
     strikes: 0,
     teamMembers: { A: [], B: [] },
+    teamNames: { A: 'A', B: 'B' },
     teamScores: { A: 0, B: 0 },
     teamStrikes: { A: 0, B: 0 },
     timer: 0,
@@ -174,7 +187,7 @@ describe('Socket.io', () => {
       socket.on('error', (data) => {
         clearTimeout(timeout);
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - get-team-members');
         socket.disconnect();
         resolve();
       });
@@ -254,7 +267,7 @@ describe('Socket.io', () => {
       socket.on('error', (data) => {
         clearTimeout(timeout);
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request');
+        expect(data.message).toBe('Invalid request - get-team-members');
         socket.disconnect();
         resolve();
       });
