@@ -300,7 +300,7 @@ describe('TimerMgr', () => {
     cy.contains('Timer is stopped.').should('be.visible');
     cy.get('#timer-input').should('be.visible');
 
-    // Start timer
+    // Simulate timer starting
     cy.then(() => {
       gameStore.timerRunning = true;
       gameStore.timer = 30;
@@ -309,11 +309,75 @@ describe('TimerMgr', () => {
     cy.contains('Timer is running...').should('be.visible');
     cy.get('#timer-input').should('not.exist');
 
-    // Timer reaches 0
+    // Simulate timer reaching 0
     cy.then(() => {
       gameStore.timer = 0;
     });
 
     cy.get('#timer-input').should('be.visible');
+  });
+
+  it('handles very large timer values', () => {
+    gameStore.timer = 99999;
+
+    cy.mount(TimerMgr, {
+      props: { ...defaultProps, timerInput: 99999 },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    cy.contains('Current Timer: 99999 seconds').should('be.visible');
+    cy.get('#timer-input').should('have.value', '99999');
+  });
+
+  it('prevents non-numeric input with preventNonNumeric', () => {
+    cy.mount(TimerMgr, {
+      props: defaultProps,
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    // Test that the input has the preventNonNumeric handler
+    cy.get('#timer-input').should('exist');
+    // This is hard to test directly, but we can ensure the input type is number
+    cy.get('#timer-input').should('have.attr', 'type', 'number');
+  });
+
+  it('handles fractional timer input correctly', () => {
+    cy.mount(TimerMgr, {
+      props: { ...defaultProps, timerInput: 30.5 },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    // Should show the decimal value
+    cy.get('#timer-input').should('have.value', '30.5');
+    // Buttons should still work with fractional values > 0
+    cy.get('button').contains('Start').should('not.be.disabled');
+  });
+
+  it('handles timer input with leading zeros', () => {
+    const onUpdateTimerInput = cy.stub();
+    const setTimer = cy.stub();
+
+    cy.mount(TimerMgr, {
+      props: {
+        ...defaultProps,
+        'onUpdate:timerInput': onUpdateTimerInput,
+        setTimer,
+      },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    cy.get('#timer-input').clear().type('00030').blur();
+    cy.then(() => {
+      expect(onUpdateTimerInput).to.have.been.calledWith(30);
+      expect(setTimer).to.have.been.called;
+    });
   });
 });

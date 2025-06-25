@@ -160,4 +160,66 @@ describe('ActiveGameInfoMgr', () => {
     cy.get('.team-info').should('have.css', 'flex-direction', 'column');
     cy.get('.game-info-container').should('be.visible');
   });
+
+  it('handles null scoreMultiplier gracefully', () => {
+    mount(ActiveGameInfoMgr).then(() => {
+      const gameStore = useGameStore();
+      gameStore.scoreMultiplier = null;
+    });
+
+    cy.get('.game-info-container').within(() => {
+      cy.get('.game-info-item')
+        .last()
+        .should('contain.text', 'x')
+        .and('contain.text', 'Score Multiplier');
+    });
+  });
+
+  it('handles maximum strikes (3) correctly', () => {
+    mount(ActiveGameInfoMgr).then(() => {
+      const gameStore = useGameStore();
+      gameStore.teamStrikes = { A: 3, B: 3 };
+    });
+
+    cy.get('.team-info').each(($teamInfo) => {
+      cy.wrap($teamInfo).within(() => {
+        cy.get('.strike-x').should('have.length', 3);
+        cy.get('svg').should('have.length', 3);
+      });
+    });
+  });
+
+  it('handles no currentTeam set', () => {
+    mount(ActiveGameInfoMgr).then(() => {
+      const gameStore = useGameStore();
+      gameStore.currentTeam = null;
+    });
+
+    cy.get('.team-info').first().should('not.have.class', 'active');
+    cy.get('.team-info').last().should('not.have.class', 'active');
+  });
+
+  it('displays very large point pool values', () => {
+    mount(ActiveGameInfoMgr).then(() => {
+      const gameStore = useGameStore();
+      gameStore.pointPool = 999999;
+    });
+
+    cy.get('.game-info-container').within(() => {
+      cy.get('.game-info-item')
+        .eq(1)
+        .should('contain.text', '999999')
+        .and('contain.text', 'Points Pool');
+    });
+  });
+
+  it('handles negative scores appropriately', () => {
+    mount(ActiveGameInfoMgr).then(() => {
+      const gameStore = useGameStore();
+      gameStore.teamScores = { A: -50, B: -100 };
+    });
+
+    cy.get('.team-score').first().should('contain.text', '-50');
+    cy.get('.team-score').last().should('contain.text', '-100');
+  });
 });

@@ -216,4 +216,223 @@ describe('TeamPanel', () => {
       cy.get('input[type="text"]').should('have.value', 'Updated Team');
     });
   });
+
+  it('handles very long team names gracefully', () => {
+    const longName = 'A'.repeat(100);
+    mount(TeamPanel, {
+      props: { ...defaultProps, teamName: longName },
+    });
+
+    cy.get('.team-header').should('contain.text', longName.toUpperCase());
+  });
+
+  it('handles special characters in team name', () => {
+    const specialName = 'Team @#$%^&*()!';
+    mount(TeamPanel, {
+      props: { ...defaultProps, teamName: specialName },
+    });
+
+    cy.get('.team-header').should('contain.text', specialName.toUpperCase());
+  });
+
+  it('respects maxlength attribute on input field', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team1');
+    });
+
+    mount(TeamPanel, {
+      props: { ...defaultProps, editing: true },
+    });
+
+    cy.get('input[type="text"]').should('have.attr', 'maxlength', '20');
+  });
+
+  it('saves team name on Enter key press', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team1');
+    });
+
+    const saveTeamSpy = cy.stub().as('saveTeamHandler');
+
+    mount(TeamPanel, {
+      props: {
+        ...defaultProps,
+        editing: true,
+        'onSave-team': saveTeamSpy,
+      },
+    });
+
+    cy.get('input[type="text"]').clear().type('New Name{enter}');
+    cy.get('@saveTeamHandler').should('have.been.calledWith', {
+      team: 'team1',
+      name: 'New Name',
+    });
+  });
+
+  it('saves team name on blur event', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team1');
+    });
+
+    const saveTeamSpy = cy.stub().as('saveTeamHandler');
+
+    mount(TeamPanel, {
+      props: {
+        ...defaultProps,
+        editing: true,
+        'onSave-team': saveTeamSpy,
+      },
+    });
+
+    cy.get('input[type="text"]').clear().type('Blur Name').blur();
+    cy.get('@saveTeamHandler').should('have.been.calledWith', {
+      team: 'team1',
+      name: 'Blur Name',
+    });
+  });
+
+  it('handles single member team', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, members: ['Solo Player'] },
+    });
+
+    cy.get('.team-members-list li').should('have.length', 1);
+    cy.get('.team-members-list li').should('contain.text', 'Solo Player');
+  });
+
+  it('handles very large team with many members', () => {
+    const manyMembers = Array.from({ length: 20 }, (_, i) => `Player ${i + 1}`);
+    mount(TeamPanel, {
+      props: { ...defaultProps, members: manyMembers },
+    });
+
+    cy.get('.team-members-list li').should('have.length', 20);
+    cy.get('.team-members-list li').first().should('contain.text', 'Player 1');
+    cy.get('.team-members-list li').last().should('contain.text', 'Player 20');
+  });
+
+  it('displays buzzer text correctly when player is buzzed', () => {
+    mount(TeamPanel, {
+      props: defaultProps,
+      global: {
+        mocks: {
+          store: {
+            buzzedPlayer: 'Alice',
+          },
+        },
+      },
+    });
+
+    cy.get('.buzzer-button').should('contain.text', 'Buzzed!');
+  });
+
+  it('hides strikes section when startingTeamSet is false', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, startingTeamSet: false },
+    });
+
+    cy.get('.team-strikes').should('not.exist');
+  });
+
+  it('handles negative score values', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, score: -500 },
+    });
+
+    cy.get('.team-score').should('contain.text', '-500');
+  });
+
+  it('handles zero score', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, score: 0 },
+    });
+
+    cy.get('.team-score').should('contain.text', '0');
+  });
+
+  it('handles very large score values', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, score: 999999 },
+    });
+
+    cy.get('.team-score').should('contain.text', '999999');
+  });
+
+  it('hides edit button when current player is not on this team', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team2');
+    });
+
+    mount(TeamPanel, {
+      props: defaultProps,
+    });
+
+    cy.get('.btn-xs').should('not.exist');
+  });
+
+  it('shows static team name when editing but not current player team', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team2');
+    });
+
+    mount(TeamPanel, {
+      props: { ...defaultProps, editing: true },
+    });
+
+    cy.get('input[type="text"]').should('not.exist');
+    cy.get('.team-header').should('contain.text', 'TEAM ALPHA');
+  });
+
+  it('uses initialEditedName prop when provided', () => {
+    cy.window().then((win) => {
+      win.localStorage.setItem('playerTeam', 'team1');
+    });
+
+    mount(TeamPanel, {
+      props: {
+        ...defaultProps,
+        editing: true,
+        initialEditedName: 'Initial Name',
+      },
+    });
+
+    cy.get('input[type="text"]').should('have.value', 'Initial Name');
+  });
+
+  it('handles members with special characters', () => {
+    mount(TeamPanel, {
+      props: {
+        ...defaultProps,
+        members: ['José', 'François', 'Müller'],
+      },
+    });
+
+    cy.get('.team-members-list li').should('have.length', 3);
+    cy.get('.team-members-list li').eq(0).should('contain.text', 'José');
+    cy.get('.team-members-list li').eq(1).should('contain.text', 'François');
+    cy.get('.team-members-list li').eq(2).should('contain.text', 'Müller');
+  });
+
+  it('handles members with very long names', () => {
+    const longName = 'A'.repeat(50);
+    mount(TeamPanel, {
+      props: {
+        ...defaultProps,
+        members: [longName],
+      },
+    });
+
+    cy.get('.team-members-list li').should('contain.text', longName);
+  });
+
+  // Test for Vue DevTools warning suppression
+  beforeEach(() => {
+    cy.window().then((win) => {
+      // Suppress Vue DevTools warning
+      const winAny = win as any;
+      if (winAny.__VUE_DEVTOOLS_GLOBAL_HOOK__) {
+        winAny.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled = false;
+      }
+    });
+  });
 });
