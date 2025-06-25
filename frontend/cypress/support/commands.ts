@@ -29,6 +29,39 @@ Cypress.Commands.add('cleanupTestSession', (sessionId: string) => {
   });
 });
 
+// Custom command to wait for Vue app initialization
+Cypress.Commands.add('waitForVueApp', () => {
+  cy.window().then((win) => {
+    return new Cypress.Promise((resolve) => {
+      const checkVueApp = () => {
+        // Check if Vue app is initialized
+        if ((win as any).__VUE__ || (win as any).__VUE_DEVTOOLS_GLOBAL_HOOK__) {
+          resolve();
+          return;
+        }
+
+        // Check if Pinia is available
+        if ((win as any).__PINIA__) {
+          resolve();
+          return;
+        }
+
+        // Check if we can find Vue components in the DOM
+        const vueElements = win.document.querySelectorAll('[data-v-]');
+        if (vueElements.length > 0) {
+          resolve();
+          return;
+        }
+
+        // Retry after a short delay
+        setTimeout(checkVueApp, 50);
+      };
+
+      checkVueApp();
+    });
+  });
+});
+
 // Custom command to set test environment flags
 Cypress.Commands.add('setTestEnvironment', () => {
   cy.window().then((win) => {
@@ -87,16 +120,19 @@ Cypress.Commands.add('navigateToSpectator', (sessionId: string) => {
 // Custom command to navigate directly to a view (bypassing home page)
 Cypress.Commands.add('navigateDirectToHost', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/host?sessionId=${sessionId}`);
+  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/host?sessionId=${sessionId}`);
 });
 
 Cypress.Commands.add('navigateDirectToTeam', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/team?sessionId=${sessionId}`);
+  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/team?sessionId=${sessionId}`);
 });
 
 Cypress.Commands.add('navigateDirectToSpectator', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/spectator?sessionId=${sessionId}`);
+  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/spectator?sessionId=${sessionId}`);
 });
 
@@ -112,6 +148,7 @@ declare global {
       navigateDirectToTeam(sessionId: string): Chainable<void>;
       navigateDirectToSpectator(sessionId: string): Chainable<void>;
       setTestEnvironment(): Chainable<void>;
+      waitForVueApp(): Chainable<void>;
     }
   }
 }
