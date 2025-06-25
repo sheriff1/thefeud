@@ -14,17 +14,26 @@
         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
       />
     </svg>
-    <p>{{ heading }} {{ paragraph }}</p>
+    <p>{{ displayText }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 interface BannerProps {
   heading: string;
   paragraph: string;
 }
 
-defineProps<BannerProps>();
+const props = defineProps<BannerProps>();
+
+const displayText = computed(() => {
+  if (!props.heading && !props.paragraph) return '';
+  if (!props.heading) return props.paragraph;
+  if (!props.paragraph) return props.heading;
+  return `${props.heading} ${props.paragraph}`;
+});
 </script>
 
 <style>

@@ -10,6 +10,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+
 interface FloatingButtonProps {
   label: string;
   onClick?: () => void;
@@ -18,7 +19,10 @@ interface FloatingButtonProps {
   ariaPressed?: boolean;
 }
 
-const props = defineProps<FloatingButtonProps>();
+const props = withDefaults(defineProps<FloatingButtonProps>(), {
+  ariaPressed: false, // Default to false
+});
+
 const emit = defineEmits(['click']);
 
 const buttonState = ref(props.state);
@@ -28,13 +32,6 @@ watch(
     buttonState.value = newState;
   },
 );
-
-// function handleClick() {
-//   emit('click');
-//   if (props.onClick) {
-//     props.onClick();
-//   }
-// }
 </script>
 
 <style scoped>

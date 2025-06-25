@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test:ui": "cypress open",
     "test": "cypress run",
-    "test:ci": "start-server-and-test dev http://localhost:5173 test",
+    "test:ci": "cypress run --component && cypress run --e2e",
+    "test:component": "cypress run --component",
+    "test:e2e": "cypress run --e2e",
     "type:check": "tsc --noEmit"
   },
   "dependencies": {

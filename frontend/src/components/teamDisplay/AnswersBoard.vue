@@ -2,7 +2,7 @@
   <div v-if="answers.length > 0" class="container bg-base-300 text-base-content answers-container">
     <!-- Question Display -->
     <transition name="fade-x">
-      <div v-if="showStrikeX" class="strike-x-overlay">
+      <div v-if="localShowStrikeX" class="strike-x-overlay">
         <span class="strike-x">X</span>
       </div>
     </transition>
@@ -43,18 +43,21 @@ interface AnswerBoardProps {
 const props = defineProps<AnswerBoardProps>();
 const emit = defineEmits(['strikeX']); // <-- use array of event names
 
-const showStrikeX = ref(props.showStrikeX);
+const localShowStrikeX = ref(false);
 watch(
   () => props.showStrikeX,
   (newVal) => {
-    showStrikeX.value = newVal;
     if (newVal) {
+      localShowStrikeX.value = true;
       setTimeout(() => {
-        showStrikeX.value = false;
+        localShowStrikeX.value = false;
         emit('strikeX');
       }, 1200);
+    } else {
+      localShowStrikeX.value = false;
     }
   },
+  { immediate: true },
 );
 </script>
 
