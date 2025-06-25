@@ -1,78 +1,156 @@
-/* ------------ Team Display Tests ------------ */
+import { frontendUrl } from '../support/commands';
 
-// Test for team display loading
+describe('Team Display', () => {
+  let testSessionId: string;
 
-/* ---- Join Team Dialog section ---- */
-// Test for join team dialog showing (correct team radio btns, join btn disabled, and form fields)
+  before(() => {
+    // Create a single test session for all tests in this suite
+    cy.createTestSession().then((sessionId) => {
+      testSessionId = sessionId;
+      cy.navigateDirectToTeam(testSessionId);
+      // Wait for the page to fully load and render
+      cy.get('h1', { timeout: 15000 }).should('exist');
+    });
+  });
 
-// Test for join team dialog allowing player name input
+  beforeEach(() => {
+    // If we're not on the team page, navigate back to it
+    cy.url().then((url) => {
+      if (!url.includes('/team')) {
+        cy.navigateDirectToTeam(testSessionId);
+        cy.get('h1', { timeout: 15000 }).should('exist');
+      }
+    });
+  });
 
-// Test for join team dialog not allowing empty player name input [ERROR]
+  after(() => {
+    // Clean up session after all tests
+    if (testSessionId) {
+      cy.cleanupTestSession(testSessionId);
+    }
+  });
 
-/* ---- Answers Board section ---- */
-// Test for team display showing correct scores
+  /* ------------ Team Display Tests ------------ */
+  it('should load the team display', () => {
+    cy.contains('The Feud!');
+    cy.url().should('include', `/team?sessionId=${testSessionId}`);
+  });
 
-// Test for team display showing correct question
+  /* ---- Join Team Dialog section ---- */
+  it('should show join team dialog on first visit', () => {
+    cy.get('.join-team-dialog-backdrop').should('be.visible');
+    cy.contains('Join the Game');
+    cy.get('input[type="radio"]').should('have.length', 2);
+    cy.get('button').contains('Join').should('be.disabled');
+  });
 
-// Test for team display showing correct answers - not guessed
+  it('should allow player name input', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('John Doe');
+    cy.get('input[placeholder*="Enter your name"]').should('have.value', 'John Doe');
+  });
 
-// Test for team display showing correct answers - guessed correctly
+  it('should enable join button when name is entered and team is selected', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Jane Smith');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').should('not.be.disabled');
+  });
 
-// Test for team display showing correct answers - guessed incorrectly (strike X graphic)
+  it('should successfully join a team', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Alice Johnson');
+    cy.get('input[type="radio"]').last().click();
+    cy.get('button').contains('Join').click();
+    cy.get('.join-team-dialog-backdrop').should('not.exist');
+    cy.get('.answers-container, .no-answers-message').should('be.visible');
+  });
 
-/* ---- Team Panel section ---- */
-// Test for team display showing correct team names
+  /* ---- Answers Board section ---- */
+  it('should show answers board after joining team', () => {
+    // Join team first
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test for team disply showing correct number of strikes
+    cy.get('.answers-container, .no-answers-message').should('be.visible');
+    cy.contains('No answers available yet');
+  });
 
-// Test for team display showing correct winning team emoji
+  /* ---- Team Panel section ---- */
+  it('should display team panels after joining', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test for team display being able to edit team A name & showing correctly after save
+    cy.contains('Team A');
+    cy.contains('Team B');
+    cy.get('.team-info').should('have.length', 2);
+  });
 
-// Test for team display being able to edit team B name & showing correctly after save
+  /* ---- Game Info section ---- */
+  it('should display game info section', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test for team display showing player names in the correct team
+    cy.contains('Round');
+    cy.contains('Time Remaining');
+    cy.contains('Points Pool');
+  });
 
-/* ---- Game Info section ---- */
-// Test for team display showing correct round number
+  /* ---- Floating Button section ---- */
+  it('should show floating buttons after joining team', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test for team display showing correct timer value
+    cy.get('.floating-buttons').should('be.visible');
+    cy.contains('Sound On').should('be.visible');
+  });
 
-// Test for team display showing correct round multiplier
+  it('should open invite dialog when session ID button is clicked', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-/* ---- Banner section ---- */
-// Test for team display showing winning banner
+    cy.get('.session-id-box').click();
+    cy.get('.modal').should('be.visible');
+    cy.contains('Invite Others');
+  });
 
-/* ---- Floating Button section ---- */
-// Test for floating buttons showing correctly on team display
+  it('should toggle mute functionality', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Test Player');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test for floating button copying session ID to clipboard
+    cy.contains('Sound On').click();
+    cy.contains('Sound Off').should('be.visible');
+  });
 
-// Test for floating button muting audio
+  /* ---- Team interaction ---- */
+  it('should show player in correct team after joining', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Player One');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-/* ---- Misc. ----- */
+    cy.get('.team-info').first().should('contain', 'Player One');
+  });
 
-// Test timeout
+  it('should show edit button for team member', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Team Leader');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-// Test invite dialog showing correctly
+    cy.get('.team-info').first().find('button').contains('✏️').should('be.visible');
+  });
 
-// Test invite dialog closing correctly
+  /* ---- Real-time updates ---- */
+  it('should display current game state', () => {
+    cy.get('input[placeholder*="Enter your name"]').type('Spectator');
+    cy.get('input[type="radio"]').first().click();
+    cy.get('button').contains('Join').click();
 
-///// SAMPLE FOR simulating with posted data
-// describe('Team Display', () => {
-//   it('shows correct info after host setup', () => {
-//     // 1. Create the session
-//     cy.request('POST', 'http://localhost:4000/api/create-session/test-session');
-
-//     // 2. (If needed) Use UI to set up teams, question, answers
-//     // cy.visit('http://localhost:5173/host?sessionId=test-session');
-//     // ...simulate host actions to set up state...
-
-//     // 3. Visit the team display page
-//     cy.visit('http://localhost:5173/team?sessionId=test-session');
-
-//     // 4. Assert expected info
-//     cy.contains('Team A');
-//     // ...other assertions...
-//   });
-// });
+    // Game info should show default values
+    cy.contains('Round');
+    cy.contains('0:00');
+    cy.contains('Points Pool');
+  });
+});

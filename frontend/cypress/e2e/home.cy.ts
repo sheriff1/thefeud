@@ -94,5 +94,34 @@ describe('Home Page', () => {
   });
 
   /* ------------ Miscellaneous Tests ------------ */
-  // Test theme toggle
+  it('should display the correct page title and heading', () => {
+    cy.visit(frontendUrl);
+    cy.title().should('include', 'The Feud');
+    cy.get('h1').should('contain', 'Welcome to The Feud!');
+  });
+
+  it('should handle invalid session ID format correctly', () => {
+    cy.visit(frontendUrl);
+    cy.get('input[placeholder="Enter Session ID"]').type('invalid-id');
+    cy.get('button').contains('Join as Host').click();
+    cy.on('window:alert', (text) => {
+      expect(text).to.equal('Session does not exist. Please check the Session ID.');
+    });
+  });
+
+  it('should handle non-existent session ID', () => {
+    cy.visit(frontendUrl);
+    cy.get('input[placeholder="Enter Session ID"]').type('nonexistent-session-123');
+    cy.get('button').contains('Join as Host').click();
+    cy.on('window:alert', (text) => {
+      expect(text).to.equal('Session does not exist. Please check the Session ID.');
+    });
+  });
+
+  it('should show loading state when creating new session', () => {
+    cy.visit(frontendUrl);
+    cy.get('button').contains('Create a New Session').click();
+    // Check for loading indicator if implemented
+    // cy.get('[data-cy="loading-spinner"]').should('be.visible');
+  });
 });

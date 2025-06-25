@@ -15,3 +15,20 @@
 
 // Import commands.js using ES2015 syntax:
 import './commands.ts';
+
+// Handle uncaught exceptions from Firebase
+Cypress.on('uncaught:exception', (err, runnable) => {
+  // Ignore Firebase network errors during testing
+  if (
+    err.message &&
+    err.message.includes('Firebase') &&
+    err.message.includes('network-request-failed')
+  ) {
+    return false;
+  }
+  if (err.message && err.message.includes('auth/network-request-failed')) {
+    return false;
+  }
+  // Return true to fail the test on other exceptions
+  return true;
+});
