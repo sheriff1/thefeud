@@ -79,7 +79,7 @@ describe('FloatingButton', () => {
       },
     });
 
-    cy.get('button').click();
+    cy.safeClick('button');
     cy.get('@onClickSpy').should('have.been.called');
   });
 

@@ -94,7 +94,7 @@ describe('GameMgr', () => {
       },
     });
 
-    cy.get('button').contains('Start Round').click();
+    cy.safeClick('button:contains("Start Round")');
 
     cy.then(() => {
       expect(gameStore.currentStep).to.equal(2);
@@ -129,7 +129,7 @@ describe('GameMgr', () => {
       },
     });
 
-    cy.get('button').contains('Upload CSV File').click();
+    cy.safeClick('button:contains("Upload CSV File")');
     cy.contains('Upload CSV File').should('be.visible');
     cy.get('#file-upload').should('be.visible');
     cy.contains('Download Template').should('be.visible');
@@ -211,7 +211,7 @@ describe('GameMgr', () => {
 
     cy.get('input[id^="answer-"]').should('have.length', 2);
     cy.get('input[id^="points-"]').should('have.length', 2);
-    cy.get('button').contains('Add Answer').click();
+    cy.safeClick('button:contains("Add Answer")');
     cy.then(() => {
       expect(addAnswerPair).to.have.been.called;
     });
@@ -230,8 +230,8 @@ describe('GameMgr', () => {
 
     cy.contains('Set Round Multiplier').should('be.visible');
     cy.get('input[type="radio"]').should('have.length', 3);
-    cy.get('input[value="2"]').click();
-    cy.get('button').contains('Confirm').click();
+    cy.safeClick('input[value="2"]');
+    cy.safeClick('button:contains("Confirm")');
 
     cy.then(() => {
       expect(setMultiplier).to.have.been.calledWith(2);
@@ -300,7 +300,7 @@ describe('GameMgr', () => {
     cy.get('button').contains('Team Alpha').should('be.visible');
     cy.get('button').contains('Team Beta').should('be.visible');
 
-    cy.get('button').contains('Team Alpha').click();
+    cy.safeClick('button:contains("Team Alpha")');
     cy.then(() => {
       expect(setStartingTeam).to.have.been.calledWith('A');
       expect(gameStore.currentStep).to.equal(6);
@@ -350,7 +350,7 @@ describe('GameMgr', () => {
       .should('be.visible');
 
     cy.get('button').contains('Incorrect').should('be.visible');
-    cy.get('button').contains('Incorrect').click();
+    cy.safeClick('button:contains("Incorrect")');
     cy.then(() => {
       expect(handleIncorrectAndStrike).to.have.been.called;
     });
@@ -386,7 +386,7 @@ describe('GameMgr', () => {
     cy.get('button').contains('Start Next Round').should('be.visible');
     cy.get('button').contains('Reveal All Answers').should('be.visible');
 
-    cy.get('button').contains('Reveal All Answers').click();
+    cy.safeClick('button:contains("Reveal All Answers")');
     cy.then(() => {
       expect(revealAllAnswers).to.have.been.called;
     });
@@ -408,7 +408,7 @@ describe('GameMgr', () => {
       },
     });
 
-    cy.get('button').contains('Upload CSV File').click();
+    cy.safeClick('button:contains("Upload CSV File")');
 
     // Create a mock file upload event
     cy.get('#file-upload').then(($input) => {
@@ -437,7 +437,7 @@ describe('GameMgr', () => {
       },
     });
 
-    cy.get('button').contains('Upload CSV File').click();
+    cy.safeClick('button:contains("Upload CSV File")');
 
     cy.get('#file-upload').then(($input) => {
       const file = new File(['invalid content'], 'test.csv', { type: 'text/csv' });

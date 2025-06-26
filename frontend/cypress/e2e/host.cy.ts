@@ -51,8 +51,8 @@ describe('Host Dashboard', () => {
   });
 
   it('should allow starting a round', () => {
-    // Click "Start Round" to advance to step 2
-    cy.contains('Start Round').click();
+    // Click "Start Round" to advance to step 2 using safe command
+    cy.safeClick('button:contains("Start Round")');
     cy.contains('Add Question & Answers').should('be.visible');
   });
 
@@ -60,7 +60,7 @@ describe('Host Dashboard', () => {
     // Navigate to step 2 if not already there
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
-        cy.contains('Start Round').click();
+        cy.safeClick('button:contains("Start Round")');
       }
     });
     cy.contains('Upload CSV File').should('be.visible');
@@ -70,7 +70,7 @@ describe('Host Dashboard', () => {
     // Navigate to step 2 if not already there
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
-        cy.contains('Start Round').click();
+        cy.safeClick('button:contains("Start Round")');
       }
     });
     cy.contains('Select from library').should('be.visible');

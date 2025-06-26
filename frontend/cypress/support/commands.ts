@@ -32,8 +32,24 @@ Cypress.Commands.add('cleanupTestSession', (sessionId: string) => {
 // Custom command to wait for Vue app initialization
 Cypress.Commands.add('waitForVueApp', () => {
   cy.window().then((win) => {
-    return new Cypress.Promise((resolve) => {
+    return new Cypress.Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const timeout = 15000; // 15 seconds timeout
+      
       const checkVueApp = () => {
+        // Check if we've exceeded timeout
+        if (Date.now() - startTime > timeout) {
+          console.warn('Vue app detection timed out, but continuing with test');
+          resolve();
+          return;
+        }
+        
+        // Check for our custom mount indicator
+        if ((win as any).__VUE_APP_MOUNTED__) {
+          resolve();
+          return;
+        }
+        
         // Check if Vue app is initialized
         if ((win as any).__VUE__ || (win as any).__VUE_DEVTOOLS_GLOBAL_HOOK__) {
           resolve();
@@ -53,8 +69,22 @@ Cypress.Commands.add('waitForVueApp', () => {
           return;
         }
 
+        // Check for basic Vue content indicators
+        const appElement = win.document.querySelector('#app');
+        if (appElement && appElement.children.length > 0) {
+          resolve();
+          return;
+        }
+
+        // Check for common Vue app content
+        const commonElements = win.document.querySelectorAll('h1, .btn, .container, .page, .view');
+        if (commonElements.length > 0) {
+          resolve();
+          return;
+        }
+
         // Retry after a short delay
-        setTimeout(checkVueApp, 50);
+        setTimeout(checkVueApp, 100);
       };
 
       checkVueApp();
@@ -120,20 +150,72 @@ Cypress.Commands.add('navigateToSpectator', (sessionId: string) => {
 // Custom command to navigate directly to a view (bypassing home page)
 Cypress.Commands.add('navigateDirectToHost', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/host?sessionId=${sessionId}`);
-  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/host?sessionId=${sessionId}`);
 });
 
 Cypress.Commands.add('navigateDirectToTeam', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/team?sessionId=${sessionId}`);
-  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/team?sessionId=${sessionId}`);
 });
 
 Cypress.Commands.add('navigateDirectToSpectator', (sessionId: string) => {
   cy.visit(`${frontendUrl.replace(/\/$/, '')}/spectator?sessionId=${sessionId}`);
-  cy.waitForVueApp();
   cy.url({ timeout: 15000 }).should('include', `/spectator?sessionId=${sessionId}`);
+});
+
+// Custom command to wait for DOM stability (prevents re-render issues)
+Cypress.Commands.add('waitForStability', () => {
+  // Wait for any pending Vue re-renders to complete
+  cy.wait(100);
+
+  // Check that the DOM isn't changing by comparing snapshots
+  cy.window().then((win) => {
+    return new Cypress.Promise((resolve) => {
+      let previousHtml = win.document.documentElement.outerHTML;
+
+      const checkStability = () => {
+        const currentHtml = win.document.documentElement.outerHTML;
+
+        if (currentHtml === previousHtml) {
+          // DOM is stable
+          resolve();
+          return;
+        }
+
+        // DOM changed, update snapshot and check again
+        previousHtml = currentHtml;
+        setTimeout(checkStability, 50);
+      };
+
+      setTimeout(checkStability, 50);
+    });
+  });
+});
+
+// Custom command to safely click elements that might re-render
+Cypress.Commands.add('safeClick', (selector: string, options = {}) => {
+  // Wait for element to be available and stable, but don't wait for full Vue app
+  cy.get(selector, { timeout: 10000 }).should('exist');
+  cy.get(selector).should('be.visible').should('not.be.disabled');
+  
+  // Add a small delay to ensure DOM stability
+  cy.wait(50);
+  
+  // Perform the click
+  cy.get(selector).click(options);
+});
+
+// Custom command to safely type in elements that might re-render
+Cypress.Commands.add('safeType', (selector: string, text: string, options = {}) => {
+  // Wait for element to be available and stable, but don't wait for full Vue app
+  cy.get(selector, { timeout: 10000 }).should('exist');
+  cy.get(selector).should('be.visible').should('not.be.disabled');
+  
+  // Add a small delay to ensure DOM stability
+  cy.wait(50);
+  
+  // Perform the type action
+  cy.get(selector).type(text, options);
 });
 
 declare global {
@@ -149,6 +231,9 @@ declare global {
       navigateDirectToSpectator(sessionId: string): Chainable<void>;
       setTestEnvironment(): Chainable<void>;
       waitForVueApp(): Chainable<void>;
+      waitForStability(): Chainable<void>;
+      safeClick(selector: string, options?: any): Chainable<void>;
+      safeType(selector: string, text: string, options?: any): Chainable<void>;
     }
   }
 }

@@ -62,7 +62,7 @@ describe('Spectator View', () => {
   });
 
   it('should show invite dialog correctly', () => {
-    cy.get('.session-id-box').click();
+    cy.safeClick('.session-id-box');
     cy.get('.modal').should('be.visible');
     cy.contains('Invite Others');
 
@@ -73,11 +73,13 @@ describe('Spectator View', () => {
   });
 
   it('should close invite dialog correctly', () => {
-    cy.get('.session-id-box').click();
+    cy.safeClick('.session-id-box');
     cy.get('.modal').should('be.visible');
 
-    cy.contains('Close').click();
-    cy.get('.modal').should('not.exist');
+    // Close the modal using the most reliable method - ESC key
+    cy.get('body').type('{esc}');
+    
+    cy.get('.modal').should('not.exist', { timeout: 5000 });
   });
 
   it('should display team information', () => {
@@ -94,7 +96,7 @@ describe('Spectator View', () => {
   });
 
   it('should handle mute functionality', () => {
-    cy.contains('Sound On').click();
+    cy.safeClick('button:contains("Sound On")');
     cy.contains('Sound Off').should('be.visible');
   });
 

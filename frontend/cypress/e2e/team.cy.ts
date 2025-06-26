@@ -45,13 +45,13 @@ describe('Team Display', () => {
   });
 
   it('should allow player name input', () => {
-    cy.get('input[placeholder*="Enter your name"]').type('John Doe');
+    cy.safeType('input[placeholder*="Enter your name"]', 'John Doe');
     cy.get('input[placeholder*="Enter your name"]').should('have.value', 'John Doe');
   });
 
   it('should enable join button when name is entered and team is selected', () => {
-    cy.get('input[placeholder*="Enter your name"]').type('Jane Smith');
-    cy.get('input[type="radio"]').first().click();
+    cy.safeType('input[placeholder*="Enter your name"]', 'Jane Smith');
+    cy.safeClick('input[type="radio"]:first');
     cy.get('button').contains('Join').should('not.be.disabled');
   });
 

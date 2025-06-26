@@ -91,7 +91,7 @@ describe('TeamPanel', () => {
       },
     });
 
-    cy.get('.btn-xs').click();
+    cy.safeClick('.btn-xs');
     cy.get('@editTeamHandler').should('have.been.calledWith', 'team1');
   });
 
@@ -110,8 +110,9 @@ describe('TeamPanel', () => {
       },
     });
 
-    cy.get('input[type="text"]').clear().type('New Team Name');
-    cy.get('.btn').contains('💾').click();
+    cy.get('input[type="text"]').clear();
+    cy.safeType('input[type="text"]', 'New Team Name');
+    cy.safeClick('.btn:contains("💾")');
 
     cy.get('@saveTeamHandler').should('have.been.calledWith', {
       team: 'team1',
@@ -167,7 +168,7 @@ describe('TeamPanel', () => {
       },
     });
 
-    cy.get('.buzzer-button').click();
+    cy.safeClick('.buzzer-button');
     cy.get('@buzzHandler').should('have.been.called');
   });
 

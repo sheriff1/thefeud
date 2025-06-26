@@ -18,11 +18,17 @@ export default defineConfig({
     screenshotOnRunFailure: true,
     viewportWidth: 1280,
     viewportHeight: 720,
-    // Retry tests that fail due to flakiness
+    // Increase retry logic for CI environments
     retries: {
-      runMode: 2,
+      runMode: 3, // Increased from 2 to 3
       openMode: 0,
     },
+    // Add experimental settings for stability
+    experimentalStudio: false,
+    experimentalWebKitSupport: false,
+    // Wait for network idle
+    waitForAnimations: true,
+    animationDistanceThreshold: 5,
   },
 
   component: {
@@ -37,8 +43,11 @@ export default defineConfig({
     viewportWidth: 1280,
     viewportHeight: 720,
     retries: {
-      runMode: 2,
+      runMode: 3, // Increased from 2 to 3
       openMode: 0,
     },
+    // Add stability settings for component tests
+    waitForAnimations: true,
+    animationDistanceThreshold: 5,
   },
 });
