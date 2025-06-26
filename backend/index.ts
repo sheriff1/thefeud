@@ -1,4 +1,3 @@
-import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { z } from 'zod';
@@ -89,11 +88,21 @@ const SessionIdSchema = z
   })
   .strict();
 
-// Use .env.test if NODE_ENV is 'test' or CI is set, otherwise use .env
-if (process.env.NODE_ENV === 'test' || process.env.CI) {
-  dotenv.config({ path: path.resolve(__dirname, '.env.test') });
+// Load environment variables in development/test environments
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const { default: dotenv } = await import('dotenv');
+    if (process.env.NODE_ENV === 'test' || process.env.CI) {
+      dotenv.config({ path: path.resolve(__dirname, '.env.test') });
+    } else {
+      dotenv.config();
+    }
+    console.log('✅ Environment variables loaded from .env file');
+  } catch (error) {
+    console.log('⚠️ Could not load dotenv (expected in production):', error);
+  }
 } else {
-  dotenv.config();
+  console.log('🚀 Using Heroku environment variables in production');
 }
 
 import express from 'express';
