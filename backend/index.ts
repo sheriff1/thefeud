@@ -121,7 +121,15 @@ let credential: admin.credential.Credential;
 
 console.log('Starting Firebase initialization...');
 console.log('Project ID:', projectId);
-console.log('Using emulator:', !!(process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.NODE_ENV === 'test' || process.env.CI));
+console.log(
+  'Using emulator:',
+  !!(
+    process.env.FIRESTORE_EMULATOR_HOST ||
+    process.env.FIREBASE_AUTH_EMULATOR_HOST ||
+    process.env.NODE_ENV === 'test' ||
+    process.env.CI
+  ),
+);
 
 if (
   process.env.FIRESTORE_EMULATOR_HOST ||
