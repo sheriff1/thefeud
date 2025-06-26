@@ -25,6 +25,7 @@ describe('AnswersBoard', () => {
     question: 'Name something you find in a kitchen',
     guessedAnswers: [],
     showStrikeX: false,
+    strikeCount: 1,
   };
 
   it('renders the component with answers', () => {
@@ -96,11 +97,31 @@ describe('AnswersBoard', () => {
       props: {
         ...defaultProps,
         showStrikeX: true,
+        strikeCount: 1,
       },
     });
 
     cy.get('.strike-x-overlay').should('be.visible');
+    cy.get('.strike-x-container').should('be.visible');
+    cy.get('.strike-x').should('have.length', 1);
     cy.get('.strike-x').should('contain.text', 'X');
+  });
+
+  it('shows multiple strike X\'s based on strikeCount', () => {
+    mount(AnswersBoard, {
+      props: {
+        ...defaultProps,
+        showStrikeX: true,
+        strikeCount: 3,
+      },
+    });
+
+    cy.get('.strike-x-overlay').should('be.visible');
+    cy.get('.strike-x-container').should('be.visible');
+    cy.get('.strike-x').should('have.length', 3);
+    cy.get('.strike-x').each(($el) => {
+      cy.wrap($el).should('contain.text', 'X');
+    });
   });
 
   it('emits strikeX event after showing strike X', () => {
@@ -110,7 +131,7 @@ describe('AnswersBoard', () => {
         showStrikeX: false,
       },
     }).then(({ wrapper }) => {
-      wrapper.setProps({ ...defaultProps, showStrikeX: true });
+      wrapper.setProps({ ...defaultProps, showStrikeX: true, strikeCount: 2 });
 
       cy.wait(1300);
       // Check that the strikeX event was emitted
@@ -261,7 +282,7 @@ describe('AnswersBoard', () => {
         cy.get('.strike-x-overlay').should('not.exist');
 
         // Show strike X and verify the event is emitted after timeout
-        wrapper.setProps({ ...defaultProps, showStrikeX: true });
+        wrapper.setProps({ ...defaultProps, showStrikeX: true, strikeCount: 1 });
 
         // Should emit the event after timeout
         cy.wait(1300);
