@@ -57,14 +57,22 @@ router.beforeEach(async (to, from, next) => {
 
     if (sessionId) {
       store.isLoading = true; // Start loading
-      const isValid = await validateSessionId(sessionId);
-      store.isLoading = false; // Stop loading
-      if (isValid) {
-        store.enteredFromHome = true;
-        store.sessionId = sessionId;
-        next();
-      } else {
-        next({ name: 'Home' });
+      try {
+        const isValid = await validateSessionId(sessionId);
+        store.isLoading = false; // Stop loading
+        if (isValid) {
+          store.enteredFromHome = true;
+          store.sessionId = sessionId;
+          next();
+        } else {
+          console.warn('Session validation failed - session does not exist:', sessionId);
+          next({ name: 'Home' });
+        }
+      } catch (error) {
+        store.isLoading = false; // Stop loading
+        console.error('Session validation error:', error);
+        // On validation error, redirect to home but show a more helpful message
+        next({ name: 'Home', query: { error: 'session-validation-failed' } });
       }
       return;
     }
