@@ -78,7 +78,7 @@ describe('Spectator View', () => {
 
     // Close the modal using the most reliable method - ESC key
     cy.get('body').type('{esc}');
-    
+
     cy.get('.modal').should('not.exist', { timeout: 5000 });
   });
 

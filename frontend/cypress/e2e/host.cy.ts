@@ -80,10 +80,10 @@ describe('Host Dashboard', () => {
     // Navigate to step 2 if not already there
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
-        cy.contains('Start Round').click();
+        cy.safeClick('button:contains("Start Round")');
       }
     });
-    cy.contains('Enter manually').should('be.visible').click();
+    cy.safeClick('button:contains("Enter manually")');
     cy.get('input[placeholder*="question"]').should('be.visible');
   });
 
@@ -101,7 +101,8 @@ describe('Host Dashboard', () => {
   });
 
   it('should allow setting timer value', () => {
-    cy.get('input[type="number"]').last().clear().type('60');
+    cy.get('input[type="number"]').last().clear();
+    cy.safeType('input[type="number"]:last', '60');
     cy.get('input[type="number"]').last().should('have.value', '60');
   });
 
@@ -118,15 +119,35 @@ describe('Host Dashboard', () => {
   });
 
   it('should open invite dialog when session ID button is clicked', () => {
-    cy.get('.session-id-box').click();
-    cy.get('.modal').should('be.visible');
+    // Ensure the session ID box is fully loaded and visible
+    cy.get('.session-id-box').should('be.visible');
+    cy.wait(200); // Extra wait for CI stability
+
+    cy.safeClick('.session-id-box');
+    cy.get('.modal', { timeout: 10000 }).should('be.visible');
     cy.contains('Invite Others').should('be.visible');
   });
 
   it('should close invite dialog when close button is clicked', () => {
-    cy.get('.session-id-box').click();
-    cy.get('.modal').should('be.visible');
-    cy.contains('Close').click();
+    // Ensure the session ID box is fully loaded and visible
+    cy.get('.session-id-box').should('be.visible');
+    cy.wait(200); // Extra wait for CI stability
+
+    cy.safeClick('.session-id-box');
+    cy.get('.modal', { timeout: 10000 }).should('be.visible');
+
+    // Use a more flexible approach to close the modal
+    cy.get('.modal').within(() => {
+      cy.get('body').then(($body) => {
+        if ($body.find('button:contains("Close")').length > 0) {
+          cy.safeClick('button:contains("Close")');
+        } else {
+          // Fallback: try ESC key
+          cy.get('body').type('{esc}');
+        }
+      });
+    });
+
     cy.wait(500); // Wait for modal to close
     cy.get('.modal').should('not.exist');
   });

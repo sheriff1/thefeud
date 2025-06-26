@@ -25,7 +25,7 @@ app.use(router);
 const mountApp = async () => {
   try {
     app.mount('#app');
-    
+
     // Set global indicators for Cypress
     if (typeof window !== 'undefined') {
       (window as any).__VUE_APP_MOUNTED__ = true;

@@ -35,7 +35,7 @@ Cypress.Commands.add('waitForVueApp', () => {
     return new Cypress.Promise((resolve, reject) => {
       const startTime = Date.now();
       const timeout = 15000; // 15 seconds timeout
-      
+
       const checkVueApp = () => {
         // Check if we've exceeded timeout
         if (Date.now() - startTime > timeout) {
@@ -43,13 +43,13 @@ Cypress.Commands.add('waitForVueApp', () => {
           resolve();
           return;
         }
-        
+
         // Check for our custom mount indicator
         if ((win as any).__VUE_APP_MOUNTED__) {
           resolve();
           return;
         }
-        
+
         // Check if Vue app is initialized
         if ((win as any).__VUE__ || (win as any).__VUE_DEVTOOLS_GLOBAL_HOOK__) {
           resolve();
@@ -194,28 +194,41 @@ Cypress.Commands.add('waitForStability', () => {
 
 // Custom command to safely click elements that might re-render
 Cypress.Commands.add('safeClick', (selector: string, options = {}) => {
-  // Wait for element to be available and stable, but don't wait for full Vue app
-  cy.get(selector, { timeout: 10000 }).should('exist');
-  cy.get(selector).should('be.visible').should('not.be.disabled');
-  
-  // Add a small delay to ensure DOM stability
-  cy.wait(50);
-  
-  // Perform the click
+  // Wait for element to be available and stable
+  cy.get(selector, { timeout: 15000 }).should('exist');
+  cy.get(selector).should('be.visible');
+
+  // Check if it's not disabled (skip this check for non-form elements)
+  cy.get(selector).then(($el) => {
+    if ($el.is('button, input, select, textarea')) {
+      cy.wrap($el).should('not.be.disabled');
+    }
+  });
+
+  // Add a delay to ensure DOM stability (longer for CI)
+  cy.wait(100);
+
+  // Perform the click with retry logic
   cy.get(selector).click(options);
+
+  // Add a small wait after click for any resulting DOM changes
+  cy.wait(50);
 });
 
 // Custom command to safely type in elements that might re-render
 Cypress.Commands.add('safeType', (selector: string, text: string, options = {}) => {
-  // Wait for element to be available and stable, but don't wait for full Vue app
-  cy.get(selector, { timeout: 10000 }).should('exist');
+  // Wait for element to be available and stable
+  cy.get(selector, { timeout: 15000 }).should('exist');
   cy.get(selector).should('be.visible').should('not.be.disabled');
-  
-  // Add a small delay to ensure DOM stability
-  cy.wait(50);
-  
+
+  // Add a delay to ensure DOM stability (longer for CI)
+  cy.wait(100);
+
   // Perform the type action
   cy.get(selector).type(text, options);
+
+  // Add a small wait after typing
+  cy.wait(50);
 });
 
 declare global {

@@ -57,7 +57,7 @@ Cypress.on('window:before:load', (win) => {
   win.addEventListener('unhandledrejection', (event) => {
     const error = event.reason;
     const errorMessage = error?.message || error?.toString() || 'Unknown error';
-    
+
     // Check if this is a Vue/Pinia initialization error
     if (
       errorMessage.includes("Cannot read properties of undefined (reading 'app')") ||
@@ -70,7 +70,7 @@ Cypress.on('window:before:load', (win) => {
       event.preventDefault();
       return;
     }
-    
+
     // Allow other unhandled rejections to bubble up
   });
 });
