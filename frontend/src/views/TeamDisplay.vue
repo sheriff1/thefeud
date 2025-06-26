@@ -98,6 +98,7 @@
               :question="store.question"
               :guessedAnswers="store.guessedAnswers"
               :showStrikeX="showStrikeX"
+              :strikeCount="strikeCount"
               @strikeX="showStrikeX = false"
             />
 
@@ -173,6 +174,7 @@ const isMuted = ref(false); // Mute state
 // const teamMembers = ref({ A: [], B: [] }); // Store team members locally for display
 const otherTeam = (team: string) => (team === 'A' ? 'B' : 'A'); // Helper function to get the other team
 const showStrikeX = ref(false);
+const strikeCount = ref(0);
 const isSpectator = props.isSpectator ?? false;
 const router = useRouter();
 const emojiList = ['😎', '😄', '🤔', '😜', '🥸', '🥳', '🫠', '🤩', '🤯', '🤨'];
@@ -190,8 +192,9 @@ const playBuzzerSound = () => {
   audio.play();
 };
 
-const playStrikeSound = () => {
-  // Show the X
+const playStrikeSound = (teamStrikeCount: number) => {
+  // Show the X with the number of strikes
+  strikeCount.value = teamStrikeCount;
   showStrikeX.value = true;
   setTimeout(() => {
     showStrikeX.value = false;
@@ -367,11 +370,12 @@ watch(
 watch(
   () => store.teamStrikes,
   (newStrikes, oldStrikes) => {
-    if (
-      newStrikes.A > oldStrikes.A || // Check if Team A got a new strike
-      newStrikes.B > oldStrikes.B // Check if Team B got a new strike
-    ) {
-      playStrikeSound(); // Play sound when a strike is given
+    if (newStrikes.A > oldStrikes.A) {
+      // Team A got a new strike
+      playStrikeSound(newStrikes.A);
+    } else if (newStrikes.B > oldStrikes.B) {
+      // Team B got a new strike
+      playStrikeSound(newStrikes.B);
     }
   },
   { deep: true }, // Watch for deep changes in the teamStrikes object
@@ -410,7 +414,10 @@ onMounted(() => {
 
   // Listen for the "play-strike-sound" event from the backend
   socket.on('play-strike-sound', () => {
-    playStrikeSound();
+    // When triggered via socket, determine the current team's strike count
+    const currentTeam = store.currentTeam;
+    const currentStrikeCount = store.teamStrikes[currentTeam] || 1;
+    playStrikeSound(currentStrikeCount);
   });
 
   socket.on(

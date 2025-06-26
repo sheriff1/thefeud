@@ -3,7 +3,16 @@
     <!-- Question Display -->
     <transition name="fade-x">
       <div v-if="localShowStrikeX" class="strike-x-overlay">
-        <span class="strike-x">X</span>
+        <div class="strike-x-container">
+          <span 
+            v-for="(x, index) in strikeCount" 
+            :key="index" 
+            class="strike-x"
+            :style="{ animationDelay: `${index * 0.2}s` }"
+          >
+            X
+          </span>
+        </div>
       </div>
     </transition>
 
@@ -38,6 +47,7 @@ interface AnswerBoardProps {
   question: string;
   guessedAnswers: { id: string }[]; // updated
   showStrikeX: boolean;
+  strikeCount: number;
 }
 
 const props = defineProps<AnswerBoardProps>();
@@ -224,18 +234,44 @@ watch(
   pointer-events: none;
 }
 
+.strike-x-container {
+  display: flex;
+  gap: 2vw;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .strike-x {
-  font-size: 10vw;
+  font-size: 8vw;
   color: #e53935;
   font-weight: bold;
   text-shadow:
     0 0 30px #e53935,
     0 0 10px #fff;
-  border: 8px solid #e53935;
+  border: 6px solid #e53935;
   border-radius: 16px;
-  padding: 2vw 4vw;
+  padding: 1.5vw 3vw;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 0 40px #e53935;
+  animation: strikeXAppear 0.6s ease-out forwards;
+  opacity: 0;
+  transform: scale(0.3) rotate(-15deg);
+}
+
+@keyframes strikeXAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-15deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .fade-x-enter-active,
@@ -257,6 +293,16 @@ watch(
     grid-template-columns: 1fr;
     grid-template-rows: none;
     grid-auto-flow: row;
+  }
+  
+  .strike-x {
+    font-size: 12vw;
+    padding: 2vw 4vw;
+    border: 4px solid #e53935;
+  }
+  
+  .strike-x-container {
+    gap: 3vw;
   }
 }
 </style>
