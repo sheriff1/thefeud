@@ -110,19 +110,32 @@ const projectId = process.env.FIREBASE_PROJECT_ID || 'fam-feud-2';
 // Set emulator environment variables if running in test or CI
 let credential: admin.credential.Credential;
 
+console.log('Starting Firebase initialization...');
+console.log('Project ID:', projectId);
+console.log('Using emulator:', !!(process.env.FIRESTORE_EMULATOR_HOST || process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.NODE_ENV === 'test' || process.env.CI));
+
 if (
   process.env.FIRESTORE_EMULATOR_HOST ||
   process.env.FIREBASE_AUTH_EMULATOR_HOST ||
   process.env.NODE_ENV === 'test' ||
   process.env.CI
 ) {
+  console.log('Using default credentials for emulator/test environment');
   credential = admin.credential.applicationDefault();
 } else {
   if (!process.env.FIREBASE_CREDENTIALS) {
+    console.error('FIREBASE_CREDENTIALS environment variable is not set');
     throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
   }
-  const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
-  credential = admin.credential.cert(serviceAccount);
+  try {
+    console.log('Parsing Firebase credentials...');
+    const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS as string);
+    console.log('Firebase credentials parsed successfully');
+    credential = admin.credential.cert(serviceAccount);
+  } catch (error) {
+    console.error('Error parsing FIREBASE_CREDENTIALS:', error);
+    throw new Error(`Failed to parse FIREBASE_CREDENTIALS: ${error.message}`);
+  }
 }
 
 // Initialize Firebase
@@ -134,9 +147,19 @@ const usingEmulator =
   process.env.CI;
 
 if (!usingEmulator && !process.env.FIREBASE_CREDENTIALS) {
+  console.error('FIREBASE_CREDENTIALS environment variable is not set for production');
   throw new Error('FIREBASE_CREDENTIALS environment variable is not set');
 }
-admin.initializeApp({ credential, projectId });
+
+try {
+  console.log('Initializing Firebase Admin SDK...');
+  admin.initializeApp({ credential, projectId });
+  console.log('Firebase Admin SDK initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase Admin SDK:', error);
+  throw new Error(`Failed to initialize Firebase: ${error.message}`);
+}
+
 export const db = admin.firestore();
 
 // Initialize Express and Socket.IO
@@ -666,6 +689,17 @@ function getResetGameState() {
     nextRound: false, // Added to handle next round logic
   };
 }
+
+// Global error handlers for debugging startup issues
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 
 export default app;
 export { server, io };
