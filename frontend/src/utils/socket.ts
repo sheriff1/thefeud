@@ -18,11 +18,11 @@ if (import.meta.env.DEV) {
   socket.on('connect', () => {
     console.log('Socket connected to:', backendUrl);
   });
-  
+
   socket.on('disconnect', (reason) => {
     console.log('Socket disconnected:', reason);
   });
-  
+
   socket.on('connect_error', (error) => {
     console.error('Socket connection error:', error);
   });

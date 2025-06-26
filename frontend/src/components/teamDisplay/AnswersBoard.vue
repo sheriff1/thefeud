@@ -4,9 +4,9 @@
     <transition name="fade-x">
       <div v-if="localShowStrikeX" class="strike-x-overlay">
         <div class="strike-x-container">
-          <span 
-            v-for="(x, index) in strikeCount" 
-            :key="index" 
+          <span
+            v-for="(x, index) in strikeCount"
+            :key="index"
             class="strike-x"
             :style="{ animationDelay: `${index * 0.2}s` }"
           >
@@ -294,13 +294,13 @@ watch(
     grid-template-rows: none;
     grid-auto-flow: row;
   }
-  
+
   .strike-x {
     font-size: 12vw;
     padding: 2vw 4vw;
     border: 4px solid #e53935;
   }
-  
+
   .strike-x-container {
     gap: 3vw;
   }

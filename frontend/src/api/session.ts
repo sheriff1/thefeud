@@ -10,11 +10,11 @@ async function validateSessionIdHttp(sessionId: string): Promise<boolean> {
         'Content-Type': 'application/json',
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     return data.exists;
   } catch (error) {
@@ -26,13 +26,13 @@ async function validateSessionIdHttp(sessionId: string): Promise<boolean> {
 export function validateSessionId(sessionId: string): Promise<boolean> {
   return new Promise((resolve, reject) => {
     let resolved = false;
-    
+
     // Set a longer timeout to allow for socket connection
     const timeout = setTimeout(() => {
       if (!resolved) {
         console.error('Socket timeout when validating session:', sessionId);
         console.log('Falling back to HTTP validation...');
-        
+
         // Fallback to HTTP API
         validateSessionIdHttp(sessionId)
           .then((exists) => {
@@ -49,11 +49,11 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
           });
       }
     }, 8000);
-    
+
     // Function to attempt validation
     const attemptValidation = () => {
       if (resolved) return;
-      
+
       socket.emit('validate-session', { sessionId }, (response: { exists: boolean }) => {
         if (resolved) return;
         resolved = true;
@@ -61,7 +61,7 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
         resolve(response.exists);
       });
     };
-    
+
     // Check if socket is already connected
     if (socket.connected) {
       attemptValidation();
@@ -71,18 +71,18 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
         socket.off('connect', onConnect);
         attemptValidation();
       };
-      
+
       // Also handle connection errors
       const onError = (error: any) => {
         if (resolved) return;
         console.error('Socket connection error:', error);
         socket.off('connect', onConnect);
         socket.off('connect_error', onError);
-        
+
         // Don't reject immediately, let the timeout handle fallback to HTTP
         console.log('Socket connection failed, waiting for HTTP fallback...');
       };
-      
+
       socket.on('connect', onConnect);
       socket.on('connect_error', onError);
     }
