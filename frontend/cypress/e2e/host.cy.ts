@@ -1,91 +1,162 @@
-/* ------------ Host Dashboard Tests ------------ */
-// Test for host dashboard loading
+import { frontendUrl } from '../support/commands';
 
-/* ---- Manage Question and Answers section ---- */
-// Test for upload CSV file
+describe('Host Dashboard', () => {
+  let testSessionId: string;
 
-// Test for Select from library button showing dialog
+  before(() => {
+    // Create a single test session for all tests in this suite
+    cy.createTestSession().then((sessionId) => {
+      testSessionId = sessionId;
+      cy.navigateDirectToHost(testSessionId);
+      // Wait for the page to fully load and render
+      cy.get('h1', { timeout: 15000 }).should('exist');
+      // Additional verification that we're on the right page
+      cy.url().should('include', `/host?sessionId=${testSessionId}`);
+    });
+  });
 
-// Test for adding question to remove the validation message
+  beforeEach(() => {
+    // Ensure we're still on the host page and prevent unwanted navigation
+    cy.url().then((url) => {
+      if (!url.includes('/host')) {
+        cy.log('Not on host page, navigating back...');
+        cy.navigateDirectToHost(testSessionId);
+        cy.get('h1', { timeout: 15000 }).should('exist');
+      }
+    });
 
-// Test for adding 2 answers to remove the validation message
+    // Set test environment flags to prevent router redirects
+    cy.window().then((win) => {
+      if ((win as any).localStorage) {
+        (win as any).localStorage.setItem('enteredFromHome', 'true');
+        (win as any).localStorage.setItem('cypressTest', 'true');
+      }
+    });
+  });
 
-// Test for add answer
+  after(() => {
+    // Clean up session after all tests
+    if (testSessionId) {
+      cy.cleanupTestSession(testSessionId);
+    }
+  });
 
-// Test for remove answer
+  /* ------------ Host Dashboard Tests ------------ */
+  it('should load the host dashboard', () => {
+    cy.get('h1').should('contain', 'The Feud Host Dashboard');
+    cy.url().should('include', `/host?sessionId=${testSessionId}`);
+  });
 
-// Test for download template button
+  /* ---- Manage Question and Answers section ---- */
+  it('should show game management section', () => {
+    cy.contains('Game Manager').should('be.visible');
+  });
 
-// Test for remove all answers button
+  it('should show start round functionality', () => {
+    // Initially should show "Start Round" button
+    cy.contains('Start Round').should('be.visible');
+    cy.contains("Let's get started!").should('be.visible');
+  });
 
-// Test for Save Question and Answers button
+  it('should allow starting a round', () => {
+    // Click "Start Round" to advance to step 2 using safe command
+    cy.safeClick('button:contains("Start Round")');
+    cy.contains('Add Question & Answers').should('be.visible');
+  });
 
-// Test for Save Question and Answers button with empty question [ERROR]
+  it('should have CSV upload functionality', () => {
+    // Navigate to step 2 if not already there - use a more stable approach
+    cy.get('body').then(($body) => {
+      if (!$body.text().includes('Add Question & Answers')) {
+        cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
+      }
+    });
+    cy.contains('Upload CSV File').should('be.visible');
+  });
 
-// Test for Save Question and Answers button with < 2 answers [ERROR]
+  it('should have library selection functionality', () => {
+    // Navigate to step 2 if not already there
+    cy.get('body').then(($body) => {
+      if (!$body.text().includes('Add Question & Answers')) {
+        cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
+      }
+    });
+    cy.contains('Select from library').should('be.visible');
+  });
 
-// Test for remove all answers button with < 2 answers [ERROR]
+  it('should allow manual entry of questions and answers', () => {
+    // Navigate to step 2 if not already there
+    cy.get('body').then(($body) => {
+      if (!$body.text().includes('Add Question & Answers')) {
+        cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
+      }
+    });
+    cy.safeClick('button:contains("Enter manually")');
+    cy.get('input[placeholder*="question"]').should('be.visible');
+  });
 
-/* ---- Manual Overrides section ---- */
-// Test for Team A points not accepting non-numeric input or less than 0 input [ERROR]
+  /* ---- Manual Overrides section ---- */
+  it('should show manual overrides section', () => {
+    cy.contains('Manual Overrides');
+  });
 
-// Test for Team B points not accepting non-numeric input or less than 0 input [ERROR]
+  /* ---- Timer section ---- */
+  it('should show timer controls', () => {
+    cy.contains('Timer');
+    cy.get('button').contains('Start').should('exist');
+    cy.get('button').contains('Stop').should('exist');
+    cy.get('button').contains('Reset').should('exist');
+  });
 
-// Test for Round not accepting non-numeric input or less than 0 input [ERROR]
+  it('should allow setting timer value', () => {
+    cy.get('input[type="number"]').last().clear();
+    cy.safeType('input[type="number"]:last', '60');
+    cy.get('input[type="number"]').last().should('have.value', '60');
+  });
 
-// Test for score multiplier not accepting non-numeric input or numeric input other than 1,2, or 3 [ERROR]
+  /* ---- Game Controls section ---- */
+  it('should show game control buttons', () => {
+    cy.contains('Reset Game').should('exist');
+    cy.contains('Reset Round').should('exist');
+  });
 
-// Test for Team A points accepting numeric input greater than or equal to 0
+  /* ---- Floating Button section ---- */
+  it('should show floating buttons', () => {
+    cy.get('.floating-buttons').should('be.visible');
+    cy.contains('Log Out').should('be.visible');
+  });
 
-// Test for Team B points accepting numeric input greater than or equal to 0
+  it('should open invite dialog when session ID button is clicked', () => {
+    // Ensure the session ID box is fully loaded and visible
+    cy.get('.session-id-box').should('be.visible');
+    cy.wait(200); // Extra wait for CI stability
 
-// Test for Round accepting numeric input greater than or equal to 0
+    cy.safeClick('.session-id-box');
+    cy.get('.modal', { timeout: 10000 }).should('be.visible');
+    cy.contains('Invite Others').should('be.visible');
+  });
 
-// Test for score multiplier accepting numeric input of 1, 2, or 3
+  it('should close invite dialog when close button is clicked', () => {
+    // Ensure the session ID box is fully loaded and visible
+    cy.get('.session-id-box').should('be.visible');
+    cy.wait(200); // Extra wait for CI stability
 
-// Test for changing Team A name
+    cy.safeClick('.session-id-box');
+    cy.get('.modal-box', { timeout: 10000 }).should('be.visible');
 
-// Test for changing Team B name
+    // Directly target the close button without using .within() to avoid context issues
+    cy.get('.modal-box label:contains("Close")')
+      .should('be.visible')
+      .should('not.be.disabled')
+      .click({ force: true });
 
-// Test for Team A name not accepting empty input [ERROR]
+    cy.wait(500); // Wait for modal to close
+    cy.get('.modal').should('not.exist');
 
-// Test for Team B name not accepting empty input [ERROR]
-
-/* ---- Timer section ---- */
-
-// Test for timer not accepting non-numeric input or less than 0 input [ERROR]
-
-// Test for timer accepting numeric input greater than or equal to 0
-
-// Test for Start button enabling timer
-
-// Test for Stop button disabling timer
-
-// Test for Reset button resetting timer to 0
-
-// Test for all 3 buttons being disabled when timer input value is not numeric or less than or equal to 0 [ERROR]
-
-/* ---- Game Controls section ---- */
-
-// Test for Reset Game button resetting the Manage Question and Answers section, Timer section, and Active Game Info section
-
-// Test for Reset Round button properly setting the Manage Question and Answers section, Timer section, and Active Game Info section
-
-// Test for Next Round button properly setting the Manage Question and Answers section, Timer section, and Active Game Info section
-
-// Test the Next Round button being disabled when round is in progress
-
-// Test the Next Round button being disabled when game is set in Manage Question and Answers section
-
-/* ---- Floating Button section ---- */
-// Test for floating button showing correctly on host dashboard
-
-// Test for floating button copying session ID to clipboard
-
-/* ---- Misc. ----- */
-
-// Test timeout
-
-// Test invite dialog showing correctly
-
-// Test invite dialog closing correctly
+    // Verify we're still on the host page
+    cy.url().should('include', `/host?sessionId=${testSessionId}`);
+  });
+});

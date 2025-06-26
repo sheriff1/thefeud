@@ -79,7 +79,7 @@ describe('JoinTeamDialog', () => {
     cy.get('input[type="radio"][value="A"]').should('be.checked');
 
     // Select Team B
-    cy.get('input[type="radio"][value="B"]').click();
+    cy.safeClick('input[type="radio"][value="B"]');
     cy.get('input[type="radio"][value="B"]').should('be.checked');
     cy.get('input[type="radio"][value="A"]').should('not.be.checked');
   });
@@ -98,7 +98,7 @@ describe('JoinTeamDialog', () => {
     cy.get('label').contains('Team Beta').should('not.have.class', 'selected');
 
     // Select Team B
-    cy.get('input[type="radio"][value="B"]').click();
+    cy.safeClick('input[type="radio"][value="B"]');
     cy.get('label').contains('Team Beta').should('have.class', 'selected');
     cy.get('label').contains('Team Alpha').should('not.have.class', 'selected');
   });
@@ -114,9 +114,9 @@ describe('JoinTeamDialog', () => {
       },
     });
 
-    cy.get('input[type="text"]').type('John Doe');
-    cy.get('input[type="radio"][value="B"]').click();
-    cy.get('button').click();
+    cy.safeType('input[type="text"]', 'John Doe');
+    cy.safeClick('input[type="radio"][value="B"]');
+    cy.safeClick('button');
 
     cy.then(() => {
       expect(onJoinTeam).to.have.been.calledWith({
@@ -135,9 +135,9 @@ describe('JoinTeamDialog', () => {
       },
     });
 
-    cy.get('input[type="text"]').type('Jane Smith');
-    cy.get('input[type="radio"][value="A"]').click();
-    cy.get('button').click();
+    cy.safeType('input[type="text"]', 'Jane Smith');
+    cy.safeClick('input[type="radio"][value="A"]');
+    cy.safeClick('button');
 
     cy.window().then((win) => {
       expect(win.localStorage.getItem('playerName')).to.equal('Jane Smith');

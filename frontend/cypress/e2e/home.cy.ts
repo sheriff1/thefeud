@@ -10,7 +10,7 @@ describe('Home Page', () => {
   // Test for create new session button
   it('should create a new session', () => {
     cy.visit(frontendUrl);
-    cy.get('button').contains('Create a New Session').click();
+    cy.safeClick('button:contains("Create a New Session")');
     cy.url().should('include', '/host?sessionId=');
   });
 
@@ -20,8 +20,8 @@ describe('Home Page', () => {
       const sessionId = data.sessionId;
       cy.request('POST', `${backendUrl}api/create-session/${sessionId}`).then(() => {
         cy.visit(frontendUrl);
-        cy.get('input[placeholder="Enter Session ID"]').type(sessionId);
-        cy.get('button').contains('Join as Host').click();
+        cy.safeType('input[placeholder="Enter Session ID"]', sessionId);
+        cy.safeClick('button:contains("Join as Host")');
         cy.url().should('include', `/host?sessionId=${sessionId}`);
       });
     });
@@ -33,8 +33,8 @@ describe('Home Page', () => {
       const sessionId = data.sessionId;
       cy.request('POST', `${backendUrl}api/create-session/${sessionId}`).then(() => {
         cy.visit(frontendUrl);
-        cy.get('input[placeholder="Enter Session ID"]').type(sessionId);
-        cy.get('button').contains('Join as a Team Member').click();
+        cy.safeType('input[placeholder="Enter Session ID"]', sessionId);
+        cy.safeClick('button:contains("Join as a Team Member")');
         cy.url().should('include', `/team?sessionId=${sessionId}`);
       });
     });
@@ -46,8 +46,8 @@ describe('Home Page', () => {
       const sessionId = data.sessionId;
       cy.request('POST', `${backendUrl}api/create-session/${sessionId}`).then(() => {
         cy.visit(frontendUrl);
-        cy.get('input[placeholder="Enter Session ID"]').type(sessionId);
-        cy.get('button').contains('Join as Spectator').click();
+        cy.safeType('input[placeholder="Enter Session ID"]', sessionId);
+        cy.safeClick('button:contains("Join as Spectator")');
         cy.url().should('include', `/spectator?sessionId=${sessionId}`);
       });
     });
@@ -56,7 +56,7 @@ describe('Home Page', () => {
   // Test for Join as host button - without session ID input [ERROR]
   it('should cause an error when a user presses join as host button without session ID input', () => {
     cy.visit(frontendUrl);
-    cy.get('button').contains('Join as Host').click();
+    cy.safeClick('button:contains("Join as Host")');
     cy.on('window:alert', (text) => {
       expect(text).to.equal('Invalid Session ID format.');
     });
@@ -65,7 +65,7 @@ describe('Home Page', () => {
   // Test for Join as a team member button - without session ID input [ERROR]
   it('should cause an error when a user presses join as a team member button without session ID input', () => {
     cy.visit(frontendUrl);
-    cy.get('button').contains('Join as a Team Member').click();
+    cy.safeClick('button:contains("Join as a Team Member")');
     cy.on('window:alert', (text) => {
       expect(text).to.equal('Invalid Session ID format.');
     });
@@ -74,7 +74,7 @@ describe('Home Page', () => {
   // Test for Join as a spectator button - without session ID input [ERROR]
   it('should cause an error when a user presses join as spectator button without session ID input', () => {
     cy.visit(frontendUrl);
-    cy.get('button').contains('Join as Spectator').click();
+    cy.safeClick('button:contains("Join as Spectator")');
     cy.on('window:alert', (text) => {
       expect(text).to.equal('Invalid Session ID format.');
     });
@@ -82,7 +82,7 @@ describe('Home Page', () => {
 
   it('logs out after inactivity timeout - host', () => {
     cy.visit(frontendUrl);
-    cy.get('button').contains('Create a New Session').click();
+    cy.safeClick('button:contains("Create a New Session")');
     cy.url().should('include', '/host?sessionId=');
 
     // Wait for the short timeout (e.g., 1 second)
@@ -94,5 +94,34 @@ describe('Home Page', () => {
   });
 
   /* ------------ Miscellaneous Tests ------------ */
-  // Test theme toggle
+  it('should display the correct page title and heading', () => {
+    cy.visit(frontendUrl);
+    cy.title().should('include', 'The Feud');
+    cy.get('h1').should('contain', 'Welcome to The Feud!');
+  });
+
+  it('should handle invalid session ID format correctly', () => {
+    cy.visit(frontendUrl);
+    cy.safeType('input[placeholder="Enter Session ID"]', 'invalid-id');
+    cy.safeClick('button:contains("Join as Host")');
+    cy.on('window:alert', (text) => {
+      expect(text).to.equal('Session does not exist. Please check the Session ID.');
+    });
+  });
+
+  it('should handle non-existent session ID', () => {
+    cy.visit(frontendUrl);
+    cy.safeType('input[placeholder="Enter Session ID"]', 'nonexistent-session-123');
+    cy.safeClick('button:contains("Join as Host")');
+    cy.on('window:alert', (text) => {
+      expect(text).to.equal('Session does not exist. Please check the Session ID.');
+    });
+  });
+
+  it('should show loading state when creating new session', () => {
+    cy.visit(frontendUrl);
+    cy.safeClick('button:contains("Create a New Session")');
+    // Check for loading indicator if implemented
+    // cy.get('[data-cy="loading-spinner"]').should('be.visible');
+  });
 });

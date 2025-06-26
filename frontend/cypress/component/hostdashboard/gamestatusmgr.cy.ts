@@ -57,7 +57,7 @@ describe('GameStatusMgr', () => {
       },
     });
 
-    cy.get('button').contains('Reset Game').click();
+    cy.safeClick('button:contains("Reset Game")');
 
     cy.then(() => {
       expect(resetGame).to.have.been.called;
@@ -76,7 +76,7 @@ describe('GameStatusMgr', () => {
       },
     });
 
-    cy.get('button').contains('Reset Round').click();
+    cy.safeClick('button:contains("Reset Round")');
 
     cy.then(() => {
       expect(resetRound).to.have.been.called;
