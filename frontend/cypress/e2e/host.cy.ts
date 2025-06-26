@@ -16,12 +16,20 @@ describe('Host Dashboard', () => {
   });
 
   beforeEach(() => {
-    // Ensure we're still on the host page
+    // Ensure we're still on the host page and prevent unwanted navigation
     cy.url().then((url) => {
       if (!url.includes('/host')) {
         cy.log('Not on host page, navigating back...');
         cy.navigateDirectToHost(testSessionId);
         cy.get('h1', { timeout: 15000 }).should('exist');
+      }
+    });
+
+    // Set test environment flags to prevent router redirects
+    cy.window().then((win) => {
+      if ((win as any).localStorage) {
+        (win as any).localStorage.setItem('enteredFromHome', 'true');
+        (win as any).localStorage.setItem('cypressTest', 'true');
       }
     });
   });
@@ -57,10 +65,11 @@ describe('Host Dashboard', () => {
   });
 
   it('should have CSV upload functionality', () => {
-    // Navigate to step 2 if not already there
+    // Navigate to step 2 if not already there - use a more stable approach
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
         cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
       }
     });
     cy.contains('Upload CSV File').should('be.visible');
@@ -71,6 +80,7 @@ describe('Host Dashboard', () => {
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
         cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
       }
     });
     cy.contains('Select from library').should('be.visible');
@@ -81,6 +91,7 @@ describe('Host Dashboard', () => {
     cy.get('body').then(($body) => {
       if (!$body.text().includes('Add Question & Answers')) {
         cy.safeClick('button:contains("Start Round")');
+        cy.wait(500); // Wait for navigation to complete
       }
     });
     cy.safeClick('button:contains("Enter manually")');
@@ -134,21 +145,18 @@ describe('Host Dashboard', () => {
     cy.wait(200); // Extra wait for CI stability
 
     cy.safeClick('.session-id-box');
-    cy.get('.modal', { timeout: 10000 }).should('be.visible');
+    cy.get('.modal-box', { timeout: 10000 }).should('be.visible');
 
-    // Use a more flexible approach to close the modal
-    cy.get('.modal').within(() => {
-      cy.get('body').then(($body) => {
-        if ($body.find('button:contains("Close")').length > 0) {
-          cy.safeClick('button:contains("Close")');
-        } else {
-          // Fallback: try ESC key
-          cy.get('body').type('{esc}');
-        }
-      });
-    });
+    // Directly target the close button without using .within() to avoid context issues
+    cy.get('.modal-box label:contains("Close")')
+      .should('be.visible')
+      .should('not.be.disabled')
+      .click({ force: true });
 
     cy.wait(500); // Wait for modal to close
     cy.get('.modal').should('not.exist');
+
+    // Verify we're still on the host page
+    cy.url().should('include', `/host?sessionId=${testSessionId}`);
   });
 });
