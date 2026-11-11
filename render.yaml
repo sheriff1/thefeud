@@ -1,0 +1,21 @@
+# Render Blueprint for The Feud backend (Express + Socket.IO).
+# The frontend stays on Vercel; Firestore/Auth stay on Firebase project fam-feud-2.
+services:
+  - type: web
+    name: thefeud-backend
+    runtime: node
+    plan: free # Free sleeps after ~15 min idle (~1 min cold start); switch to `starter` ($7/mo) for always-on. See #58.
+    region: oregon
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: 'off' # deploys are triggered manually (or by CI), never on every push
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      # Secrets and environment-specific values: set in the Render dashboard, never in git.
+      - key: FIREBASE_CREDENTIALS # single-line service-account JSON (see #57)
+        sync: false
+      - key: ALLOWED_ORIGINS # comma-separated, e.g. the Vercel production URL
+        sync: false
