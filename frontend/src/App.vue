@@ -1,4 +1,5 @@
 <template>
+  <ConnectionBanner />
   <div class="navbar bg-base-100 shadow-sm">
     <div class="flex-1">
       <a href="/" class="btn btn-ghost text-base-content !text-base-content">The Feud</a>
@@ -263,6 +264,7 @@ import { auth, signInAnonymously } from './firebase';
 import { useRouter } from 'vue-router';
 import { useGameStore } from './stores/gamestore'; // adjust path if needed
 import socket from './utils/socket';
+import ConnectionBanner from './components/ConnectionBanner.vue';
 import { ref, watch, onMounted } from 'vue';
 
 const theme = ref('light');

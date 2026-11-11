@@ -362,7 +362,11 @@ io.on('connection', (socket) => {
         members = sessionData.teamMembers;
       }
 
-      members[team].push(name);
+      // Idempotent: a reconnecting client re-joins its team, and after a backend restart it may
+      // still be listed (the disconnect cleanup never ran).
+      if (!members[team].includes(name)) {
+        members[team].push(name);
+      }
 
       // Update Firestore with new team members
       await sessionRef.set({ teamMembers: members }, { merge: true });
