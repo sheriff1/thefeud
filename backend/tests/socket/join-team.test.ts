@@ -70,6 +70,33 @@ describe('Socket.io', () => {
     });
   });
 
+  // ✅ [IDEMPOTENT] join-team: re-joining (e.g. after a reconnect) must not duplicate the player.
+  it('should not duplicate a player who joins the same team twice', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('Event not received in time')), 4000);
+      let updates = 0;
+
+      socket.on('connect', () => {
+        const payload = { sessionId, name: 'Test User', team: 'A' };
+        socket.emit('join-team', payload);
+        socket.emit('join-team', payload);
+      });
+
+      socket.on('team-members-updated', (data) => {
+        updates += 1;
+        if (updates < 2) return;
+        clearTimeout(timeout);
+        expect(data.A.filter((n: string) => n === 'Test User')).toHaveLength(1);
+        socket.disconnect();
+        resolve();
+      });
+      socket.on('connect_error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+  });
+
   // ✅ [INVALID SESSION ID] join-team: Test that joining a team with an invalid session ID returns an error.
   it('should return error when joining a team with an invalid session ID', async () => {
     await new Promise<void>((resolve, reject) => {

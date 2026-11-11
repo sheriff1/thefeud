@@ -1,16 +1,49 @@
-// filepath: /src/utils/socket.js
+// filepath: /src/utils/socket.ts
+import { reactive } from 'vue';
 import { io } from 'socket.io-client';
 
 const backendUrl = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
+// The backend may be asleep (e.g. Render Free tier spins down after ~15 min idle and takes
+// ~1 min to wake), so never give up reconnecting and allow slow handshakes.
 const socket = io(backendUrl, {
   transports: ['websocket', 'polling'],
   withCredentials: true,
   autoConnect: true,
   reconnection: true,
   reconnectionDelay: 1000,
-  reconnectionAttempts: 5,
-  timeout: 10000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: Infinity,
+  timeout: 20000,
+});
+
+export type ConnectionState = 'connecting' | 'connected' | 'reconnecting';
+
+/**
+ * Reactive connection state for UI feedback.
+ * `hasConnectedOnce` distinguishes the first connect from a reconnect.
+ *
+ * Driven by the Manager (`socket.io`) events rather than the socket's own, because views call
+ * `socket.removeAllListeners()` on unmount, which would drop socket-level listeners (but not
+ * the Manager's).
+ */
+export const connectionStatus = reactive<{ state: ConnectionState; hasConnectedOnce: boolean }>({
+  state: socket.connected ? 'connected' : 'connecting',
+  hasConnectedOnce: socket.connected,
+});
+
+socket.io.on('open', () => {
+  connectionStatus.state = 'connected';
+  connectionStatus.hasConnectedOnce = true;
+});
+socket.io.on('close', () => {
+  connectionStatus.state = 'reconnecting';
+});
+socket.io.on('reconnect_attempt', () => {
+  connectionStatus.state = 'reconnecting';
+});
+socket.io.on('error', () => {
+  connectionStatus.state = connectionStatus.hasConnectedOnce ? 'reconnecting' : 'connecting';
 });
 
 // Add debug logging for development

@@ -151,6 +151,7 @@ import Banner from '../components/teamDisplay/Banner.vue';
 import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 import { useRouter } from 'vue-router';
 import { useSessionTimeout } from '@/composables/useSessionTimeout';
+import { useSessionSync } from '@/composables/useSessionSync';
 
 interface TeamDisplayProps {
   isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
@@ -388,11 +389,21 @@ onMounted(() => {
     return;
   }
 
-  // Join the session
-  socket.emit('join-session', { sessionId });
-
-  // Request the current game state from the backend
-  socket.emit('get-current-state', { sessionId });
+  // Join the session and fetch state now and after every (re)connect. A backend restart or
+  // drop removes this socket from the room and (on disconnect) the player from the team, so
+  // re-join the team too.
+  useSessionSync(sessionId, {
+    teamMembers: true,
+    onSync: () => {
+      if (!isSpectator && hasJoined.value && playerName.value && selectedTeam.value) {
+        socket.emit('join-team', {
+          sessionId,
+          name: playerName.value,
+          team: selectedTeam.value,
+        });
+      }
+    },
+  });
 
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
@@ -426,12 +437,6 @@ onMounted(() => {
       store.teamMembers = members;
     },
   );
-
-  // Handle connection errors
-  socket.on('connect_error', (error: any) => {
-    console.error('WebSocket connection error:', error);
-    alert('Failed to connect to the game session. Please try again.');
-  });
 
   socket.on('round-over', () => {
     playRoundOverSound();

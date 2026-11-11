@@ -107,6 +107,7 @@ import GameMgr from '../components/hostDashboard/GameMgr.vue';
 import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue';
 import { useRouter } from 'vue-router';
 import { useSessionTimeout } from '@/composables/useSessionTimeout';
+import { useSessionSync } from '@/composables/useSessionSync';
 const router = useRouter();
 
 let timerInterval: number | null = null;
@@ -651,11 +652,6 @@ socket.on('error', (error: { message: any }) => {
   }
 });
 
-// Handle connection errors
-socket.on('connect_error', (error: any) => {
-  console.error('WebSocket connection error:', error);
-});
-
 onMounted(() => {
   store.initSocket();
 
@@ -691,14 +687,9 @@ onMounted(() => {
 
   socket.on('update-game', handleUpdatedGame);
 
-  socket.on('connect_error', (error: any) => {
-    console.error('WebSocket connection error:', error);
-    alert('Failed to connect to the game session. Please try again.');
-  });
-
-  socket.emit('join-session', { sessionId });
-
-  socket.emit('get-current-state', { sessionId });
+  // Join the room and fetch state now and after every (re)connect; connection problems are
+  // surfaced by <ConnectionBanner /> instead of an alert.
+  useSessionSync(sessionId, { teamMembers: true });
 
   fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
 });
