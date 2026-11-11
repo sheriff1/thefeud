@@ -1,4 +1,4 @@
-name: Monorepo Deploy (Heroku & Vercel)
+name: Monorepo Deploy (Vercel)
 
 on:
   push:
@@ -28,9 +28,6 @@ jobs:
         run: npm install
         working-directory: frontend
 
-      - name: Install Heroku CLI
-        run: curl https://cli-assets.heroku.com/install.sh | sh
-
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
@@ -40,9 +37,6 @@ jobs:
       - name: Install Cypress binary
         run: npx cypress install
         working-directory: frontend
-
-      - name: Set Heroku APP_BASE config var
-        run: heroku config:set APP_BASE=backend --app family-feud-backend
 
       - name: Lint backend & frontend
         run: npm run lint
@@ -146,23 +140,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Heroku CLI
-        run: curl https://cli-assets.heroku.com/install.sh | sh
-
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
       - name: Install Vercel CLI
         run: npm install -g vercel
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.13.15
-        with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: 'family-feud-backend'
-          heroku_email: 'sheriff.jolaoso+heroku@gmail.com'
-          branch: main
-          usedocker: false
 
       - name: Deploy to Vercel
         run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --cwd frontend
