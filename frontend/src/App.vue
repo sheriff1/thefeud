@@ -265,6 +265,7 @@ import { useRouter } from 'vue-router';
 import { useGameStore } from './stores/gamestore'; // adjust path if needed
 import socket from './utils/socket';
 import ConnectionBanner from './components/ConnectionBanner.vue';
+import { requestNewSessionId } from './api/session';
 import { ref, watch, onMounted } from 'vue';
 
 const theme = ref('light');
@@ -275,10 +276,8 @@ const showHowToPlay = ref(false);
 const apiBase = import.meta.env.VITE_API_BASE || '';
 
 const createSessionFromModal = async () => {
-  const newSessionId = Math.random().toString(36).substring(2, 6).toUpperCase();
-  await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
-    method: 'POST',
-  });
+  const newSessionId = await requestNewSessionId(apiBase);
+  if (!newSessionId) return;
   store.enteredFromHome = true;
   store.sessionId = newSessionId;
   localStorage.setItem('enteredFromHome', 'true');

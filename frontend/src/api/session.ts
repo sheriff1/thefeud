@@ -88,3 +88,20 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
     }
   });
 }
+
+/**
+ * Ask the backend to create a session under a unique, server-generated ID.
+ * Returns the ID, or null (after alerting the user) if it could not be created.
+ */
+export async function requestNewSessionId(apiBase: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${apiBase}/api/sessions`, { method: 'POST' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const { sessionId } = await response.json();
+    return sessionId;
+  } catch (error) {
+    console.error('Failed to create session:', error);
+    alert('Could not create a session. The server may be waking up, please try again.');
+    return null;
+  }
+}

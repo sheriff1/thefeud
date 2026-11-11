@@ -113,6 +113,7 @@ import cors from 'cors';
 import admin from 'firebase-admin';
 import fs from 'fs';
 import helmet from 'helmet';
+import { createUniqueSession } from './sessions.js';
 
 // Load environment variables
 const projectId = process.env.FIREBASE_PROJECT_ID || 'fam-feud-2';
@@ -214,6 +215,17 @@ app.get('/api/session-exists/:sessionId', async (req, res) => {
   const { sessionId } = req.params;
   const sessionDoc = await db.collection('sessions').doc(sessionId).get();
   res.json({ exists: sessionDoc.exists });
+});
+
+// Create a session under a server-generated, guaranteed-unique ID.
+app.post('/api/sessions', async (req, res) => {
+  try {
+    const sessionId = await createUniqueSession(db);
+    res.status(201).json({ sessionId });
+  } catch (error) {
+    console.error('Failed to create session:', error);
+    res.status(503).json({ error: 'Could not create a session. Please try again.' });
+  }
 });
 
 app.post('/api/create-session/:sessionId', async (req, res) => {
