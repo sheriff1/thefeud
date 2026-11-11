@@ -51,6 +51,14 @@ npm run build
 
 ---
 
+## Testing
+
+- **Backend** (`cd backend && npm test`): requires the Firebase Firestore emulator on `127.0.0.1:8080` (start it with `npm run dev` from the repo root, or `firebase emulators:start --only firestore,auth`).
+- **Frontend component tests** (`cd frontend && npm run test:component`).
+- **Frontend e2e** (`cd frontend && npm run test:e2e:chrome`): runs Cypress in system Chrome. Cypress's bundled Electron can render a blank page on some Macs, so use Chrome locally. If you run it from the VS Code integrated terminal, unset `ELECTRON_RUN_AS_NODE` first (`env -u ELECTRON_RUN_AS_NODE npm run test:e2e:chrome`).
+
+---
+
 ## Firebase Setup
 
 1. Go to [Firebase Console](https://console.firebase.google.com/) and create a new project.
@@ -73,29 +81,25 @@ npm run build
 
 ---
 
-## Heroku Deployment (Backend)
+## Render Deployment (Backend)
 
-1. [Sign up for Heroku](https://heroku.com/) and install the [Heroku CLI](https://devcenter.heroku.com/articles/heroku-cli).
-2. Create a new Heroku app:
-   ```sh
-   heroku create your-app-name
-   ```
-3. Set your environment variables on Heroku:
-   ```sh
-   heroku config:set FIREBASE_CREDENTIALS='{"type":"service_account",...}'
-   ```
-4. Push your backend code to Heroku:
-   ```sh
-   git push heroku main
-   ```
-5. Your backend will be deployed and accessible at `https://your-app-name.herokuapp.com`.
+The backend (Express + Socket.IO) runs on [Render](https://render.com/) and is defined by [render.yaml](render.yaml).
+
+1. In the Render dashboard choose **New > Blueprint**, connect this repo, and select `render.yaml`. This creates the `thefeud-backend` web service (build: `npm ci && npm run build`, start: `npm start`, health check: `/api/health`).
+2. Set the two dashboard-only environment variables (they are `sync: false` in the Blueprint and never go in git):
+   - `FIREBASE_CREDENTIALS`: the service-account JSON as a single line.
+   - `ALLOWED_ORIGINS`: the frontend origin(s) allowed by CORS, comma-separated, e.g. `https://family-feud-eta.vercel.app`.
+3. Auto-deploy is off (`autoDeployTrigger: 'off'`); trigger deploys manually from the dashboard (or CI).
+4. Point the frontend at it: in Vercel set `VITE_API_BASE` to the Render URL (e.g. `https://thefeud-backend.onrender.com`) and redeploy the frontend. Locally it defaults to `http://localhost:4000`.
+
+**Free plan behaviour:** the service sleeps after ~15 minutes without traffic and takes ~1 minute to cold start. Connected clients drop and show a reconnect banner, then rejoin automatically once the service is back. For an always-on backend, change `plan: free` to `plan: starter` in `render.yaml`.
 
 ---
 
 ## Environment Variables
 
-- `FIREBASE_CREDENTIALS`: Your Firebase service account JSON (as a single line).
-- Any other variables required by your app (e.g., API keys).
+- Backend: `FIREBASE_CREDENTIALS` (service account JSON, single line) and `ALLOWED_ORIGINS` (comma-separated CORS origins). Set in the Render dashboard in production, or in `backend/.env` locally.
+- Frontend: `VITE_API_BASE` (backend URL; defaults to `http://localhost:4000`). Set in Vercel in production.
 
 ---
 

@@ -102,7 +102,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log('⚠️ Could not load dotenv (expected in production):', error);
   }
 } else {
-  console.log('🚀 Using Heroku environment variables in production');
+  console.log('🚀 Using host-provided environment variables in production');
 }
 
 import express from 'express';
