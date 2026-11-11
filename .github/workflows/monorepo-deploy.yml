@@ -148,3 +148,69 @@ jobs:
 
       - name: Deploy to Vercel
         run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes --cwd frontend
+
+  deploy-backend:
+    # Render deploy hook: only for pushes to main, only after CI passes.
+    needs: ci
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: render-deploy
+      cancel-in-progress: false
+    env:
+      BACKEND_URL: https://thefeud-backend.onrender.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether the backend changed
+        id: changes
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # Deploy only when backend/ or render.yaml changed. If the previous
+          # commit is unknown (new branch, force push), deploy to be safe.
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "Previous commit unknown; deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only "$BEFORE" "$AFTER" | grep -qE '^(backend/|render\.yaml$)'; then
+            echo "Backend or render.yaml changed; deploying."
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes under backend/ or render.yaml; skipping Render deploy."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Render deploy
+        id: trigger
+        if: steps.changes.outputs.deploy == 'true'
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::warning::RENDER_DEPLOY_HOOK_URL secret is not set; skipping Render deploy."
+            echo "triggered=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Never echo the URL; it is a credential. -sS keeps errors but not the URL.
+          curl --fail -sS -X POST -o /dev/null --max-time 30 "$RENDER_DEPLOY_HOOK_URL"
+          echo "Render deploy triggered."
+          echo "triggered=true" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for backend health (best effort)
+        if: steps.trigger.outputs.triggered == 'true'
+        run: |
+          # Free plan cold start is ~1 min. Render keeps the old instance serving
+          # until the new one is healthy, so a 200 here does not prove the new
+          # version is live; it confirms the service is up and warms it.
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 20 -o /dev/null "$BACKEND_URL/api/health"; then
+              echo "Backend healthy at $BACKEND_URL/api/health"
+              exit 0
+            fi
+            echo "Attempt $i: not healthy yet; retrying in 10s"
+            sleep 10
+          done
+          echo "::warning::Backend did not report healthy within 5 minutes. Check the Render dashboard."
