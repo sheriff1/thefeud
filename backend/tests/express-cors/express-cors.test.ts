@@ -100,6 +100,15 @@ describe('Express & CORS', () => {
     await db.collection('sessions').doc(createSessionId).delete();
   });
 
+  it('should create a session with a server-generated unique ID', async () => {
+    const res = await request(app).post('/api/sessions');
+    expect(res.statusCode).toBe(201);
+    expect(res.body.sessionId).toMatch(/^[A-Z0-9]{4}$/);
+    const doc = await db.collection('sessions').doc(res.body.sessionId).get();
+    expect(doc.exists).toBe(true);
+    await db.collection('sessions').doc(res.body.sessionId).delete();
+  });
+
   it('should serve a CSV file from /answers', async () => {
     // Place a test CSV file in the answers directory before running this test
     const res = await request(app).get('/answers/Sample Template.csv');

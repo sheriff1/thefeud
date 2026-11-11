@@ -40,6 +40,7 @@
 import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gamestore';
+import { requestNewSessionId } from '../api/session';
 
 const store = useGameStore();
 
@@ -47,17 +48,10 @@ const apiBase = import.meta.env.VITE_API_BASE || '';
 const router = useRouter();
 const sessionId = ref(''); // Define sessionId as a reactive variable
 
-// Generate a short ID
-const generateShortId = () => {
-  return Math.random().toString(36).substring(2, 6).toUpperCase(); // Generates a 4-character string
-};
-
-// Create a new session and navigate to the Host Dashboard
+// Create a new session (the backend picks a unique ID) and navigate to the Host Dashboard
 const createSession = async () => {
-  const newSessionId = generateShortId(); // Generate a short session ID
-  await fetch(`${apiBase}/api/create-session/${newSessionId}`, {
-    method: 'POST',
-  });
+  const newSessionId = await requestNewSessionId(apiBase);
+  if (!newSessionId) return;
   store.enteredFromHome = true;
   store.sessionId = newSessionId;
   localStorage.setItem('enteredFromHome', 'true');
