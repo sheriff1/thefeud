@@ -3,15 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "deploy": "cd backend && git push heroku main && cd ../frontend && vercel --prod",
     "dev": "concurrently \"firebase emulators:start --only firestore,auth\" \"cd backend && tsc -w\" \"cd backend && cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 nodemon dist/server.js\" \"cd frontend && npm run dev\"",
     "lint": "eslint --ext .js,.vue frontend/src backend",
     "lint:fix": "eslint --ext .js,.vue frontend/src backend --fix",
     "format": "prettier --write \"frontend/src/**/*.{js,vue,css,scss,ts,json,md}\" \"backend/**/*.{js,vue,css,scss,ts,json,md}\"",
     "build": "cd backend && tsc -p ./tsconfig.json",
     "postbuild": "cd backend && cp -r answers dist/answers",
-    "start": "cd backend && node dist/server.js",
-    "heroku-postbuild": "cd backend && npm install && npm run build"
+    "start": "cd backend && node dist/server.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.27.0",
