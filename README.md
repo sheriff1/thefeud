@@ -100,6 +100,7 @@ The backend (Express + Socket.IO) runs on [Render](https://render.com/) and is d
 
 - Backend: `FIREBASE_CREDENTIALS` (service account JSON, single line) and `ALLOWED_ORIGINS` (comma-separated CORS origins). Set in the Render dashboard in production, or in `backend/.env` locally.
 - Frontend: `VITE_API_BASE` (backend URL; defaults to `http://localhost:4000`). Set in Vercel in production.
+- Error monitoring (optional, [Sentry](https://sentry.io); off when unset, and always off under tests/Cypress): backend `SENTRY_DSN` (Render dashboard); frontend `VITE_SENTRY_DSN` (Vercel project settings, build-time). Events are tagged with `environment` and `release` (git sha from `RENDER_GIT_COMMIT` / `VERCEL_GIT_COMMIT_SHA`), and request bodies, headers, cookies and credential-like values are scrubbed before sending. Optional frontend source maps: set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` in the Vercel build environment (never in the repo); without all three, no source maps are built or uploaded. DSNs and tokens are never committed.
 
 ---
 

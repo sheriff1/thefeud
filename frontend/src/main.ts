@@ -5,6 +5,9 @@ import router from './router';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import './assets/global.css';
+import { initMonitoring, setSessionTag } from './utils/monitoring';
+import { useGameStore } from './stores/gamestore';
+import { watch } from 'vue';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -20,6 +23,23 @@ app.config.errorHandler = (err, vm, info) => {
 
 app.use(pinia);
 app.use(router);
+
+// Error monitoring (#27): no-op unless VITE_SENTRY_DSN was set at build time. Runs after the
+// errorHandler above so Sentry wraps it (the handler still runs).
+const monitoringOn = initMonitoring(app, router, {
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.VITE_APP_ENV,
+  release: import.meta.env.VITE_APP_RELEASE,
+  isTestRun: typeof window !== 'undefined' && !!(window as any).Cypress,
+});
+if (monitoringOn) {
+  const gameStore = useGameStore(pinia);
+  watch(
+    () => gameStore.sessionId,
+    (id) => setSessionTag(id),
+    { immediate: true },
+  );
+}
 
 // Ensure mounting is completed properly
 const mountApp = async () => {
