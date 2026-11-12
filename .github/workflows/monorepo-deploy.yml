@@ -132,6 +132,48 @@ jobs:
           NODE_NO_WARNINGS: 1
           TERM: xterm
 
+  # Report-only Lighthouse run (#28): never blocks a PR; results are in the job summary and artifact.
+  lighthouse:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Install and build frontend
+        run: |
+          npm install
+          npm run build
+        working-directory: frontend
+        env:
+          VITE_FIREBASE_CONFIG: '{"apiKey":"test","authDomain":"test","projectId":"test"}'
+
+      - name: Run Lighthouse CI (no assertions)
+        run: npx --yes @lhci/cli@0.15.1 autorun --config=lighthouserc.json
+
+      - name: Summarize scores
+        if: always()
+        run: |
+          node -e "
+          const fs=require('fs');const d='.lighthouseci';
+          const rs=fs.readdirSync(d).filter(f=>/^lhr-.*\.json\$/.test(f)).map(f=>JSON.parse(fs.readFileSync(d+'/'+f)));
+          const out=['| Run | Perf | A11y | Best practices | SEO | LCP (ms) | TBT (ms) | CLS |','|---|---|---|---|---|---|---|---|'];
+          rs.forEach((r,i)=>{const c=r.categories,a=r.audits;out.push('| '+(i+1)+' | '+['performance','accessibility','best-practices','seo'].map(k=>Math.round(c[k].score*100)).join(' | ')+' | '+Math.round(a['largest-contentful-paint'].numericValue)+' | '+Math.round(a['total-blocking-time'].numericValue)+' | '+a['cumulative-layout-shift'].numericValue.toFixed(3)+' |')});
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,'## Lighthouse (report only)\n'+out.join('\n')+'\n');
+          "
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+
   deploy:
     needs: ci
     runs-on: ubuntu-latest
