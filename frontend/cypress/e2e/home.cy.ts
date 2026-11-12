@@ -1,6 +1,11 @@
 import { frontendUrl, backendUrl } from '../support/commands';
 
 describe('Home Page', () => {
+  afterEach(() => {
+    // Undo the short inactivity timeout set by the logout test (0 = use the default).
+    Cypress.env('sessionTimeoutMs', 0);
+  });
+
   it('should load', () => {
     cy.visit(frontendUrl);
     cy.contains('The Feud');
@@ -81,6 +86,8 @@ describe('Home Page', () => {
   });
 
   it('logs out after inactivity timeout - host', () => {
+    // Opt in to a short timeout; other specs keep the full 30 minutes (see useSessionTimeout.ts).
+    Cypress.env('sessionTimeoutMs', 1000);
     cy.visit(frontendUrl);
     cy.safeClick('button:contains("Create a New Session")');
     cy.url().should('include', '/host?sessionId=');

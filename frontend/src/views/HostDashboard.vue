@@ -106,7 +106,7 @@ import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
 import GameMgr from '../components/hostDashboard/GameMgr.vue';
 import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue';
 import { useRouter } from 'vue-router';
-import { useSessionTimeout } from '@/composables/useSessionTimeout';
+import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
 const router = useRouter();
 
@@ -499,9 +499,7 @@ const logout = () => {
   });
 };
 
-// @ts-ignore
-const isTest = window.Cypress; // Cypress sets this global variable
-useSessionTimeout(logout, isTest ? 1000 : 1800000);
+useSessionTimeout(logout, resolveSessionTimeoutMs());
 
 const guessedAnswersCount = computed(() => store.guessedAnswers.length);
 

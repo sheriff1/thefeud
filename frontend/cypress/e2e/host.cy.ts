@@ -1,41 +1,34 @@
 import { frontendUrl } from '../support/commands';
 
 describe('Host Dashboard', () => {
+  // Every test gets its own session and a freshly loaded page. Cypress test isolation resets the
+  // browser to about:blank before each test anyway, and the host page restores game state (e.g.
+  // the current step) from the server over a socket *after* it renders. A test that relied on an
+  // earlier test having advanced the step could therefore observe step 1 for a moment and click
+  // "Start Round" just as the restored step 2 replaced it (flaky on slow CI runners, #71).
   let testSessionId: string;
 
-  before(() => {
-    // Create a single test session for all tests in this suite
+  // Advance from step 1 to step 2 ("Add Question & Answers") from a known starting state.
+  const goToStep2 = () => {
+    cy.safeClick('button:contains("Start Round")');
+    cy.contains('Add Question & Answers').should('be.visible');
+  };
+
+  beforeEach(() => {
     cy.createTestSession().then((sessionId) => {
       testSessionId = sessionId;
       cy.navigateDirectToHost(testSessionId);
-      // Wait for the page to fully load and render
       cy.get('h1', { timeout: 15000 }).should('exist');
-      // Additional verification that we're on the right page
-      cy.url().should('include', `/host?sessionId=${testSessionId}`);
-    });
-  });
-
-  beforeEach(() => {
-    // Ensure we're still on the host page and prevent unwanted navigation
-    cy.url().then((url) => {
-      if (!url.includes('/host')) {
-        cy.log('Not on host page, navigating back...');
-        cy.navigateDirectToHost(testSessionId);
-        cy.get('h1', { timeout: 15000 }).should('exist');
-      }
     });
 
     // Set test environment flags to prevent router redirects
     cy.window().then((win) => {
-      if ((win as any).localStorage) {
-        (win as any).localStorage.setItem('enteredFromHome', 'true');
-        (win as any).localStorage.setItem('cypressTest', 'true');
-      }
+      win.localStorage.setItem('enteredFromHome', 'true');
+      win.localStorage.setItem('cypressTest', 'true');
     });
   });
 
-  after(() => {
-    // Clean up session after all tests
+  afterEach(() => {
     if (testSessionId) {
       cy.cleanupTestSession(testSessionId);
     }
@@ -59,41 +52,21 @@ describe('Host Dashboard', () => {
   });
 
   it('should allow starting a round', () => {
-    // Click "Start Round" to advance to step 2 using safe command
-    cy.safeClick('button:contains("Start Round")');
-    cy.contains('Add Question & Answers').should('be.visible');
+    goToStep2();
   });
 
   it('should have CSV upload functionality', () => {
-    // Navigate to step 2 if not already there - use a more stable approach
-    cy.get('body').then(($body) => {
-      if (!$body.text().includes('Add Question & Answers')) {
-        cy.safeClick('button:contains("Start Round")');
-        cy.wait(500); // Wait for navigation to complete
-      }
-    });
+    goToStep2();
     cy.contains('Upload CSV File').should('be.visible');
   });
 
   it('should have library selection functionality', () => {
-    // Navigate to step 2 if not already there
-    cy.get('body').then(($body) => {
-      if (!$body.text().includes('Add Question & Answers')) {
-        cy.safeClick('button:contains("Start Round")');
-        cy.wait(500); // Wait for navigation to complete
-      }
-    });
+    goToStep2();
     cy.contains('Select from library').should('be.visible');
   });
 
   it('should allow manual entry of questions and answers', () => {
-    // Navigate to step 2 if not already there
-    cy.get('body').then(($body) => {
-      if (!$body.text().includes('Add Question & Answers')) {
-        cy.safeClick('button:contains("Start Round")');
-        cy.wait(500); // Wait for navigation to complete
-      }
-    });
+    goToStep2();
     cy.safeClick('button:contains("Enter manually")');
     cy.get('input[placeholder*="question"]').should('be.visible');
   });

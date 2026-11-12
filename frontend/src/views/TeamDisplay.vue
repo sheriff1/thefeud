@@ -150,7 +150,7 @@ import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
 import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 import { useRouter } from 'vue-router';
-import { useSessionTimeout } from '@/composables/useSessionTimeout';
+import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
 
 interface TeamDisplayProps {
@@ -300,9 +300,7 @@ const logout = () => {
   });
 };
 
-// @ts-ignore
-const isTest = window.Cypress; // Cypress sets this global variable
-useSessionTimeout(logout, isTest ? 1000 : 1800000);
+useSessionTimeout(logout, resolveSessionTimeoutMs());
 
 function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
   let textToCopy = '';
