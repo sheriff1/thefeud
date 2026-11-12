@@ -268,6 +268,17 @@ app.get('/api/answers-library', (req, res) => {
   });
 });
 
+// TEMPORARY (#88): one-shot genuinely unhandled rejection to verify Sentry + the alert rule end
+// to end. Removed right after verification.
+let rejectionTest88Fired = false;
+app.get('/api/__sentry-test-88', (req, res) => {
+  if (!rejectionTest88Fired) {
+    rejectionTest88Fired = true;
+    void Promise.reject(new Error('Unhandled rejection test #88 (deliberate, safe to ignore)'));
+  }
+  res.status(204).end();
+});
+
 // Health check endpoint (used by Render healthCheckPath and by the deploy-backend job to confirm a deploy)
 app.get('/api/health', (req, res) => {
   // commit is a public git sha set by Render; the deploy job compares it to the pushed sha (#89).
