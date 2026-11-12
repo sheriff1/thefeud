@@ -270,7 +270,9 @@ app.get('/api/answers-library', (req, res) => {
 
 // Health check endpoint (used by Render healthCheckPath and by the deploy-backend job to confirm a deploy)
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  // commit is a public git sha set by Render; the deploy job compares it to the pushed sha (#89).
+  const commit = process.env.RENDER_GIT_COMMIT;
+  res.status(200).json(commit ? { status: 'ok', commit } : { status: 'ok' });
 });
 // Report unexpected Express errors (CORS rejections are expected and not reported).
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

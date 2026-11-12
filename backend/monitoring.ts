@@ -144,9 +144,14 @@ export function captureHandlerError(
   });
 }
 
-/** Express error middleware body: report unexpected errors (not CORS rejections). */
+/** Express error middleware body: report unexpected errors (not CORS rejections or 4xx). */
 export function captureExpressError(error: unknown): void {
   if (error instanceof Error && error.message === 'Not allowed by CORS') return;
+  // Client errors (e.g. malformed JSON from the body parser) are not bugs (#88).
+  const status =
+    (error as { status?: unknown; statusCode?: unknown } | null)?.status ??
+    (error as { statusCode?: unknown } | null)?.statusCode;
+  if (typeof status === 'number' && status >= 400 && status < 500) return;
   captureHandlerError(error, { event: 'express' });
 }
 

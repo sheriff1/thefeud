@@ -1,10 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   initMonitoring,
   scrubEvent,
   redactString,
   isExpectedError,
   captureHandlerError,
+  captureExpressError,
+  Sentry,
 } from '../monitoring.js';
 
 const DSN = 'https://publickey@o0.ingest.example.invalid/1';
@@ -148,5 +150,49 @@ describe('isExpectedError / captureHandlerError', () => {
     expect(() =>
       captureHandlerError(new Error('x'), { event: 'buzz', sessionId: 'AB12' }),
     ).not.toThrow();
+  });
+});
+
+describe('captureExpressError', () => {
+  const events: any[] = [];
+  const start = () => {
+    events.length = 0;
+    Sentry.init({
+      dsn: DSN,
+      defaultIntegrations: false,
+      beforeSend: (event) => {
+        events.push(event);
+        return null; // record, never send
+      },
+    });
+  };
+  afterEach(async () => {
+    await Sentry.close();
+  });
+
+  it('does not report client errors (4xx), via status or statusCode', async () => {
+    start();
+    captureExpressError(Object.assign(new Error('bad json'), { status: 400 }));
+    captureExpressError(Object.assign(new Error('too large'), { statusCode: 413 }));
+    captureExpressError(Object.assign(new Error('teapot'), { status: 499 }));
+    await Sentry.flush(1000);
+    expect(events).toHaveLength(0);
+  });
+
+  it('still reports 5xx and unexpected errors with the express tag', async () => {
+    start();
+    captureExpressError(Object.assign(new Error('boom'), { status: 500 }));
+    captureExpressError(new Error('no status'));
+    captureExpressError(Object.assign(new Error('weird'), { status: 'oops' }));
+    await Sentry.flush(1000);
+    expect(events).toHaveLength(3);
+    expect(events.every((e) => e.tags?.handler === 'express')).toBe(true);
+  });
+
+  it('still ignores CORS rejections', async () => {
+    start();
+    captureExpressError(new Error('Not allowed by CORS'));
+    await Sentry.flush(1000);
+    expect(events).toHaveLength(0);
   });
 });
