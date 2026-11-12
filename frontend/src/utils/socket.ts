@@ -1,6 +1,7 @@
 // filepath: /src/utils/socket.ts
 import { reactive } from 'vue';
 import { io } from 'socket.io-client';
+import { createConnectOutageReporter } from './monitoring';
 
 const backendUrl = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -31,6 +32,11 @@ export const connectionStatus = reactive<{ state: ConnectionState; hasConnectedO
   state: socket.connected ? 'connected' : 'connecting',
   hasConnectedOnce: socket.connected,
 });
+
+// Report only outages that outlast a normal cold start (no-op when monitoring is off).
+const outage = createConnectOutageReporter();
+socket.on('connect_error', (error) => outage.onConnectError(error));
+socket.on('connect', () => outage.onConnect());
 
 socket.io.on('open', () => {
   connectionStatus.state = 'connected';

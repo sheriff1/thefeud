@@ -114,6 +114,16 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import helmet from 'helmet';
 import { createUniqueSession } from './sessions.js';
+import {
+  initMonitoring,
+  captureHandlerError,
+  flushMonitoring,
+  captureExpressError,
+} from './monitoring.js';
+
+// Error monitoring (#27): no-op unless SENTRY_DSN is set. Initialized after dotenv so a local
+// .env can opt in, and before Firebase so startup failures are reported.
+initMonitoring();
 
 // Load environment variables
 const projectId = process.env.FIREBASE_PROJECT_ID || 'fam-feud-2';
@@ -224,6 +234,7 @@ app.post('/api/sessions', async (req, res) => {
     res.status(201).json({ sessionId });
   } catch (error) {
     console.error('Failed to create session:', error);
+    captureHandlerError(error, { event: 'create-session' });
     res.status(503).json({ error: 'Could not create a session. Please try again.' });
   }
 });
@@ -253,6 +264,11 @@ app.get('/api/answers-library', (req, res) => {
 // Health check endpoint (used by Render healthCheckPath and by the deploy-backend job to confirm a deploy)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+// Report unexpected Express errors (CORS rejections are expected and not reported).
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  captureExpressError(err);
+  next(err);
 });
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   if (err && err.message === 'Not allowed by CORS') {
@@ -302,6 +318,11 @@ io.on('connection', (socket) => {
       // Broadcast the updated state to all clients in the session
       io.to(sessionId).emit('update-game', sessionData);
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'buzz',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to buzz' });
     }
   });
@@ -321,6 +342,11 @@ io.on('connection', (socket) => {
       await getValidSessionDoc(sessionId); // Throws if session doesn't exist
       io.to(sessionId).emit('play-strike-sound');
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'play-strike-sound',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to play strike sound' });
     }
   });
@@ -341,6 +367,11 @@ io.on('connection', (socket) => {
       socket.join(sessionId);
       socket.emit('joined-session', { sessionId });
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'join-session',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to join session' });
     }
   });
@@ -390,6 +421,11 @@ io.on('connection', (socket) => {
       // Track player info for disconnect
       socketToPlayer[socket.id] = { sessionId, name, team };
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'join-team',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to join team' });
     }
   });
@@ -410,6 +446,11 @@ io.on('connection', (socket) => {
       const currentState = sessionDoc.data();
       socket.emit('current-state', currentState); // Send the current state to the client
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'get-current-state',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to get current game state' });
     }
   });
@@ -495,6 +536,11 @@ io.on('connection', (socket) => {
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('update-game', gameState);
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'update-game',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || 'Failed to update game state' });
     }
   });
@@ -526,6 +572,11 @@ io.on('connection', (socket) => {
       await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'update-team-name',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       if (error.message === 'Session does not exist') {
         socket.emit('error', { message: error.message || 'Session does not exist' });
       } else {
@@ -551,6 +602,11 @@ io.on('connection', (socket) => {
       const data = sessionDoc.data() || {};
       socket.emit('team-members-updated', data.teamMembers || { A: [], B: [] });
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'get-team-members',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       if (error.message === 'Session does not exist') {
         socket.emit('error', { message: error.message || 'Session does not exist' });
       } else {
@@ -589,6 +645,11 @@ io.on('connection', (socket) => {
         io.to(sessionId).emit('team-members-updated', members);
       }
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'remove-team-member',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || `Error removing team member` });
     }
   });
@@ -613,6 +674,11 @@ io.on('connection', (socket) => {
         callback({ exists: sessionDoc.exists });
       }
     } catch (error) {
+      captureHandlerError(error, {
+        event: 'validate-session',
+        sessionId: payload?.sessionId,
+        name: payload?.name,
+      });
       socket.emit('error', { message: error.message || `Error validating session` });
       if (typeof callback === 'function') {
         callback({ exists: false });
@@ -643,6 +709,7 @@ io.on('connection', (socket) => {
         }
       } catch (error) {
         console.error('Error removing player on disconnect:', error);
+        captureHandlerError(error, { event: 'disconnect', sessionId, name });
       }
       // Remove from tracking
       delete socketToPlayer[socket.id];
@@ -724,13 +791,16 @@ function getResetGameState() {
 }
 
 // Global error handlers for debugging startup issues
-process.on('uncaughtException', (error) => {
+// Sentry's default integrations capture both of these; we only flush before exiting.
+process.on('uncaughtException', async (error) => {
   console.error('Uncaught Exception:', error);
+  await flushMonitoring();
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  await flushMonitoring();
   process.exit(1);
 });
 

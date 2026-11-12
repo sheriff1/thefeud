@@ -19,3 +19,5 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS # comma-separated, e.g. the Vercel production URL
         sync: false
+      - key: SENTRY_DSN # error monitoring (#27); optional, monitoring is off when unset
+        sync: false
