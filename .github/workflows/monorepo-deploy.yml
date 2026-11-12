@@ -203,18 +203,31 @@ jobs:
           echo "Render deploy triggered."
           echo "triggered=true" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for backend health (best effort)
+      - name: Verify the pushed commit is live
         if: steps.trigger.outputs.triggered == 'true'
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
-          # Free plan cold start is ~1 min. Render keeps the old instance serving
-          # until the new one is healthy, so a 200 here does not prove the new
-          # version is live; it confirms the service is up and warms it.
-          for i in $(seq 1 30); do
-            if curl -fsS --max-time 20 -o /dev/null "$BACKEND_URL/api/health"; then
-              echo "Backend healthy at $BACKEND_URL/api/health"
+          # /api/health returns the live build's git sha (RENDER_GIT_COMMIT). Render keeps
+          # serving the old instance until the new one is healthy, so a plain 200 proves
+          # nothing: poll until the live sha matches. Free plan: build + cold start is a few
+          # minutes, so allow 12 (72 x 10s). Transient errors/timeouts just retry.
+          # The deploy hook deploys the branch head, so if a newer commit is already live
+          # that also counts, provided the pushed commit is its ancestor.
+          live=""
+          for i in $(seq 1 72); do
+            live=$(curl -fsS --max-time 20 "$BACKEND_URL/api/health" 2>/dev/null | jq -r '.commit // empty' 2>/dev/null || true)
+            if [ "$live" = "$EXPECTED_SHA" ]; then
+              echo "Live backend is on the pushed commit ${EXPECTED_SHA:0:7}."
               exit 0
             fi
-            echo "Attempt $i: not healthy yet; retrying in 10s"
+            if [ -n "$live" ] && git fetch -q origin main 2>/dev/null \
+               && git merge-base --is-ancestor "$EXPECTED_SHA" "$live" 2>/dev/null; then
+              echo "Live backend is on ${live:0:7}, which includes the pushed commit ${EXPECTED_SHA:0:7}."
+              exit 0
+            fi
+            echo "Attempt $i: live commit is '${live:0:7}', waiting for ${EXPECTED_SHA:0:7}; retrying in 10s"
             sleep 10
           done
-          echo "::warning::Backend did not report healthy within 5 minutes. Check the Render dashboard."
+          echo "::error::Render did not serve commit ${EXPECTED_SHA:0:7} within 12 minutes (live: '${live:0:7}'). The deploy may have failed or still be in progress; check the Render dashboard."
+          exit 1

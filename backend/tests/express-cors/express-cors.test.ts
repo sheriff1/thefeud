@@ -34,6 +34,23 @@ describe('Express & CORS', () => {
   it('should return 200 status code (health)', async () => {
     const res = await request(app).get('/api/health');
     expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('ok');
+  });
+
+  // The deploy workflow polls this to confirm the pushed commit is live (#89).
+  it('health reports the build commit from RENDER_GIT_COMMIT, and only that', async () => {
+    const prev = process.env.RENDER_GIT_COMMIT;
+    try {
+      process.env.RENDER_GIT_COMMIT = 'abc123def456';
+      const res = await request(app).get('/api/health');
+      expect(res.body).toEqual({ status: 'ok', commit: 'abc123def456' });
+      delete process.env.RENDER_GIT_COMMIT;
+      const res2 = await request(app).get('/api/health');
+      expect(res2.body).toEqual({ status: 'ok' });
+    } finally {
+      if (prev === undefined) delete process.env.RENDER_GIT_COMMIT;
+      else process.env.RENDER_GIT_COMMIT = prev;
+    }
   });
 
   // Test answers CSV endpoints
