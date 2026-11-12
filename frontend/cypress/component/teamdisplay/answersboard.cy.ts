@@ -107,7 +107,7 @@ describe('AnswersBoard', () => {
     cy.get('.strike-x').should('contain.text', 'X');
   });
 
-  it('shows multiple strike X\'s based on strikeCount', () => {
+  it("shows multiple strike X's based on strikeCount", () => {
     mount(AnswersBoard, {
       props: {
         ...defaultProps,
