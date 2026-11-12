@@ -250,7 +250,7 @@ app.get('/api/answers-library', (req, res) => {
   });
 });
 
-// Health check endpoint (used by Render healthCheckPath and the CI deploy poll)
+// Health check endpoint (used by Render healthCheckPath and by the deploy-backend job to confirm a deploy)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
