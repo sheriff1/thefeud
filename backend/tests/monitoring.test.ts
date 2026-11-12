@@ -208,6 +208,14 @@ describe('performance monitoring (#28)', () => {
     expect(tracesSampler({ name: '/api/health' })).toBe(0);
     expect(tracesSampler({ name: 'GET /socket.io/' })).toBe(0);
     expect(tracesSampler({ name: 'POST /socket.io/?EIO=4' })).toBe(0);
+    // Real HTTP server spans are named only by method; the path is an attribute.
+    expect(tracesSampler({ name: 'GET', attributes: { 'url.path': '/api/health' } })).toBe(0);
+    expect(tracesSampler({ name: 'GET', attributes: { 'http.target': '/socket.io/?EIO=4' } })).toBe(
+      0,
+    );
+    expect(tracesSampler({ name: 'GET', attributes: { 'url.path': '/api/answers-library' } })).toBe(
+      TRACES_SAMPLE_RATE,
+    );
   });
 
   it('samples other requests at the low base rate, honouring a parent decision', () => {
@@ -243,5 +251,30 @@ describe('performance monitoring (#28)', () => {
       url: 'https://x.test/api/session-exists/:sessionId',
       method: 'GET',
     });
+  });
+
+  it('names bare-method transactions from the path and parameterizes span data', () => {
+    const out = scrubTransaction(
+      {
+        transaction: 'GET',
+        contexts: {
+          trace: {
+            data: {
+              'url.path': '/api/session-exists/AB12',
+              'url.full': 'http://h/api/session-exists/AB12',
+            },
+          },
+        },
+        spans: [
+          {
+            description: 'GET /api/create-session/AB12',
+            data: { 'url.path': '/api/create-session/AB12' },
+          },
+        ],
+      },
+      {},
+    );
+    expect(out.transaction).toBe('GET /api/session-exists/:sessionId');
+    expect(JSON.stringify(out)).not.toContain('AB12');
   });
 });

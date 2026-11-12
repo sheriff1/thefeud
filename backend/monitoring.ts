@@ -76,7 +76,15 @@ export function scrubEvent<T extends Record<string, any>>(event: T, env: Env = p
   if (e.user) e.user = { id: e.user.id };
   // Tags stay (sessionId, player name, event name); everything else is scrubbed.
   const { tags } = e;
-  for (const key of ['extra', 'contexts', 'breadcrumbs', 'exception', 'message', 'logentry']) {
+  for (const key of [
+    'extra',
+    'contexts',
+    'breadcrumbs',
+    'exception',
+    'message',
+    'logentry',
+    'spans',
+  ]) {
     if (key in e) e[key] = scrubValue(e[key], env, 0);
   }
   if (tags) e.tags = scrubValue(tags, env, 0);
@@ -95,22 +103,52 @@ export function parameterizePaths(value: string): string {
   return value.replace(SESSION_PATH, '$1:sessionId');
 }
 
+/** URL path of a sampling context. The span name is only the bare method at that point. */
+function pathOf({ name, attributes }: any): string {
+  const attr = attributes?.['url.path'] ?? attributes?.['http.target'] ?? attributes?.['url.full'];
+  if (typeof attr === 'string') return attr;
+  return typeof name === 'string' ? name.replace(/^[A-Z]+\s+/, '') : '';
+}
+
 /** Sampling decision: never trace health checks or Socket.IO transport, otherwise the base rate. */
-export function tracesSampler({ name, inheritOrSampleWith }: any): number {
-  if (typeof name === 'string' && UNTRACED_PATH.test(name.replace(/^[A-Z]+\s+/, ''))) return 0;
+export function tracesSampler(context: any): number {
+  if (UNTRACED_PATH.test(pathOf(context))) return 0;
+  const { inheritOrSampleWith } = context;
   return typeof inheritOrSampleWith === 'function'
     ? inheritOrSampleWith(TRACES_SAMPLE_RATE)
     : TRACES_SAMPLE_RATE;
 }
 
-/** Scrub a transaction event, then parameterize session IDs in its name and URL. */
+function parameterizeDeep(value: unknown, depth = 0): unknown {
+  if (typeof value === 'string') return parameterizePaths(value);
+  if (value === null || typeof value !== 'object' || depth > MAX_DEPTH) return value;
+  if (Array.isArray(value)) return value.map((v) => parameterizeDeep(v, depth + 1));
+  return Object.fromEntries(
+    Object.entries(value).map(([k, v]) => [k, parameterizeDeep(v, depth + 1)]),
+  );
+}
+
+/**
+ * Scrub a transaction event, then parameterize session IDs everywhere they can appear (name, URL,
+ * span data) and give bare-method transactions a "METHOD /path" name.
+ */
 export function scrubTransaction<T extends Record<string, any>>(
   event: T,
   env: Env = process.env,
 ): T {
   const e: Record<string, any> = scrubEvent(event, env);
-  if (typeof e.transaction === 'string') e.transaction = parameterizePaths(e.transaction);
-  if (typeof e.request?.url === 'string') e.request.url = parameterizePaths(e.request.url);
+  const traceData = e.contexts?.trace?.data;
+  const path = traceData?.['url.path'] ?? traceData?.['http.target'];
+  if (
+    typeof e.transaction === 'string' &&
+    /^[A-Z]+$/.test(e.transaction) &&
+    typeof path === 'string'
+  ) {
+    e.transaction = `${e.transaction} ${path.split('?')[0]}`;
+  }
+  for (const key of ['transaction', 'request', 'contexts', 'spans']) {
+    if (key in e) e[key] = parameterizeDeep(e[key]);
+  }
   return e as T;
 }
 
