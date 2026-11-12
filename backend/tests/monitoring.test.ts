@@ -45,6 +45,7 @@ describe('initMonitoring', () => {
     expect(options.release).toBe('abc123');
     expect(options.dataCollection).toMatchObject({ cookies: false, httpBodies: [] });
     expect(options.tracesSampler).toBe(tracesSampler);
+    expect(options.traceLifecycle).toBe('static');
     expect(options.tracesSampleRate).toBeUndefined();
   });
 

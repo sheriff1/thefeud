@@ -45,6 +45,7 @@ describe('initMonitoring', () => {
       release: 'abc123',
       tracesSampleRate: 0.1,
       tracePropagationTargets: [],
+      traceLifecycle: 'static',
     });
     expect(options.integrations).toHaveLength(1);
     expect(options.dataCollection).toMatchObject({ cookies: false, httpBodies: [] });
