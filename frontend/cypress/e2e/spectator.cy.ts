@@ -76,10 +76,11 @@ describe('Spectator View', () => {
     cy.safeClick('.session-id-box');
     cy.get('.modal').should('be.visible');
 
-    // Close the modal using the most reliable method - ESC key
-    cy.get('body').type('{esc}');
+    // Close with the Close button. (This used to press Esc, which the dialog does not handle; the
+    // test only passed because the page's test-only 1s inactivity logout reloaded it.)
+    cy.get('.modal .modal-action label:contains("Close")').click();
 
-    cy.get('.modal').should('not.exist', { timeout: 5000 });
+    cy.get('.modal').should('not.exist');
   });
 
   it('should display team information', () => {
