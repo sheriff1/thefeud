@@ -74,3 +74,4 @@ firestore-debug.log
 .secrets
 
 /frontend/cypress/screenshots
+.lighthouseci

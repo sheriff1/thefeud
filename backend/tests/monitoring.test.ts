@@ -2,6 +2,10 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   initMonitoring,
   scrubEvent,
+  scrubTransaction,
+  parameterizePaths,
+  tracesSampler,
+  TRACES_SAMPLE_RATE,
   redactString,
   isExpectedError,
   captureHandlerError,
@@ -40,7 +44,8 @@ describe('initMonitoring', () => {
     expect(options.environment).toBe('production');
     expect(options.release).toBe('abc123');
     expect(options.dataCollection).toMatchObject({ cookies: false, httpBodies: [] });
-    expect(options.tracesSampleRate).toBe(0);
+    expect(options.tracesSampler).toBe(tracesSampler);
+    expect(options.tracesSampleRate).toBeUndefined();
   });
 
   it('SENTRY_ENVIRONMENT overrides NODE_ENV', () => {
@@ -194,5 +199,49 @@ describe('captureExpressError', () => {
     captureExpressError(new Error('Not allowed by CORS'));
     await Sentry.flush(1000);
     expect(events).toHaveLength(0);
+  });
+});
+
+describe('performance monitoring (#28)', () => {
+  it('never traces health checks or Socket.IO transport', () => {
+    expect(tracesSampler({ name: 'GET /api/health' })).toBe(0);
+    expect(tracesSampler({ name: '/api/health' })).toBe(0);
+    expect(tracesSampler({ name: 'GET /socket.io/' })).toBe(0);
+    expect(tracesSampler({ name: 'POST /socket.io/?EIO=4' })).toBe(0);
+  });
+
+  it('samples other requests at the low base rate, honouring a parent decision', () => {
+    expect(TRACES_SAMPLE_RATE).toBeLessThanOrEqual(0.1);
+    expect(tracesSampler({ name: 'POST /api/sessions' })).toBe(TRACES_SAMPLE_RATE);
+    const inherit = vi.fn(() => 1);
+    expect(tracesSampler({ name: 'GET /api/answers-library', inheritOrSampleWith: inherit })).toBe(
+      1,
+    );
+    expect(inherit).toHaveBeenCalledWith(TRACES_SAMPLE_RATE);
+  });
+
+  it('replaces session IDs in route paths', () => {
+    expect(parameterizePaths('GET /api/session-exists/AB12CD')).toBe(
+      'GET /api/session-exists/:sessionId',
+    );
+    expect(parameterizePaths('/api/create-session/XYZ9?x=1')).toBe(
+      '/api/create-session/:sessionId?x=1',
+    );
+    expect(parameterizePaths('GET /api/answers-library')).toBe('GET /api/answers-library');
+  });
+
+  it('scrubs transactions and parameterizes name and url', () => {
+    const out = scrubTransaction(
+      {
+        transaction: 'GET /api/session-exists/AB12',
+        request: { url: 'https://x.test/api/session-exists/AB12?a=1', method: 'GET', headers: {} },
+      },
+      {},
+    );
+    expect(out.transaction).toBe('GET /api/session-exists/:sessionId');
+    expect(out.request).toEqual({
+      url: 'https://x.test/api/session-exists/:sessionId',
+      method: 'GET',
+    });
   });
 });

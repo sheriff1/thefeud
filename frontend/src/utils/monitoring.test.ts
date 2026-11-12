@@ -43,8 +43,10 @@ describe('initMonitoring', () => {
       dsn: DSN,
       environment: 'production',
       release: 'abc123',
-      tracesSampleRate: 0,
+      tracesSampleRate: 0.1,
+      tracePropagationTargets: [],
     });
+    expect(options.integrations).toHaveLength(1);
     expect(options.dataCollection).toMatchObject({ cookies: false, httpBodies: [] });
     expect(router.onError).toHaveBeenCalledOnce();
   });

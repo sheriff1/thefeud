@@ -83,6 +83,37 @@ export function scrubEvent<T extends Record<string, any>>(event: T, env: Env = p
   return e as T;
 }
 
+// Performance monitoring (#28). Low sample rate keeps us far below the free span quota.
+export const TRACES_SAMPLE_RATE = 0.1;
+// Health checks and Socket.IO long-polling would dominate the span count and say nothing useful.
+const UNTRACED_PATH = /^\/(api\/health|socket\.io)(\/|\?|$)/;
+// Routes that carry a game session ID in the path.
+const SESSION_PATH = /(\/api\/(?:session-exists|create-session)\/)[^/?#\s]+/g;
+
+/** Replace session IDs in URL paths so they never end up in transaction names or URLs. */
+export function parameterizePaths(value: string): string {
+  return value.replace(SESSION_PATH, '$1:sessionId');
+}
+
+/** Sampling decision: never trace health checks or Socket.IO transport, otherwise the base rate. */
+export function tracesSampler({ name, inheritOrSampleWith }: any): number {
+  if (typeof name === 'string' && UNTRACED_PATH.test(name.replace(/^[A-Z]+\s+/, ''))) return 0;
+  return typeof inheritOrSampleWith === 'function'
+    ? inheritOrSampleWith(TRACES_SAMPLE_RATE)
+    : TRACES_SAMPLE_RATE;
+}
+
+/** Scrub a transaction event, then parameterize session IDs in its name and URL. */
+export function scrubTransaction<T extends Record<string, any>>(
+  event: T,
+  env: Env = process.env,
+): T {
+  const e: Record<string, any> = scrubEvent(event, env);
+  if (typeof e.transaction === 'string') e.transaction = parameterizePaths(e.transaction);
+  if (typeof e.request?.url === 'string') e.request.url = parameterizePaths(e.request.url);
+  return e as T;
+}
+
 export interface MonitoringOptions {
   env?: Env;
   /** Test seam: replaces Sentry.init. */
@@ -110,8 +141,8 @@ export function initMonitoring({
       httpBodies: [],
       urlQueryParams: false,
     },
-    // Performance monitoring is out of scope (#28).
-    tracesSampleRate: 0,
+    tracesSampler,
+    beforeSendTransaction: (event) => scrubTransaction(event, env) as typeof event,
     // Console breadcrumbs could echo error text that bypasses the key-based scrubbing. Express
     // errors are reported by captureExpressError (below), so skip the SDK's own capture.
     integrations: (defaults) => defaults.filter((i) => !['Console', 'Express'].includes(i.name)),

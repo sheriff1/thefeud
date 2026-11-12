@@ -15,6 +15,8 @@ export interface MonitoringConfig {
   isTestRun?: boolean;
 }
 
+export const TRACES_SAMPLE_RATE = 0.1;
+
 const SENSITIVE_KEY =
   /(credential|secret|token|password|passwd|private[_-]?key|authorization|api[_-]?key|cookie)/i;
 const PEM_BLOCK = /-----BEGIN [A-Z ]+-----[\s\S]*?(?:-----END [A-Z ]+-----|$)/g;
@@ -84,8 +86,13 @@ export function initMonitoring(
       httpBodies: [],
       urlQueryParams: false,
     },
-    // Performance monitoring is out of scope (#28).
-    tracesSampleRate: 0,
+    // Performance monitoring (#28): page loads, navigations and Web Vitals at a low sample rate.
+    // Query strings are dropped by scrubEvent; routes have no session IDs in their paths.
+    integrations: [Sentry.browserTracingIntegration({ router })],
+    tracesSampleRate: TRACES_SAMPLE_RATE,
+    // No trace headers on outgoing requests (backend CORS stays untouched).
+    tracePropagationTargets: [],
+    beforeSendTransaction: (event) => scrubEvent(event) as typeof event,
     beforeSend: (event) => scrubEvent(event) as typeof event,
     beforeBreadcrumb: (breadcrumb) => (breadcrumb.category === 'console' ? null : breadcrumb),
   });
