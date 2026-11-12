@@ -114,6 +114,7 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import helmet from 'helmet';
 import { createUniqueSession } from './sessions.js';
+import { asyncHandler, onSafe } from './safe-handlers.js';
 import {
   initMonitoring,
   captureHandlerError,
@@ -221,11 +222,14 @@ app.get('/', (req, res) => {
   res.send('Family Feud Backend is running!!!!');
 });
 
-app.get('/api/session-exists/:sessionId', async (req, res) => {
-  const { sessionId } = req.params;
-  const sessionDoc = await db.collection('sessions').doc(sessionId).get();
-  res.json({ exists: sessionDoc.exists });
-});
+app.get(
+  '/api/session-exists/:sessionId',
+  asyncHandler(async (req, res) => {
+    const { sessionId } = req.params;
+    const sessionDoc = await db.collection('sessions').doc(sessionId).get();
+    res.json({ exists: sessionDoc.exists });
+  }),
+);
 
 // Create a session under a server-generated, guaranteed-unique ID.
 app.post('/api/sessions', async (req, res) => {
@@ -239,15 +243,18 @@ app.post('/api/sessions', async (req, res) => {
   }
 });
 
-app.post('/api/create-session/:sessionId', async (req, res) => {
-  const { sessionId } = req.params;
-  const sessionRef = db.collection('sessions').doc(sessionId);
-  const sessionDoc = await sessionRef.get();
-  if (!sessionDoc.exists) {
-    await sessionRef.set({ sessionId, createdAt: new Date() });
-  }
-  res.json({ ok: true });
-});
+app.post(
+  '/api/create-session/:sessionId',
+  asyncHandler(async (req, res) => {
+    const { sessionId } = req.params;
+    const sessionRef = db.collection('sessions').doc(sessionId);
+    const sessionDoc = await sessionRef.get();
+    if (!sessionDoc.exists) {
+      await sessionRef.set({ sessionId, createdAt: new Date() });
+    }
+    res.json({ ok: true });
+  }),
+);
 
 // List files
 app.get('/api/answers-library', (req, res) => {
@@ -277,6 +284,16 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
+// Last resort: JSON 500 (or the 4xx a middleware such as the body parser chose). Never expose
+// internal error messages to clients.
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) return next(err);
+  const status = err?.status ?? err?.statusCode;
+  if (typeof status === 'number' && status >= 400 && status < 500) {
+    return res.status(status).json({ error: 'Bad request' });
+  }
+  res.status(500).json({ error: 'Internal server error' });
+});
 // WebSocket Communication
 const socketToPlayer = {};
 
@@ -290,14 +307,14 @@ const io = new Server(server, {
 });
 
 io.on('connection', (socket) => {
-  socket.on('buzz', async (payload) => {
+  onSafe(socket, 'buzz', async (payload) => {
     const parseResult = SNSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      if (!payload.name) {
+      if (!payload?.name) {
         socket.emit('error', { message: 'Name is required to buzz' });
         return;
       }
@@ -327,10 +344,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('play-strike-sound', async (payload) => {
+  onSafe(socket, 'play-strike-sound', async (payload) => {
     const parseResult = SessionIdSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
@@ -351,10 +368,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('join-session', async (payload) => {
+  onSafe(socket, 'join-session', async (payload) => {
     const parseResult = SessionIdSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
@@ -376,18 +393,18 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('join-team', async (payload) => {
+  onSafe(socket, 'join-team', async (payload) => {
     const parseResult = SNTSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      if (!payload.name) {
+      if (!payload?.name) {
         socket.emit('error', { message: 'Name is required to join team' });
         return;
       }
-      if (!payload.team) {
+      if (!payload?.team) {
         socket.emit('error', { message: 'Team is required to join team' });
         return;
       }
@@ -430,10 +447,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get-current-state', async (payload) => {
+  onSafe(socket, 'get-current-state', async (payload) => {
     const parseResult = SessionIdSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
@@ -455,14 +472,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('update-game', async (payload) => {
+  onSafe(socket, 'update-game', async (payload) => {
     const parseResult = SGSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      if (!payload.gameState) {
+      if (!payload?.gameState) {
         socket.emit('error', { message: 'Game state is required to update game' });
         return;
       }
@@ -545,18 +562,18 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('update-team-name', async (payload) => {
+  onSafe(socket, 'update-team-name', async (payload) => {
     const parseResult = SNTSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      if (!payload.name) {
+      if (!payload?.name) {
         socket.emit('error', { message: 'Name is required to update team name' });
         return;
       }
-      if (!payload.team) {
+      if (!payload?.team) {
         socket.emit('error', { message: 'Team is required to update team name' });
         return;
       }
@@ -585,10 +602,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('get-team-members', async (payload) => {
+  onSafe(socket, 'get-team-members', async (payload) => {
     const parseResult = SessionIdSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
@@ -615,18 +632,18 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('remove-team-member', async (payload) => {
+  onSafe(socket, 'remove-team-member', async (payload) => {
     const parseResult = SNTSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
-      if (!payload.name) {
+      if (!payload?.name) {
         socket.emit('error', { message: 'Name is required to remove team member' });
         return;
       }
-      if (!payload.team) {
+      if (!payload?.team) {
         socket.emit('error', { message: 'Team is required to remove team member' });
         return;
       }
@@ -654,10 +671,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('validate-session', async (payload, callback) => {
+  onSafe(socket, 'validate-session', async (payload, callback) => {
     const parseResult = SCSchema.safeParse(payload);
     if (!parseResult.success) {
-      if (!payload.sessionId) {
+      if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
       }
@@ -790,18 +807,19 @@ function getResetGameState() {
   };
 }
 
-// Global error handlers for debugging startup issues
-// Sentry's default integrations capture both of these; we only flush before exiting.
+// Global error handlers.
+// Sentry's default integrations capture both of these; we only log and, for crashes, flush.
+// An uncaught exception leaves the process in an unknown state, so exit (after flushing).
 process.on('uncaughtException', async (error) => {
   console.error('Uncaught Exception:', error);
   await flushMonitoring();
   process.exit(1);
 });
 
-process.on('unhandledRejection', async (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  await flushMonitoring();
-  process.exit(1);
+// Request-scoped code (routes, socket listeners) is wrapped so its failures never get here; a
+// stray rejection must not drop every active game, so log it and keep serving.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection (process kept running):', reason);
 });
 
 export default app;
