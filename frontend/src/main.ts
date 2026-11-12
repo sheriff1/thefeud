@@ -32,12 +32,6 @@ const monitoringOn = initMonitoring(app, router, {
   release: import.meta.env.VITE_APP_RELEASE,
   isTestRun: typeof window !== 'undefined' && !!(window as any).Cypress,
 });
-if (monitoringOn && window.location.search.includes('sentry-test-27')) {
-  // TEMPORARY (#27): deliberate unhandled error to verify Sentry end to end.
-  setTimeout(() => {
-    throw new Error('Sentry frontend test #27 (deliberate, safe to ignore)');
-  }, 500);
-}
 if (monitoringOn) {
   const gameStore = useGameStore(pinia);
   watch(
