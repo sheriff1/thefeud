@@ -261,6 +261,14 @@ app.get('/api/answers-library', (req, res) => {
   });
 });
 
+// TEMPORARY (#27): deliberate error to verify Sentry end to end. Removed right after verification.
+let sentryTest27Fired = false;
+app.get('/api/__sentry-test-27', (req, res, next) => {
+  if (sentryTest27Fired) return res.status(204).end();
+  sentryTest27Fired = true;
+  next(new Error('Sentry backend test #27 (deliberate, safe to ignore)'));
+});
+
 // Health check endpoint (used by Render healthCheckPath and by the deploy-backend job to confirm a deploy)
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
