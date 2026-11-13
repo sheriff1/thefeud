@@ -113,10 +113,10 @@ Working agreement:
 
 The app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) to see whether games get played. It sets no cookies and collects no personal data.
 
-- **What is sent:** page views (path only) and four events: `session_created`, `spectator_joined`, `team_joined` (property `team`: `A` or `B`) and `round_completed` (property `round`: the round number).
+- **What is sent:** page views (path only) and four events: `session_created`, `spectator_joined`, `team_joined` (property `team`: `A` or `B`) and `round_completed` (property `round`: the round number). The custom events are sent, but on Vercel's Hobby plan they can only be read on Pro, so the free signal is the page views (paths `/host`, `/team`, `/spectator`).
 - **What is never sent:** session codes, player or team names, query strings, or any user identifier. URLs are reduced to their path before leaving the browser, and `track()` in `frontend/src/utils/analytics.ts` only accepts those event names and properties.
 - **When it runs:** only in a production build, never under Cypress or in dev, and only on the production hostname, so previews and localhost send nothing. There is no environment variable; the code is in `frontend/src/utils/analytics.ts` and is started from `frontend/src/main.ts`.
-- **Looking at the data:** the project's Analytics tab in Vercel, or `vercel metrics vercel.analytics.event.count --group-by eventName --since 1d` (also `vercel.analytics.page_view.count`; run `vercel metrics schema vercel.analytics` for dimensions).
+- **Looking at the data:** the project's Analytics tab in Vercel (the Events panel needs Pro), or `vercel metrics vercel.analytics.page_view.count --group-by requestPath --since 1d -p family-feud` (`-p family-feud` is needed because this checkout is not linked; run `vercel metrics schema vercel.analytics` for dimensions). On Hobby, `vercel.analytics.event.count` returns `payment_required`.
 - **Turning it off:** remove the `initAnalytics()` call in `main.ts` (events become no-ops), and disable Web Analytics in the Vercel project settings.
 
 ---
@@ -133,6 +133,12 @@ The backend (Express + Socket.IO) runs on [Render](https://render.com/) and is d
 4. Point the frontend at it: in Vercel set `VITE_API_BASE` to the Render URL (e.g. `https://thefeud-backend.onrender.com`) and redeploy the frontend. Locally it defaults to `http://localhost:4000`.
 
 **Free plan behaviour:** the service sleeps after ~15 minutes without traffic and takes ~1 minute to cold start. Connected clients drop and show a reconnect banner, then rejoin automatically once the service is back. For an always-on backend, change `plan: free` to `plan: starter` in `render.yaml`.
+
+---
+
+## API reference
+
+[docs/api.md](docs/api.md) documents the backend's REST routes, every Socket.IO event (payloads, responses, rooms, side effects), the `GameState` shape and the known quirks. Read it before adding or changing an event. `npm test` in `backend/` fails if a route, event or `GameState` field exists in only the code or only the doc.
 
 ---
 
