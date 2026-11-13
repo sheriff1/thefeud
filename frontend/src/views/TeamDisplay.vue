@@ -143,6 +143,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import socket from '../utils/socket';
+import { track } from '../utils/analytics';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
@@ -263,6 +264,8 @@ function joinTeam(payload: { playerName: string; selectedTeam: string }) {
     name: emojiAssignedName,
     team,
   });
+  // Explicit join only; the automatic re-join after a reconnect (useSessionSync) is not counted.
+  track('team_joined', { team: team === 'A' || team === 'B' ? team : '' });
   playerName.value = emojiAssignedName;
   localStorage.setItem('playerName', playerName.value);
   selectedTeam.value = team;
