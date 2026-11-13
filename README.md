@@ -79,6 +79,23 @@ npm run build
 3. Add any necessary environment variables in the Vercel dashboard (e.g., for Firebase or API endpoints).
 4. Deploy! Vercel will automatically build and host your frontend.
 
+### Keeping Vercel deployments under the free-plan limit
+
+The Vercel free plan allows **100 deployments per rolling 24 hours, shared across every project on the team**. The git integration builds a preview for every push to every branch and a production build for every push to `main`. Once the limit is hit, CLI/API deploys fail with `api-deployments-free-per-day`.
+
+Working agreement:
+
+- One issue per branch and PR; put follow-ups on the same branch instead of opening new PRs.
+- Verify locally (build, lint, tests) before the first push, then push once when ready. Every push to a PR branch creates a preview deployment.
+- Avoid throwaway PRs (temporary triggers, "remove the trigger" follow-ups); verify those changes locally or on one branch.
+- Before opening or merging a batch of PRs, check the count:
+
+  ```bash
+  scripts/vercel-deploy-count.sh        # last 24h; pass a number of hours to change the window
+  ```
+
+  It needs the Vercel CLI (`vercel login`) and `jq`, and prints counts by project, source and target. If the team total is near 100, hold merges until it drops.
+
 ---
 
 ## Render Deployment (Backend)
