@@ -55,7 +55,18 @@ npm run build
 
 - **Backend** (`cd backend && npm test`): requires the Firebase Firestore emulator on `127.0.0.1:8080` (start it with `npm run dev` from the repo root, or `firebase emulators:start --only firestore,auth`).
 - **Frontend component tests** (`cd frontend && npm run test:component`).
-- **Frontend e2e** (`cd frontend && npm run test:e2e:chrome`): runs Cypress in system Chrome. Cypress's bundled Electron can render a blank page on some Macs, so use Chrome locally. If you run it from the VS Code integrated terminal, unset `ELECTRON_RUN_AS_NODE` first (`env -u ELECTRON_RUN_AS_NODE npm run test:e2e:chrome`).
+- **Frontend e2e**: needs the backend, the Firestore/Auth emulators and the Vite dev server running (CI starts them the same way, see `.github/workflows/monorepo-deploy.yml`). See [Running e2e locally](#running-e2e-locally).
+
+### Running e2e locally
+
+A full run takes 9+ minutes, so run one spec at a time while developing.
+
+1. Make sure ports 4000, 5173, 8080 and 8089 are free: `lsof -nP -iTCP:4000 -iTCP:5173 -iTCP:8080 -iTCP:8089 -sTCP:LISTEN`. A leftover backend or Vite from an earlier session is the usual cause of a blank page or odd failures; stop it (check the owner with `lsof -p <pid> -a -d cwd`) before starting.
+2. Build the backend once: `npm run build` (repo root). The `firebase` CLI must be installed globally and logged in.
+3. Start the stack from the repo root: `npm run dev` (emulators, backend, Vite). Restart it after editing `firebase.json` or `firestore.rules`.
+4. In another terminal, run one spec: `cd frontend && npm run test:e2e:local -- --spec cypress/e2e/home.cy.ts` (about 15 s; `retries=0` so failures show up immediately). From the VS Code integrated terminal this script already unsets `ELECTRON_RUN_AS_NODE`.
+
+To mirror CI exactly instead, start the emulators with `firebase emulators:start --only firestore,auth --project demo-test`, the backend with `FIREBASE_CREDENTIALS='{}' FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:8089 FIREBASE_PROJECT_ID=demo-test node backend/dist/server.js`, and Vite with `VITE_FIREBASE_CONFIG='{"apiKey":"test","authDomain":"test","projectId":"test"}' VITE_USE_FIREBASE_EMULATOR=true`. Both setups pass `home.cy.ts` locally. If you see a blank page, `npm run test:e2e:chrome` (system Chrome) is the fallback, because Cypress's bundled Electron has rendered blank on some Macs.
 
 ---
 
