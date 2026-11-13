@@ -179,6 +179,9 @@ export function initMonitoring({
       httpBodies: [],
       urlQueryParams: false,
     },
+    // One transaction per request, so beforeSendTransaction (scrubbing) applies. The v11 default
+    // 'stream' mode ignores it.
+    traceLifecycle: 'static',
     tracesSampler,
     beforeSendTransaction: (event) => scrubTransaction(event, env) as typeof event,
     // Console breadcrumbs could echo error text that bypasses the key-based scrubbing. Express

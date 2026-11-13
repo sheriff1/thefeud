@@ -89,6 +89,8 @@ export function initMonitoring(
     // Performance monitoring (#28): page loads, navigations and Web Vitals at a low sample rate.
     // Query strings are dropped by scrubEvent; routes have no session IDs in their paths.
     integrations: [Sentry.browserTracingIntegration({ router })],
+    // Static transactions: beforeSendTransaction (scrubbing) is ignored in v11's default 'stream' mode.
+    traceLifecycle: 'static',
     tracesSampleRate: TRACES_SAMPLE_RATE,
     // No trace headers on outgoing requests (backend CORS stays untouched).
     tracePropagationTargets: [],
