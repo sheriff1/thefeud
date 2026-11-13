@@ -41,6 +41,7 @@ import { ref } from 'vue'; // Import ref from Vue
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gamestore';
 import { requestNewSessionId } from '../api/session';
+import { track } from '../utils/analytics';
 
 const store = useGameStore();
 
@@ -52,6 +53,7 @@ const sessionId = ref(''); // Define sessionId as a reactive variable
 const createSession = async () => {
   const newSessionId = await requestNewSessionId(apiBase);
   if (!newSessionId) return;
+  track('session_created');
   store.enteredFromHome = true;
   store.sessionId = newSessionId;
   localStorage.setItem('enteredFromHome', 'true');
@@ -127,6 +129,7 @@ const joinAsSpectator = async () => {
     store.sessionId = id;
     localStorage.setItem('enteredFromHome', 'true');
     localStorage.setItem('sessionId', sessionId.value);
+    track('spectator_joined');
     router.push(`/spectator?sessionId=${id}`);
   } else {
     alert('Session does not exist. Please check the Session ID.');

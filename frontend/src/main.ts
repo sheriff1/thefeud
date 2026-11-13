@@ -6,6 +6,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import './assets/global.css';
 import { initMonitoring, setSessionTag } from './utils/monitoring';
+import { initAnalytics } from './utils/analytics';
 import { useGameStore } from './stores/gamestore';
 import { watch } from 'vue';
 
@@ -40,6 +41,12 @@ if (monitoringOn) {
     { immediate: true },
   );
 }
+
+// Product analytics (#25): production build only, never under Cypress, production host only.
+initAnalytics({
+  isProd: import.meta.env.PROD,
+  isTestRun: typeof window !== 'undefined' && !!(window as any).Cypress,
+});
 
 // Ensure mounting is completed properly
 const mountApp = async () => {

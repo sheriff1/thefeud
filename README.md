@@ -92,7 +92,7 @@ To mirror CI exactly instead, start the emulators with `firebase emulators:start
 
 ### Keeping Vercel deployments under the free-plan limit
 
-The Vercel free plan allows **100 deployments per rolling 24 hours, shared across every project on the team**. The git integration builds a preview for every push to every branch and a production build for every push to `main`. Once the limit is hit, CLI/API deploys fail with `api-deployments-free-per-day`.
+The Vercel free plan allows **100 deployments per rolling 24 hours, shared across every project on the team**. The git integration builds a preview for every push to every branch and a production build for every push to `main`. Once the limit is hit, CLI/API deploys fail with `api-deployments-free-per-day`. Git-integration deploys are **not** safe below 100 either: a production deploy was rejected as rate limited when the team count was about 85, so treat roughly 60 as the working ceiling. Builds canceled by an `ignoreCommand` (Ignored Build Step) most likely still count toward the limit, so skipping builds that way is not used here.
 
 Working agreement:
 
@@ -105,7 +105,19 @@ Working agreement:
   scripts/vercel-deploy-count.sh        # last 24h; pass a number of hours to change the window
   ```
 
-  It needs the Vercel CLI (`vercel login`) and `jq`, and prints counts by project, source and target. If the team total is near 100, hold merges until it drops.
+  It needs the Vercel CLI (`vercel login`) and `jq`, and prints counts by project, source and target. If the team total is above about 60, hold pushes and merges until it drops.
+
+---
+
+## Analytics and privacy
+
+The app uses [Vercel Web Analytics](https://vercel.com/docs/analytics) to see whether games get played. It sets no cookies and collects no personal data.
+
+- **What is sent:** page views (path only) and four events: `session_created`, `spectator_joined`, `team_joined` (property `team`: `A` or `B`) and `round_completed` (property `round`: the round number).
+- **What is never sent:** session codes, player or team names, query strings, or any user identifier. URLs are reduced to their path before leaving the browser, and `track()` in `frontend/src/utils/analytics.ts` only accepts those event names and properties.
+- **When it runs:** only in a production build, never under Cypress or in dev, and only on the production hostname, so previews and localhost send nothing. There is no environment variable; the code is in `frontend/src/utils/analytics.ts` and is started from `frontend/src/main.ts`.
+- **Looking at the data:** the project's Analytics tab in Vercel, or `vercel metrics vercel.analytics.event.count --group-by eventName --since 1d` (also `vercel.analytics.page_view.count`; run `vercel metrics schema vercel.analytics` for dimensions).
+- **Turning it off:** remove the `initAnalytics()` call in `main.ts` (events become no-ops), and disable Web Analytics in the Vercel project settings.
 
 ---
 

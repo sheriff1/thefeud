@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import socket from '../utils/socket';
+import { track } from '../utils/analytics';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
@@ -261,6 +262,8 @@ export const useGameStore = defineStore('game', {
       this.question = question;
     },
     endRound(updateGameState: (state: any) => void) {
+      // Only host actions call this (never a state sync), once per round.
+      if (!this.roundOver) track('round_completed', { round: this.roundCounter });
       this.roundOver = true;
       if (this.currentStep === 6) {
         this.currentStep = 7;
