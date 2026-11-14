@@ -380,4 +380,86 @@ describe('TimerMgr', () => {
       expect(setTimer).to.have.been.called;
     });
   });
+  describe('auto-start presets', () => {
+    const mountWith = (extra: any = {}) =>
+      cy.mount(TimerMgr, {
+        props: { ...defaultProps, ...extra },
+        global: { plugins: [pinia] },
+      });
+
+    it('has the auto-start toggle off by default and hides the durations', () => {
+      mountWith();
+      cy.get('#timer-auto-start').should('not.be.checked');
+      cy.get('#timer-preset-buzzer').should('not.exist');
+      cy.get('#timer-preset-guessing').should('not.exist');
+    });
+
+    it('emits update:presets with enabled true when the toggle is switched on', () => {
+      const onUpdatePresets = cy.stub();
+      mountWith({
+        presets: { enabled: false, buzzer: 20, guessing: 90 },
+        'onUpdate:presets': onUpdatePresets,
+      });
+      cy.get('#timer-auto-start').check();
+      cy.then(() => {
+        expect(onUpdatePresets).to.have.been.calledWith({
+          enabled: true,
+          buzzer: 20,
+          guessing: 90,
+        });
+      });
+    });
+
+    it('shows both durations when enabled and emits whole clamped seconds', () => {
+      const onUpdatePresets = cy.stub();
+      mountWith({
+        presets: { enabled: true, buzzer: 20, guessing: 90 },
+        'onUpdate:presets': onUpdatePresets,
+      });
+      cy.get('#timer-preset-buzzer').should('have.value', '20');
+      cy.get('#timer-preset-guessing').should('have.value', '90');
+
+      cy.get('#timer-preset-buzzer').clear().type('45').blur();
+      cy.then(() => {
+        expect(onUpdatePresets).to.have.been.calledWith({
+          enabled: true,
+          buzzer: 45,
+          guessing: 90,
+        });
+      });
+
+      cy.get('#timer-preset-guessing').clear().type('99999').blur();
+      cy.then(() => {
+        expect(onUpdatePresets).to.have.been.calledWith({
+          enabled: true,
+          buzzer: 20,
+          guessing: 600,
+        });
+      });
+      cy.get('#timer-preset-guessing').should('have.value', '600');
+    });
+
+    it('turns an empty duration into 0 (no timer for that step)', () => {
+      const onUpdatePresets = cy.stub();
+      mountWith({
+        presets: { enabled: true, buzzer: 20, guessing: 90 },
+        'onUpdate:presets': onUpdatePresets,
+      });
+      cy.get('#timer-preset-buzzer').clear().blur();
+      cy.then(() => {
+        expect(onUpdatePresets).to.have.been.calledWith({
+          enabled: true,
+          buzzer: 0,
+          guessing: 90,
+        });
+      });
+    });
+
+    it("shows Time's up only when told the timer ran out", () => {
+      mountWith({ timeUp: false });
+      cy.get('#timer-time-up').should('not.exist');
+      mountWith({ timeUp: true });
+      cy.get('#timer-time-up').should('contain', "Time's up!");
+    });
+  });
 });
