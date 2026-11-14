@@ -15,7 +15,7 @@ Internal reference for the backend in [backend/index.ts](../backend/index.ts): t
 
 ## Conventions
 
-**Session.** A game is one Firestore document `sessions/{sessionId}`. Socket events accept only IDs matching `^[A-Z0-9]{4}$`. REST routes do not validate the ID (see quirk 9).
+**Session.** A game is one Firestore document `sessions/{sessionId}`. Socket events accept only IDs matching `^[A-Z0-9]{4}$`. `POST /api/create-session/:sessionId` enforces the same rule; `GET /api/session-exists/:sessionId` does not, and answers `{ "exists": false }` for any other string.
 
 **Roles are not enforced.** The server has no notion of host, team member or spectator. The "sent by" notes below describe which frontend view normally sends an event: the host is `HostDashboard.vue`, a team member is `TeamDisplay.vue`, and a spectator is `Spectator.vue`, which renders `TeamDisplay.vue` without joining a team. Any socket that knows a session ID can send any event.
 
@@ -39,7 +39,7 @@ Internal reference for the backend in [backend/index.ts](../backend/index.ts): t
 | `GET /api/health`                     | Render health check, the `deploy-backend` CI job | `200` `{ "status": "ok" }`, plus `"commit": "<git sha>"` when `RENDER_GIT_COMMIT` is set | none                                                                 |
 | `GET /api/session-exists/:sessionId`  | Home view, HTTP fallback in `validateSessionId`  | `200` `{ "exists": boolean }`                                                            | `500` generic                                                        |
 | `POST /api/sessions`                  | Home view (`requestNewSessionId`)                | `201` `{ "sessionId": "ABCD" }`: a new session under a server-generated unique ID        | `503` `{ "error": "Could not create a session. Please try again." }` |
-| `POST /api/create-session/:sessionId` | HostDashboard on mount, Cypress setup            | `200` `{ "ok": true }`: creates the session if it does not exist, otherwise does nothing | `500` generic                                                        |
+| `POST /api/create-session/:sessionId` | HostDashboard on mount, Cypress setup            | `200` `{ "ok": true }`: creates the session if it does not exist, otherwise does nothing | `400` invalid ID, `500` generic                                      |
 | `GET /api/answers-library`            | HostDashboard                                    | `200` JSON array of `.csv` file names in `backend/answers`                               | `500` `{ "error": "Failed to list files" }`                          |
 
 Also served: `GET /answers/<file>` returns the static files in `backend/answers` (the CSVs listed above).
@@ -47,7 +47,7 @@ Also served: `GET /answers/<file>` returns the static files in `backend/answers`
 Details:
 
 - **`POST /api/sessions`** picks 4 random characters from `A-Z0-9` and creates the Firestore document atomically (`create()`, which fails if the ID is taken), retrying up to 10 times. The new document is `{ sessionId, createdAt }` only, not a full `GameState`.
-- **`POST /api/create-session/:sessionId`** is the older route where the client picks the ID. It stores whatever string is in the URL.
+- **`POST /api/create-session/:sessionId`** is the older route where the client picks the ID. `:sessionId` must match `^[A-Z0-9]{4}$`, the same rule as the socket events. Any other value returns `400` `{ "error": "Invalid session ID" }` and writes nothing.
 - **Errors in any route:** a rejected CORS origin returns `403` `{ "error": "Not allowed by CORS" }`. A 4xx raised by middleware (for example a malformed JSON body) returns that status with `{ "error": "Bad request" }`. Anything else returns `500` `{ "error": "Internal server error" }`. Internal messages are never returned over REST.
 
 ## Socket.IO: client to server
@@ -315,4 +315,3 @@ Current behavior that may surprise you, documented as is. None are fixed by this
 - **Quirk 5: `update-game` replaces the document (code).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
 - **Quirk 6: `buzz` has no "first wins" rule (code).** Every buzz overwrites `buzzedPlayer`, so the last one in wins, and the broadcast `update-game` carries the raw document, not a validated `GameState`.
 - **Quirk 8: Disconnect cleanup is partial (code).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team.
-- **Quirk 9: `POST /api/create-session/:sessionId` accepts any ID (code).** A session created under an ID that is not 4 characters of `A-Z0-9` cannot be used over Socket.IO, since every event rejects such an ID. The host view still calls this route after getting its ID from `POST /api/sessions`, where it is a no-op. The Cypress setup depends on the route.

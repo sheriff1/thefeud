@@ -246,7 +246,12 @@ app.post('/api/sessions', async (req, res) => {
 app.post(
   '/api/create-session/:sessionId',
   asyncHandler(async (req, res) => {
-    const { sessionId } = req.params;
+    // Same rule as every socket event, so a session created here is always usable (#107).
+    const parsed = sessionIdSchema.safeParse(req.params.sessionId);
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+    const sessionId = parsed.data;
     const sessionRef = db.collection('sessions').doc(sessionId);
     const sessionDoc = await sessionRef.get();
     if (!sessionDoc.exists) {
