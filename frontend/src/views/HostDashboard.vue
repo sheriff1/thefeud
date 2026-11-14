@@ -13,34 +13,12 @@
     <!-- Reset Game and Reset Round Container -->
 
     <!-- Session ID Modal -->
-    <input
-      type="checkbox"
-      id="session-id-modal"
-      class="modal-toggle"
+    <InviteModal
       v-model="showSessionIdDialog"
+      title="🔗 Invite Others"
+      :options="inviteOptions"
+      @select="copySessionIdOption"
     />
-    <div class="modal" v-if="showSessionIdDialog">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">🔗 Invite Others</h3>
-        <div class="flex flex-col gap-3">
-          <button class="btn btn-outline" @click="copySessionIdOption('id')">
-            Copy Session ID
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('host')">
-            Invite Host Link
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('team')">
-            Invite Team Member Link
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-            Invite Spectator Link
-          </button>
-        </div>
-        <div class="modal-action">
-          <label class="btn" @click="showSessionIdDialog = false">Close</label>
-        </div>
-      </div>
-    </div>
 
     <!-- Manage Question and Answers Section -->
     <GameMgr
@@ -100,6 +78,7 @@ import { useGameStore } from '../stores/gamestore';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
+import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue';
 import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
@@ -132,6 +111,12 @@ const buzzerOnlyCount = ref(0);
 const isLoading = ref(false);
 const showQASection = ref(false);
 const showSessionIdDialog = ref(false);
+const inviteOptions: InviteOption[] = [
+  { label: 'Copy Session ID', type: 'id' },
+  { label: 'Invite Host Link', type: 'host' },
+  { label: 'Invite Team Member Link', type: 'team' },
+  { label: 'Invite Spectator Link', type: 'spectator' },
+];
 const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
 const isTeamNamesUnique = computed(() => {
