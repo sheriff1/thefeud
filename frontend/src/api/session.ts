@@ -1,4 +1,5 @@
 import socket from '../utils/socket';
+import { captureError } from '../utils/monitoring';
 
 // Fallback HTTP validation function
 async function validateSessionIdHttp(sessionId: string): Promise<boolean> {
@@ -89,6 +90,12 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
   });
 }
 
+class HttpError extends Error {
+  constructor(readonly status: number) {
+    super(`HTTP ${status}`);
+  }
+}
+
 /**
  * Ask the backend to create a session under a unique, server-generated ID.
  * Returns the ID, or null (after alerting the user) if it could not be created.
@@ -96,11 +103,17 @@ export function validateSessionId(sessionId: string): Promise<boolean> {
 export async function requestNewSessionId(apiBase: string): Promise<string | null> {
   try {
     const response = await fetch(`${apiBase}/api/sessions`, { method: 'POST' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new HttpError(response.status);
     const { sessionId } = await response.json();
     return sessionId;
   } catch (error) {
     console.error('Failed to create session:', error);
+    // Backend 503s are already captured server-side; this also catches what never reaches it
+    // (cold start 502/504, CORS rejection, network failure). `status` is absent for those.
+    captureError(error, {
+      source: 'create-session',
+      status: error instanceof HttpError ? String(error.status) : 'network',
+    });
     alert('Could not create a session. The server may be waking up, please try again.');
     return null;
   }

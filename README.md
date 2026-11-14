@@ -128,7 +128,7 @@ The backend (Express + Socket.IO) runs on [Render](https://render.com/) and is d
 1. In the Render dashboard choose **New > Blueprint**, connect this repo, and select `render.yaml`. This creates the `thefeud-backend` web service (build: `npm ci && npm run build`, start: `npm start`, health check: `/api/health`).
 2. Set the two dashboard-only environment variables (they are `sync: false` in the Blueprint and never go in git):
    - `FIREBASE_CREDENTIALS`: the service-account JSON as a single line.
-   - `ALLOWED_ORIGINS`: the frontend origin(s) allowed by CORS, comma-separated, e.g. `https://family-feud-eta.vercel.app`.
+   - `ALLOWED_ORIGINS`: the frontend origin(s) allowed by CORS, comma-separated, e.g. `https://family-feud-eta.vercel.app,https://ff.sheriffjolaoso.com`. Match is exact (scheme included, no trailing slash), so add every domain the frontend is served from, including custom domains. A missing origin fails in the browser with a CORS error that the backend does not log, and the home view shows "Could not create a session".
 3. Auto-deploy is off (`autoDeployTrigger: 'off'`). CI deploys instead: after CI passes on a push to `main` that changed `backend/` or `render.yaml`, the `deploy-backend` job in [monorepo-deploy.yml](.github/workflows/monorepo-deploy.yml) calls the service's Deploy Hook. Create the hook under **Service > Settings > Deploy Hook** and store it as the GitHub secret `RENDER_DEPLOY_HOOK_URL` (`gh secret set RENDER_DEPLOY_HOOK_URL`); without it the job skips with a warning. You can still deploy manually from the dashboard.
 4. Point the frontend at it: in Vercel set `VITE_API_BASE` to the Render URL (e.g. `https://thefeud-backend.onrender.com`) and redeploy the frontend. Locally it defaults to `http://localhost:4000`.
 
