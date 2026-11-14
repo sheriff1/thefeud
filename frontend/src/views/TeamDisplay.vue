@@ -156,7 +156,7 @@ import { useSessionSync } from '@/composables/useSessionSync';
 import { useLogout } from '@/composables/useLogout';
 import { getSessionId } from '@/composables/getSessionId';
 import { useInviteLinks } from '@/composables/useInviteLinks';
-import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
+import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 
 interface TeamDisplayProps {
   isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
@@ -292,12 +292,7 @@ socket.on('team-names-updated', (teamNames: any) => {
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   if (isSessionGone(error)) {
-    // Clear the dead session and go home with a notice.
-    handleSessionGone(router, () => {
-      store.logout();
-      localStorage.removeItem('playerName');
-      localStorage.removeItem('playerTeam');
-    });
+    leaveGoneSession(router, store); // clear the dead session and go home with a notice
     return;
   }
   alert(`Error: ${error.message}`);

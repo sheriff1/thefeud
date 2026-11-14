@@ -111,7 +111,7 @@ import { useSessionSync } from '@/composables/useSessionSync';
 import { useLogout } from '@/composables/useLogout';
 import { getSessionId } from '@/composables/getSessionId';
 import { useInviteLinks } from '@/composables/useInviteLinks';
-import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
+import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 const router = useRouter();
 
 let timerInterval: number | null = null;
@@ -580,20 +580,11 @@ async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
   showSessionIdDialog.value = false;
 }
 
-// Clear the dead session and go home with a notice.
-function leaveGoneSession() {
-  handleSessionGone(router, () => {
-    store.logout();
-    localStorage.removeItem('playerName');
-    localStorage.removeItem('playerTeam');
-  });
-}
-
 // Handle errors
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   if (isSessionGone(error)) {
-    leaveGoneSession();
+    leaveGoneSession(router, store);
     return;
   }
   alert(`Error: ${error.message}`);
@@ -640,7 +631,7 @@ onMounted(async () => {
   try {
     const res = await fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
     if (res.status === 400) {
-      leaveGoneSession();
+      leaveGoneSession(router, store);
       return;
     }
   } catch {

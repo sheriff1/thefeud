@@ -5,6 +5,7 @@ import {
   SESSION_GONE_MESSAGE,
   isSessionGone,
   handleSessionGone,
+  leaveGoneSession,
   resetSessionGoneGuard,
 } from './sessionGone';
 
@@ -46,5 +47,21 @@ describe('handleSessionGone', () => {
     resetSessionGoneGuard();
     handleSessionGone(router);
     expect(router.replace).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('leaveGoneSession', () => {
+  it('logs the store out, forgets the player and goes home, once', () => {
+    const router = { replace: vi.fn() };
+    const store = { logout: vi.fn() };
+    const storage = { removeItem: vi.fn() };
+    leaveGoneSession(router, store, storage);
+    leaveGoneSession(router, store, storage);
+    expect(store.logout).toHaveBeenCalledTimes(1);
+    expect(storage.removeItem).toHaveBeenCalledTimes(2);
+    expect(storage.removeItem).toHaveBeenCalledWith('playerName');
+    expect(storage.removeItem).toHaveBeenCalledWith('playerTeam');
+    expect(router.replace).toHaveBeenCalledTimes(1);
+    expect(router.replace).toHaveBeenCalledWith('/?notice=session-gone');
   });
 });
