@@ -51,7 +51,7 @@ const GameStateSchema = z
 const sessionIdSchema = z
   .string()
   .regex(/^[A-Z0-9]{4}$/, { message: 'Session ID must be exactly 4 characters: A-Z, 0-9' });
-const nameSchema = z.string();
+const nameSchema = z.string().min(1);
 const teamSchema = z.string();
 
 const SNTSchema = z
@@ -114,7 +114,7 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import helmet from 'helmet';
 import { createUniqueSession } from './sessions.js';
-import { asyncHandler, onSafe } from './safe-handlers.js';
+import { asyncHandler, onSafe, clientErrorMessage, SESSION_NOT_FOUND } from './safe-handlers.js';
 import {
   initMonitoring,
   captureHandlerError,
@@ -342,7 +342,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to buzz' });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to buzz') });
     }
   });
 
@@ -366,7 +366,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to play strike sound' });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to play strike sound') });
     }
   });
 
@@ -391,7 +391,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to join session' });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to join session') });
     }
   });
 
@@ -445,7 +445,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to join team' });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to join team') });
     }
   });
 
@@ -470,7 +470,9 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to get current game state' });
+      socket.emit('error', {
+        message: clientErrorMessage(error, 'Failed to get current game state'),
+      });
     }
   });
 
@@ -560,7 +562,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || 'Failed to update game state' });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to update game state') });
     }
   });
 
@@ -596,11 +598,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      if (error.message === 'Session does not exist') {
-        socket.emit('error', { message: error.message || 'Session does not exist' });
-      } else {
-        socket.emit('error', { message: error.message || 'Failed to update team name' });
-      }
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to update team name') });
     }
   });
 
@@ -626,11 +624,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      if (error.message === 'Session does not exist') {
-        socket.emit('error', { message: error.message || 'Session does not exist' });
-      } else {
-        socket.emit('error', { message: error.message || 'Failed to get team members' });
-      }
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to get team members') });
     }
   });
 
@@ -669,7 +663,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || `Error removing team member` });
+      socket.emit('error', { message: clientErrorMessage(error, 'Error removing team member') });
     }
   });
 
@@ -698,7 +692,7 @@ io.on('connection', (socket) => {
         sessionId: payload?.sessionId,
         name: payload?.name,
       });
-      socket.emit('error', { message: error.message || `Error validating session` });
+      socket.emit('error', { message: clientErrorMessage(error, 'Error validating session') });
       if (typeof callback === 'function') {
         callback({ exists: false });
       }
@@ -740,7 +734,7 @@ async function getValidSessionDoc(sessionId: string) {
   const sessionRef = db.collection('sessions').doc(sessionId);
   const sessionDoc = await sessionRef.get();
   if (!sessionDoc.exists) {
-    throw new Error('Invalid request - getValidSessionDoc');
+    throw new Error(SESSION_NOT_FOUND);
   }
   return { sessionRef, sessionDoc };
 }

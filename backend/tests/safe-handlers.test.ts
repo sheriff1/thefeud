@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { captureHandlerError } = vi.hoisted(() => ({ captureHandlerError: vi.fn() }));
 vi.mock('../monitoring.js', () => ({ captureHandlerError }));
 
-import { onSafe, asyncHandler } from '../safe-handlers.js';
+import { onSafe, asyncHandler, clientErrorMessage } from '../safe-handlers.js';
 
 function fakeSocket() {
   const listeners: Record<string, (...args: any[]) => unknown> = {};
@@ -66,5 +66,21 @@ describe('asyncHandler', () => {
     })({} as any, {} as any, next);
     await flush();
     expect(next).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('clientErrorMessage', () => {
+  it('passes the missing-session message through', () => {
+    expect(clientErrorMessage(new Error('Session does not exist'), 'Failed to join team')).toBe(
+      'Session does not exist',
+    );
+  });
+
+  it('replaces any other error with the fallback', () => {
+    expect(clientErrorMessage(new TypeError('Cannot read properties of undefined'), 'Failed')).toBe(
+      'Failed',
+    );
+    expect(clientErrorMessage('9 FAILED_PRECONDITION: index', 'Failed')).toBe('Failed');
+    expect(clientErrorMessage(undefined, 'Failed')).toBe('Failed');
   });
 });
