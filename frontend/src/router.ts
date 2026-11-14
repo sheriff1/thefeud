@@ -5,6 +5,7 @@ import HostDashboard from './views/HostDashboard.vue';
 import TeamDisplay from './views/TeamDisplay.vue';
 import Spectator from './views/Spectator.vue';
 import NotFound from './views/NotFound.vue';
+import { SESSION_GONE_NOTICE } from './utils/sessionGone';
 import { validateSessionId } from './api/session'; // Assuming this function is defined to validate session IDs
 
 const routes = [
@@ -66,7 +67,7 @@ router.beforeEach(async (to, from, next) => {
           next();
         } else {
           console.warn('Session validation failed - session does not exist:', sessionId);
-          next({ name: 'Home' });
+          next({ name: 'Home', query: { notice: SESSION_GONE_NOTICE } });
         }
       } catch (error) {
         store.isLoading = false; // Stop loading

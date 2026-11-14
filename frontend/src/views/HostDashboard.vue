@@ -108,6 +108,7 @@ import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
+import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 const router = useRouter();
 
 let timerInterval: number | null = null;
@@ -635,23 +636,28 @@ function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
     });
 }
 
+// Clear the dead session and go home with a notice.
+function leaveGoneSession() {
+  handleSessionGone(router, () => {
+    store.logout();
+    localStorage.removeItem('playerName');
+    localStorage.removeItem('playerTeam');
+  });
+}
+
 // Handle errors
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
-  alert(`Error: ${error.message}`);
-
-  // Handle invalid session error
-  if (
-    error.message === 'Session does not exist.' ||
-    error.message === 'No session ID provided.' // Add any other relevant backend error messages
-  ) {
-    // Redirect to home page
-    window.location.href = '/';
+  if (isSessionGone(error)) {
+    leaveGoneSession();
+    return;
   }
+  alert(`Error: ${error.message}`);
 });
 
-onMounted(() => {
+onMounted(async () => {
   store.initSocket();
+  resetSessionGoneGuard();
 
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
@@ -685,11 +691,21 @@ onMounted(() => {
 
   socket.on('update-game', handleUpdatedGame);
 
+  // Create the session first, so join-session can never be answered with "Session does not
+  // exist" for a brand-new host session (#113). A 400 means the ID itself is invalid.
+  try {
+    const res = await fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
+    if (res.status === 400) {
+      leaveGoneSession();
+      return;
+    }
+  } catch {
+    // Network error (e.g. the backend is waking up): join anyway; <ConnectionBanner /> shows it.
+  }
+
   // Join the room and fetch state now and after every (re)connect; connection problems are
   // surfaced by <ConnectionBanner /> instead of an alert.
   useSessionSync(sessionId, { teamMembers: true });
-
-  fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
 });
 
 // Clean up listeners when the component is unmounted

@@ -1,5 +1,19 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-base-200">
+    <div
+      v-if="showSessionGoneNotice"
+      role="alert"
+      class="alert alert-warning fixed top-4 left-1/2 -translate-x-1/2 z-10 w-11/12 max-w-md"
+      data-cy="session-gone-notice"
+    >
+      <span>
+        That session no longer exists, or the link is wrong. Check the Session ID or start a new
+        game.
+      </span>
+      <button class="btn btn-sm btn-ghost" data-cy="session-gone-dismiss" @click="dismissNotice">
+        Dismiss
+      </button>
+    </div>
     <div class="flex flex-col md:flex-row gap-8 md:gap-12 w-full max-w-4xl p-4 md:p-8">
       <!-- Left: Welcome Section -->
       <div
@@ -37,16 +51,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'; // Import ref from Vue
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from 'vue'; // Import ref from Vue
+import { useRoute, useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gamestore';
 import { requestNewSessionId } from '../api/session';
 import { track } from '../utils/analytics';
+import { SESSION_GONE_NOTICE } from '../utils/sessionGone';
 
 const store = useGameStore();
 
 const apiBase = import.meta.env.VITE_API_BASE || '';
 const router = useRouter();
+const route = useRoute();
+
+// Shown once after being sent home from a session that no longer exists (#113).
+const showSessionGoneNotice = ref(false);
+const dismissNotice = () => (showSessionGoneNotice.value = false);
+onMounted(() => {
+  if (route.query.notice === SESSION_GONE_NOTICE) {
+    showSessionGoneNotice.value = true;
+    router.replace({ path: route.path, query: {} });
+  }
+});
 const sessionId = ref(''); // Define sessionId as a reactive variable
 
 // Create a new session (the backend picks a unique ID) and navigate to the Host Dashboard
