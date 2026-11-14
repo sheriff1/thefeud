@@ -153,6 +153,8 @@ import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
+import { getSessionId } from '@/composables/getSessionId';
+import { useInviteLinks } from '@/composables/useInviteLinks';
 import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 
 interface TeamDisplayProps {
@@ -162,9 +164,7 @@ interface TeamDisplayProps {
 const props = defineProps<TeamDisplayProps>();
 
 const store = useGameStore();
-const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
-const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
-const sessionIdBoxState = ref(''); // Default state (no additional class)
+const sessionId = getSessionId(); // from the URL query params
 const playerName = ref('');
 const selectedTeam = ref('');
 const hasJoined = ref(false);
@@ -182,6 +182,7 @@ const isSpectator = props.isSpectator ?? false;
 const router = useRouter();
 const emojiList = ['😎', '😄', '🤔', '😜', '🥸', '🥳', '🫠', '🤩', '🤯', '🤨'];
 const showSessionIdDialog = ref(false);
+const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -306,38 +307,9 @@ const logout = () => {
 
 useSessionTimeout(logout, resolveSessionTimeoutMs());
 
-function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
-  let textToCopy = '';
-  const baseUrl = window.location.origin;
-  if (type === 'id') {
-    textToCopy = sessionId || '';
-  } else if (type === 'host') {
-    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
-  } else if (type === 'team') {
-    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
-  } else if (type === 'spectator') {
-    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
-  }
-  navigator.clipboard
-    .writeText(textToCopy)
-    .then(() => {
-      sessionIdBoxText.value = 'Copied!';
-      sessionIdBoxState.value = 'copied';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    })
-    .catch(() => {
-      sessionIdBoxText.value = 'Error';
-      sessionIdBoxState.value = 'error';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    });
+async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  await copyInvite(type);
+  showSessionIdDialog.value = false;
 }
 
 socket.on('team-names-updated', (teamNames: any) => {

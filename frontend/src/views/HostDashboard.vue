@@ -108,11 +108,13 @@ import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
+import { getSessionId } from '@/composables/getSessionId';
+import { useInviteLinks } from '@/composables/useInviteLinks';
 import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 const router = useRouter();
 
 let timerInterval: number | null = null;
-const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
+const sessionId = getSessionId(); // from the URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
@@ -123,14 +125,13 @@ const timerInput = ref(0);
 const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
 const previousRound = ref(store.roundCounter); // Track the previous round value
-const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
-const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const isLoading = ref(false);
 const showQASection = ref(false);
 const showSessionIdDialog = ref(false);
+const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
@@ -602,38 +603,9 @@ function handleUpdatedGame(updatedGameState: any) {
   store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
 }
 
-function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
-  let textToCopy = '';
-  const baseUrl = window.location.origin;
-  if (type === 'id') {
-    textToCopy = sessionId || '';
-  } else if (type === 'host') {
-    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
-  } else if (type === 'team') {
-    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
-  } else if (type === 'spectator') {
-    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
-  }
-  navigator.clipboard
-    .writeText(textToCopy)
-    .then(() => {
-      sessionIdBoxText.value = 'Copied!';
-      sessionIdBoxState.value = 'copied';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    })
-    .catch(() => {
-      sessionIdBoxText.value = 'Error';
-      sessionIdBoxState.value = 'error';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    });
+async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  await copyInvite(type);
+  showSessionIdDialog.value = false;
 }
 
 // Clear the dead session and go home with a notice.
