@@ -117,6 +117,31 @@ describe('Express & CORS', () => {
     await db.collection('sessions').doc(createSessionId).delete();
   });
 
+  // #107 (quirk 9): the client-chosen ID must pass the same rule as the socket events.
+  it.each(['abcd', 'ABC', 'ABCDE', 'AB-D', 'AB%20', 'a%2Fb'])(
+    'should reject create-session with invalid ID %s and create nothing',
+    async (badId) => {
+      const res = await request(app).post('/api/create-session/' + badId);
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid session ID' });
+      const decoded = decodeURIComponent(badId);
+      if (!decoded.includes('/')) {
+        const doc = await db.collection('sessions').doc(decoded).get();
+        expect(doc.exists).toBe(false);
+      }
+    },
+  );
+
+  it('should keep create-session idempotent for a valid ID', async () => {
+    const id = 'K9Q2';
+    await db.collection('sessions').doc(id).set({ sessionId: id, marker: 'keep' });
+    const res = await request(app).post('/api/create-session/' + id);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect((await db.collection('sessions').doc(id).get()).data()?.marker).toBe('keep');
+    await db.collection('sessions').doc(id).delete();
+  });
+
   it('should create a session with a server-generated unique ID', async () => {
     const res = await request(app).post('/api/sessions');
     expect(res.statusCode).toBe(201);
