@@ -278,6 +278,7 @@ describe('Socket.io', () => {
         expect(data.scoreMultiplier).toBe(null);
         expect(data.teamScores.A).toBe(0);
         expect(data.teamScores.B).toBe(0);
+        expect(data.currentTeam).toBe('A');
         socket.disconnect();
         resolve();
       });

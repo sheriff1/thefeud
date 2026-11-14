@@ -52,7 +52,7 @@ const sessionIdSchema = z
   .string()
   .regex(/^[A-Z0-9]{4}$/, { message: 'Session ID must be exactly 4 characters: A-Z, 0-9' });
 const nameSchema = z.string().min(1);
-const teamSchema = z.string();
+const teamSchema = z.enum(['A', 'B']);
 
 const SNTSchema = z
   .object({
@@ -670,12 +670,13 @@ io.on('connection', (socket) => {
   onSafe(socket, 'validate-session', async (payload, callback) => {
     const parseResult = SCSchema.safeParse(payload);
     if (!parseResult.success) {
+      // Always answer the ack, so the caller does not wait for a timeout.
+      if (typeof callback === 'function') {
+        callback({ exists: false });
+      }
       if (!payload?.sessionId) {
         socket.emit('error', { message: 'Session ID is required' });
         return;
-      }
-      if (typeof callback === 'function') {
-        callback({ exists: false });
       }
       socket.emit('error', { message: 'Invalid request - validate-session' });
       return;
@@ -775,7 +776,7 @@ function getResetGameState() {
     roundOver: false,
     buzzedPlayer: '',
     startingTeamSet: false,
-    currentTeam: 'a',
+    currentTeam: 'A',
     strikes: 0,
     pointPool: 0,
     firstTeam: null,
