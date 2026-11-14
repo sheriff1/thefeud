@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import socket from '../utils/socket';
 import { track } from '../utils/analytics';
+import { GameStep } from '../utils/gameSteps';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
@@ -11,7 +12,7 @@ export const useGameStore = defineStore('game', {
     correctAfterBuzzer: false, // <-- Add this if not present
     correctBeforeBuzzer: false, // <-- Add this if not present
     createdAt: undefined as { _seconds: number; _nanoseconds: number } | undefined,
-    currentStep: 1,
+    currentStep: GameStep.Start as number,
     currentTeam: 'A' as 'A' | 'B',
     enteredFromHome: localStorage.getItem('enteredFromHome') === 'true',
     expiryTime: '' as string | undefined,
@@ -201,7 +202,7 @@ export const useGameStore = defineStore('game', {
       this.pointsAwarded = 0;
       this.winningTeam = null;
       this.startingTeamSet = false;
-      this.currentStep = 1;
+      this.currentStep = GameStep.Start;
       this.multiplierSet = false;
       this.answersSaved = false; // Reset the answers saved state
       this.startingTeam = null;
@@ -265,8 +266,8 @@ export const useGameStore = defineStore('game', {
       // Only host actions call this (never a state sync), once per round.
       if (!this.roundOver) track('round_completed', { round: this.roundCounter });
       this.roundOver = true;
-      if (this.currentStep === 6) {
-        this.currentStep = 7;
+      if (this.currentStep === GameStep.Guessing) {
+        this.currentStep = GameStep.Award;
         updateGameState(this.$state);
       }
     },

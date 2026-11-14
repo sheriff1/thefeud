@@ -2,25 +2,26 @@
   <div class="container bg-base-300 text-base-content">
     <h3 class="mb-4">Game Manager</h3>
     <ul class="steps text-xs w-full">
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 1 }">Start</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 2 }">Q&A</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 3 }">Multiplier</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 4 }">Buzzer</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 5 }">Who Starts</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 6 }">Guessing</li>
-      <li class="step" :class="{ 'step-primary': gameStore.currentStep >= 7 }">Award</li>
+      <li
+        v-for="s in GAME_STEP_ORDER"
+        :key="s.step"
+        class="step"
+        :class="{ 'step-primary': gameStore.currentStep >= s.step }"
+      >
+        {{ s.label }}
+      </li>
     </ul>
 
     <div class="divider"></div>
 
     <!-- 1. Start Next Round -->
-    <div v-if="gameStore.currentStep === 1">
+    <div v-if="gameStore.currentStep === GameStep.Start">
       <h4 class="mb-4">Let's get started!</h4>
       <button class="btn btn-primary" @click="startRoundStep">Start Round</button>
     </div>
 
     <!-- 2. Add Question & Answers -->
-    <div v-else-if="gameStore.currentStep === 2">
+    <div v-else-if="gameStore.currentStep === GameStep.QA">
       <h4 class="mb-4">Add Question & Answers</h4>
       <!-- File Upload -->
       <div v-if="!showQASection" class="flex flex-col my-4 p-4 rounded bg-base-100">
@@ -206,7 +207,7 @@
     </div>
 
     <!-- 3. Set Round Multiplier -->
-    <div class="flex flex-col gap-2" v-else-if="gameStore.currentStep === 3">
+    <div class="flex flex-col gap-2" v-else-if="gameStore.currentStep === GameStep.Multiplier">
       <h4 class="mb-4">Set Round Multiplier</h4>
       <div class="join mb-4">
         <input
@@ -228,7 +229,7 @@
     </div>
 
     <!-- 4. Start Buzzer Round -->
-    <div v-else-if="gameStore.currentStep === 4">
+    <div v-else-if="gameStore.currentStep === GameStep.Buzzer">
       <h4 class="mb-4">Buzzer Round:</h4>
       <div v-if="gameStore.buzzedPlayer" role="alert" class="alert alert-success alert-soft mb-4">
         <span>🚨 - {{ gameStore.buzzedPlayer }} buzzed in!</span>
@@ -297,7 +298,7 @@
     </div>
 
     <!-- 5. Set Who Starts -->
-    <div v-else-if="gameStore.currentStep === 5">
+    <div v-else-if="gameStore.currentStep === GameStep.WhoStarts">
       <h4 class="mb-4">Who Starts?</h4>
       <p class="mb-4">Select the team that will play first in the guessing round:</p>
       <div class="flex flex-row flex-wrap md:flex-row flex-col gap-2 items-center">
@@ -319,7 +320,7 @@
     </div>
 
     <!-- 6. Start Guessing Round (Mark Guesses) -->
-    <div v-else-if="gameStore.currentStep === 6">
+    <div v-else-if="gameStore.currentStep === GameStep.Guessing">
       <h4 class="mb-4">Guessing Round:</h4>
       <h5>Question:</h5>
       <p>{{ gameStore.question }}</p>
@@ -383,7 +384,7 @@
     </div>
 
     <!-- 7. Award Points Static State -->
-    <div v-else-if="gameStore.currentStep === 7">
+    <div v-else-if="gameStore.currentStep === GameStep.Award">
       <h4 class="mb-4">Points Awarded</h4>
       <p class="mb-4">
         Team {{ gameStore.winningTeam }} earned {{ gameStore.pointsAwarded }} points!
@@ -429,6 +430,7 @@ const apiBase = import.meta.env.VITE_API_BASE || '';
 // State management
 import { ref, computed, nextTick } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
+import { GameStep, GAME_STEP_ORDER } from '../../utils/gameSteps';
 const gameStore = useGameStore();
 const showCsvUpload = ref(false);
 const csvUploadError = ref('');
@@ -480,21 +482,21 @@ const selectedMultiplier = ref<number>(1);
 
 // Handlers for transitions
 function startRoundStep() {
-  gameStore.currentStep = 2;
+  gameStore.currentStep = GameStep.QA;
   // console.log('startRoundStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
 
 function saveQuestionAndAnswersStep() {
   props.saveQuestionAndAnswers();
-  gameStore.currentStep = 3;
+  gameStore.currentStep = GameStep.Multiplier;
   // console.log('saveQuestionAndAnswersStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
 
 function confirmMultiplierStep(multiplier: number) {
   props.setMultiplier(multiplier);
-  gameStore.currentStep = 4;
+  gameStore.currentStep = GameStep.Buzzer;
   // console.log('confirmMultiplierStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
@@ -506,7 +508,7 @@ function startBuzzerRoundStep() {
     gameStore.guessedAnswers.length >= 2 ||
     gameStore.correctAfterBuzzer
   ) {
-    gameStore.currentStep = 5;
+    gameStore.currentStep = GameStep.WhoStarts;
     // console.log('startBuzzerRoundStep() condition met in GamgeMgr.vue');
   }
   props.updateGameState(gameStore.$state);
@@ -514,7 +516,7 @@ function startBuzzerRoundStep() {
 
 function confirmStartingTeamStep(startingTeam: string) {
   props.setStartingTeam(startingTeam);
-  gameStore.currentStep = 6;
+  gameStore.currentStep = GameStep.Guessing;
   // console.log('confirmStartingTeamStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
