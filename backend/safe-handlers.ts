@@ -44,3 +44,17 @@ export function onSafe(socket: Socket, event: string, handler: (...args: any[]) 
       });
   });
 }
+
+/** The one error text clients see verbatim: the session does not exist. */
+export const SESSION_NOT_FOUND = 'Session does not exist';
+
+/**
+ * Text for a socket `error` event after a handler failure (#107). Every failure is reported to
+ * the client as the handler's fixed `fallback`, except a missing session. The real message stays
+ * in logs and Sentry (captureHandlerError), since it can carry Firestore or runtime internals.
+ */
+export function clientErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message === SESSION_NOT_FOUND
+    ? SESSION_NOT_FOUND
+    : fallback;
+}

@@ -47,7 +47,7 @@ describe('Socket.io - validate-session', () => {
       });
       socket.on('error', (data) => {
         expect(data).toBeDefined();
-        expect(data.message).toBe('Invalid request - getValidSessionDoc');
+        expect(data.message).toBe('Session does not exist');
         resolve();
       });
     });
