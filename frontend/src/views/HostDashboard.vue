@@ -108,6 +108,7 @@ import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
+import { useLogout } from '@/composables/useLogout';
 import { getSessionId } from '@/composables/getSessionId';
 import { useInviteLinks } from '@/composables/useInviteLinks';
 import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
@@ -470,36 +471,7 @@ const emitStrikeSound = () => {
   socket.emit('play-strike-sound', { sessionId });
 };
 
-const logout = () => {
-  // Get the player's name and team from localStorage or store
-  const playerName = localStorage.getItem('playerName');
-  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
-
-  // Remove from Pinia store
-  if (playerName && playerTeam) {
-    store.removeTeamMember(playerTeam, playerName);
-
-    // Emit to backend to remove from session data
-    socket.emit('remove-team-member', {
-      sessionId,
-      team: playerTeam,
-      name: playerName,
-    });
-  }
-  socket.removeAllListeners();
-  socket.disconnect();
-
-  localStorage.removeItem('enteredFromHome');
-  localStorage.removeItem('sessionId');
-  localStorage.removeItem('playerName');
-  localStorage.removeItem('playerTeam');
-  // Clear session data
-  store.$reset();
-
-  router.push({ name: 'HomeAlias' }).then(() => {
-    window.location.reload();
-  });
-};
+const logout = useLogout({ socket, store, router, sessionId: () => sessionId });
 
 useSessionTimeout(logout, resolveSessionTimeoutMs());
 
