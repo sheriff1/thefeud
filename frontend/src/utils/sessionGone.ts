@@ -34,3 +34,19 @@ export function handleSessionGone(
   cleanup?.();
   router.replace(`/?notice=${SESSION_GONE_NOTICE}`);
 }
+
+/**
+ * `handleSessionGone` for a view: clear the dead session from the store and the stored player
+ * (name and team), then go home with the notice.
+ */
+export function leaveGoneSession(
+  router: { replace: (to: string) => unknown },
+  store: { logout: () => void },
+  storage: Pick<Storage, 'removeItem'> = localStorage,
+) {
+  handleSessionGone(router, () => {
+    store.logout();
+    storage.removeItem('playerName');
+    storage.removeItem('playerTeam');
+  });
+}

@@ -13,34 +13,12 @@
     <!-- Reset Game and Reset Round Container -->
 
     <!-- Session ID Modal -->
-    <input
-      type="checkbox"
-      id="session-id-modal"
-      class="modal-toggle"
+    <InviteModal
       v-model="showSessionIdDialog"
+      title="🔗 Invite Others"
+      :options="inviteOptions"
+      @select="copySessionIdOption"
     />
-    <div class="modal" v-if="showSessionIdDialog">
-      <div class="modal-box">
-        <h3 class="font-bold text-lg mb-4">🔗 Invite Others</h3>
-        <div class="flex flex-col gap-3">
-          <button class="btn btn-outline" @click="copySessionIdOption('id')">
-            Copy Session ID
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('host')">
-            Invite Host Link
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('team')">
-            Invite Team Member Link
-          </button>
-          <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-            Invite Spectator Link
-          </button>
-        </div>
-        <div class="modal-action">
-          <label class="btn" @click="showSessionIdDialog = false">Close</label>
-        </div>
-      </div>
-    </div>
 
     <!-- Manage Question and Answers Section -->
     <GameMgr
@@ -100,6 +78,7 @@ import { useGameStore } from '../stores/gamestore';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
 import socket from '../utils/socket';
+import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import ActiveGameInfoMgr from '../components/hostDashboard/ActiveGameInfoMgr.vue';
 import TimerMgr from '../components/hostDashboard/TimerMgr.vue';
@@ -108,11 +87,14 @@ import ManualOverrideMgr from '../components/hostDashboard/ManualOverrideMgr.vue
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
-import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
+import { useLogout } from '@/composables/useLogout';
+import { getSessionId } from '@/composables/getSessionId';
+import { useInviteLinks } from '@/composables/useInviteLinks';
+import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 const router = useRouter();
 
 let timerInterval: number | null = null;
-const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
+const sessionId = getSessionId(); // from the URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
 const libraryFiles = ref([]);
@@ -123,14 +105,19 @@ const timerInput = ref(0);
 const answerPairs = ref<{ id: string; text: string; points: number }[]>([]); // Initialize with an empty array and type
 const questionInput = ref(''); // Track the question input
 const previousRound = ref(store.roundCounter); // Track the previous round value
-const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
-const sessionIdBoxState = ref(''); // Default state (no additional class)
 const showAvailableAnswers = ref(false); // Track whether to show the Available Answers section
 const correctCount = ref(0);
 const buzzerOnlyCount = ref(0);
 const isLoading = ref(false);
 const showQASection = ref(false);
 const showSessionIdDialog = ref(false);
+const inviteOptions: InviteOption[] = [
+  { label: 'Copy Session ID', type: 'id' },
+  { label: 'Invite Host Link', type: 'host' },
+  { label: 'Invite Team Member Link', type: 'team' },
+  { label: 'Invite Spectator Link', type: 'spectator' },
+];
+const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
@@ -469,36 +456,7 @@ const emitStrikeSound = () => {
   socket.emit('play-strike-sound', { sessionId });
 };
 
-const logout = () => {
-  // Get the player's name and team from localStorage or store
-  const playerName = localStorage.getItem('playerName');
-  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
-
-  // Remove from Pinia store
-  if (playerName && playerTeam) {
-    store.removeTeamMember(playerTeam, playerName);
-
-    // Emit to backend to remove from session data
-    socket.emit('remove-team-member', {
-      sessionId,
-      team: playerTeam,
-      name: playerName,
-    });
-  }
-  socket.removeAllListeners();
-  socket.disconnect();
-
-  localStorage.removeItem('enteredFromHome');
-  localStorage.removeItem('sessionId');
-  localStorage.removeItem('playerName');
-  localStorage.removeItem('playerTeam');
-  // Clear session data
-  store.$reset();
-
-  router.push({ name: 'HomeAlias' }).then(() => {
-    window.location.reload();
-  });
-};
+const logout = useLogout({ socket, store, router, sessionId: () => sessionId });
 
 useSessionTimeout(logout, resolveSessionTimeoutMs());
 
@@ -602,54 +560,16 @@ function handleUpdatedGame(updatedGameState: any) {
   store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
 }
 
-function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
-  let textToCopy = '';
-  const baseUrl = window.location.origin;
-  if (type === 'id') {
-    textToCopy = sessionId || '';
-  } else if (type === 'host') {
-    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
-  } else if (type === 'team') {
-    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
-  } else if (type === 'spectator') {
-    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
-  }
-  navigator.clipboard
-    .writeText(textToCopy)
-    .then(() => {
-      sessionIdBoxText.value = 'Copied!';
-      sessionIdBoxState.value = 'copied';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    })
-    .catch(() => {
-      sessionIdBoxText.value = 'Error';
-      sessionIdBoxState.value = 'error';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    });
-}
-
-// Clear the dead session and go home with a notice.
-function leaveGoneSession() {
-  handleSessionGone(router, () => {
-    store.logout();
-    localStorage.removeItem('playerName');
-    localStorage.removeItem('playerTeam');
-  });
+async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  await copyInvite(type);
+  showSessionIdDialog.value = false;
 }
 
 // Handle errors
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   if (isSessionGone(error)) {
-    leaveGoneSession();
+    leaveGoneSession(router, store);
     return;
   }
   alert(`Error: ${error.message}`);
@@ -696,7 +616,7 @@ onMounted(async () => {
   try {
     const res = await fetch(`${apiBase}/api/create-session/${sessionId}`, { method: 'POST' });
     if (res.status === 400) {
-      leaveGoneSession();
+      leaveGoneSession(router, store);
       return;
     }
   } catch {

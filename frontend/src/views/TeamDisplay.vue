@@ -11,31 +11,12 @@
     <!-- Main Gameboard -->
     <div class="w-full" v-else>
       <!-- Session ID Modal -->
-      <input
-        type="checkbox"
-        id="session-id-modal"
-        class="modal-toggle"
+      <InviteModal
         v-model="showSessionIdDialog"
+        title="Invite Others"
+        :options="inviteOptions"
+        @select="copySessionIdOption"
       />
-      <div class="modal" v-if="showSessionIdDialog">
-        <div class="modal-box">
-          <h3 class="font-bold text-lg mb-4">Invite Others</h3>
-          <div class="flex flex-col gap-3">
-            <button class="btn btn-outline" @click="copySessionIdOption('id')">
-              Copy Session ID
-            </button>
-            <button class="btn btn-outline" @click="copySessionIdOption('team')">
-              Copy Invite Team Member Link
-            </button>
-            <button class="btn btn-outline" @click="copySessionIdOption('spectator')">
-              Copy Invite Spectator Link
-            </button>
-          </div>
-          <div class="modal-action">
-            <label class="btn" @click="showSessionIdDialog = false">Close</label>
-          </div>
-        </div>
-      </div>
       <div class="floating-buttons">
         <FloatingButton
           :label="sessionIdBoxText"
@@ -147,13 +128,17 @@ import { track } from '../utils/analytics';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
+import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
 import JoinTeamDialog from '../components/teamDisplay/JoinTeamDialog.vue';
 import { useRouter } from 'vue-router';
 import { useSessionTimeout, resolveSessionTimeoutMs } from '@/composables/useSessionTimeout';
 import { useSessionSync } from '@/composables/useSessionSync';
-import { handleSessionGone, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
+import { useLogout } from '@/composables/useLogout';
+import { getSessionId } from '@/composables/getSessionId';
+import { useInviteLinks } from '@/composables/useInviteLinks';
+import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 
 interface TeamDisplayProps {
   isSpectator?: boolean; // Optional prop to indicate if the user is a spectator
@@ -162,9 +147,7 @@ interface TeamDisplayProps {
 const props = defineProps<TeamDisplayProps>();
 
 const store = useGameStore();
-const sessionId = new URLSearchParams(window.location.search).get('sessionId'); // Get sessionId from URL query params
-const sessionIdBoxText = ref(`🔗  Invite Others`); // Default text
-const sessionIdBoxState = ref(''); // Default state (no additional class)
+const sessionId = getSessionId(); // from the URL query params
 const playerName = ref('');
 const selectedTeam = ref('');
 const hasJoined = ref(false);
@@ -182,6 +165,12 @@ const isSpectator = props.isSpectator ?? false;
 const router = useRouter();
 const emojiList = ['😎', '😄', '🤔', '😜', '🥸', '🥳', '🫠', '🤩', '🤯', '🤨'];
 const showSessionIdDialog = ref(false);
+const inviteOptions: InviteOption[] = [
+  { label: 'Copy Session ID', type: 'id' },
+  { label: 'Copy Invite Team Member Link', type: 'team' },
+  { label: 'Copy Invite Spectator Link', type: 'spectator' },
+];
+const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
 const playDingSound = () => {
   if (isMuted.value) return;
@@ -273,71 +262,13 @@ function joinTeam(payload: { playerName: string; selectedTeam: string }) {
   hasJoined.value = true;
 }
 
-const logout = () => {
-  // Get the player's name and team from localStorage or store
-  const playerName = localStorage.getItem('playerName');
-  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
-
-  // Remove from Pinia store
-  if (playerName && playerTeam) {
-    store.removeTeamMember(playerTeam, playerName);
-
-    // Emit to backend to remove from session data
-    socket.emit('remove-team-member', {
-      sessionId,
-      team: playerTeam,
-      name: playerName,
-    });
-  }
-  socket.removeAllListeners();
-  socket.disconnect();
-
-  localStorage.removeItem('enteredFromHome');
-  localStorage.removeItem('sessionId');
-  localStorage.removeItem('playerName');
-  localStorage.removeItem('playerTeam');
-  // Clear session data
-  store.$reset();
-
-  router.push({ name: 'HomeAlias' }).then(() => {
-    window.location.reload();
-  });
-};
+const logout = useLogout({ socket, store, router, sessionId: () => sessionId });
 
 useSessionTimeout(logout, resolveSessionTimeoutMs());
 
-function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
-  let textToCopy = '';
-  const baseUrl = window.location.origin;
-  if (type === 'id') {
-    textToCopy = sessionId || '';
-  } else if (type === 'host') {
-    textToCopy = `${baseUrl}/host?sessionId=${sessionId}`;
-  } else if (type === 'team') {
-    textToCopy = `${baseUrl}/team?sessionId=${sessionId}`;
-  } else if (type === 'spectator') {
-    textToCopy = `${baseUrl}/spectator?sessionId=${sessionId}`;
-  }
-  navigator.clipboard
-    .writeText(textToCopy)
-    .then(() => {
-      sessionIdBoxText.value = 'Copied!';
-      sessionIdBoxState.value = 'copied';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    })
-    .catch(() => {
-      sessionIdBoxText.value = 'Error';
-      sessionIdBoxState.value = 'error';
-      showSessionIdDialog.value = false;
-      setTimeout(() => {
-        sessionIdBoxText.value = `🔗  Invite Others`;
-        sessionIdBoxState.value = '';
-      }, 2000);
-    });
+async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
+  await copyInvite(type);
+  showSessionIdDialog.value = false;
 }
 
 socket.on('team-names-updated', (teamNames: any) => {
@@ -348,12 +279,7 @@ socket.on('team-names-updated', (teamNames: any) => {
 socket.on('error', (error: { message: any }) => {
   console.error('Error from backend:', error.message);
   if (isSessionGone(error)) {
-    // Clear the dead session and go home with a notice.
-    handleSessionGone(router, () => {
-      store.logout();
-      localStorage.removeItem('playerName');
-      localStorage.removeItem('playerTeam');
-    });
+    leaveGoneSession(router, store); // clear the dead session and go home with a notice
     return;
   }
   alert(`Error: ${error.message}`);

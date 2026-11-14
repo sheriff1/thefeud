@@ -266,6 +266,7 @@ import { useGameStore } from './stores/gamestore'; // adjust path if needed
 import socket from './utils/socket';
 import ConnectionBanner from './components/ConnectionBanner.vue';
 import { requestNewSessionId } from './api/session';
+import { useLogout } from './composables/useLogout';
 import { ref, watch, onMounted } from 'vue';
 
 const theme = ref('light');
@@ -286,36 +287,7 @@ const createSessionFromModal = async () => {
   router.push(`/host?sessionId=${newSessionId}`);
 };
 
-const logout = () => {
-  // Get the player's name and team from localStorage or store
-  const playerName = localStorage.getItem('playerName');
-  const playerTeam = localStorage.getItem('playerTeam') as 'A' | 'B';
-
-  // Remove from Pinia store
-  if (playerName && playerTeam) {
-    store.removeTeamMember(playerTeam, playerName);
-
-    // Emit to backend to remove from session data
-    socket.emit('remove-team-member', {
-      sessionId: store.sessionId,
-      team: playerTeam,
-      name: playerName,
-    });
-  }
-  socket.removeAllListeners();
-  socket.disconnect();
-
-  localStorage.removeItem('enteredFromHome');
-  localStorage.removeItem('sessionId');
-  localStorage.removeItem('playerName');
-  localStorage.removeItem('playerTeam');
-  // Clear session data
-  store.$reset();
-
-  router.push({ name: 'HomeAlias' }).then(() => {
-    window.location.reload();
-  });
-};
+const logout = useLogout({ socket, store, router, sessionId: () => store.sessionId });
 
 onMounted(() => {
   // Check for saved theme in localStorage
