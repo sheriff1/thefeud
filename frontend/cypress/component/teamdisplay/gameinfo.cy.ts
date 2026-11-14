@@ -107,6 +107,26 @@ describe('GameInfo', () => {
       });
   });
 
+  it('shows the clock in red when the time has run out', () => {
+    mount(GameInfo, {
+      props: { ...defaultProps, timer: 0, timeUp: true },
+    });
+    cy.get('.game-info-item')
+      .eq(1)
+      .find('.game-info-value')
+      .should('have.class', 'game-info-value--time-up');
+  });
+
+  it('does not show the clock in red at 0:00 unless the time ran out', () => {
+    mount(GameInfo, {
+      props: { ...defaultProps, timer: 0 },
+    });
+    cy.get('.game-info-item')
+      .eq(1)
+      .find('.game-info-value')
+      .should('not.have.class', 'game-info-value--time-up');
+  });
+
   it('handles single digit seconds correctly', () => {
     mount(GameInfo, {
       props: { ...defaultProps, timer: 7 },
