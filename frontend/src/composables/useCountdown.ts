@@ -35,6 +35,9 @@ export function useCountdown(deps: CountdownDeps) {
     const remaining = Math.max(0, Math.ceil((endsAt - deps.now()) / 1000));
     if (remaining > 0 && remaining === deps.getRemaining()) return;
     deps.setRemaining(remaining);
+    // A stale update-game echoed back from the server can clear the running flag mid-countdown
+    // (the backend does not keep events in order), so assert it on every change we send.
+    if (remaining > 0) deps.setRunning(true);
     if (remaining === 0) {
       clear();
       deps.setRunning(false);

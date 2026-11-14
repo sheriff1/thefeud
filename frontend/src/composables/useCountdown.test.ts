@@ -80,6 +80,17 @@ describe('useCountdown', () => {
     expect(state.remaining).toBe(17);
   });
 
+  it('puts the running flag back if a stale echo cleared it mid-countdown', () => {
+    const { countdown, state, calls, advance } = setup(30);
+    countdown.start();
+    state.remaining = 0; // an out-of-order echo of an older state overwrote the store
+    state.running = false;
+    advance(250);
+    expect(state.remaining).toBe(30);
+    expect(state.running).toBe(true);
+    expect(calls.changes.at(-1)).toEqual({ remaining: 30, running: true });
+  });
+
   it('reaches 0 once: stops running, sends one final state and expires once', () => {
     const { countdown, state, calls, intervals, advance } = setup(2);
     countdown.start();

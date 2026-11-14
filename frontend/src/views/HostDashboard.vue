@@ -330,6 +330,10 @@ watch(
       countdown.start();
     }
   },
+  // Synchronous, so the timer is already set when GameMgr sends the new step right after
+  // assigning it; both updates then carry the same timer and the backend cannot reorder them
+  // into a stale "timer 0" state.
+  { flush: 'sync' },
 );
 
 // After a host reload the backend can still say "running": pick the countdown back up once.
