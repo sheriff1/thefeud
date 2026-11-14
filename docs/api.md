@@ -21,11 +21,11 @@ Internal reference for the backend in [backend/index.ts](../backend/index.ts): t
 
 **Rooms.** A socket joins the Socket.IO room named after the session ID with `join-session` or `join-team`. "Broadcast" below means `io.to(sessionId).emit(...)`, which reaches every socket in that room, including the sender if it joined. "Reply" means `socket.emit(...)`, which reaches only the sender. Rooms are per socket: a reconnected socket is in no room until it joins again, which is why the frontend re-sends `join-session` on every connect (`useSessionSync`).
 
-**Validation.** Payloads are checked with strict zod schemas, so unknown extra fields are rejected. `name` must be a non-empty string. `team` is a plain string and is not restricted to `A` or `B` (quirk 3). When validation fails the handler replies with an `error` event and does nothing else:
+**Validation.** Payloads are checked with strict zod schemas, so unknown extra fields are rejected. `name` must be a non-empty string. `team` must be `A` or `B`. When validation fails the handler replies with an `error` event and does nothing else:
 
 1. no `sessionId` in the payload: `Session ID is required`
 2. a missing or empty `name`, or a missing `team`, where the event needs one: `Name is required to ...` or `Team is required to ...` (the exact text differs per event)
-3. any other failure, including a malformed session ID or an unknown extra field: `Invalid request - <event>`
+3. any other failure, including a malformed session ID, a `team` other than `A` or `B`, or an unknown extra field: `Invalid request - <event>`
 
 **Errors.** Errors are always the event `error` with payload `{ message: string }`. A missing session produces `Session does not exist`. Any other failure inside a handler's `try`/`catch` produces that handler's fixed fallback text (for example `Failed to join team`), never the underlying error message, which stays in the server log and Sentry. Any error thrown outside a handler's own `try`/`catch` is caught by `onSafe` ([safe-handlers.ts](../backend/safe-handlers.ts)), reported to Sentry (tags only, never the payload), and answered with `{ message: 'Internal server error' }`. A handler failure never crashes the process.
 
@@ -70,7 +70,7 @@ Adds a player to a team.
 
 - **Payload:** `{ sessionId, name, team }` where `team` is `"A"` or `"B"`
 - **Broadcast:** `team-members-updated` `{ A: string[], B: string[] }`
-- **Errors:** `error`. Any `team` other than `A` or `B` fails with `Failed to join team` (quirk 3).
+- **Errors:** `error`.
 - **Side effects:** reads `teamMembers`, appends `name` to the team if not already there (idempotent), writes `teamMembers` with merge, joins the room, and records `socket.id -> { sessionId, name, team }` in memory for the `disconnect` cleanup. The read-modify-write is not a transaction.
 - **Sent by:** a team member on `TeamDisplay.vue` after choosing a name and team, and again on reconnect.
 
@@ -81,7 +81,7 @@ Renames a team. Note the field meaning: `name` is the new team name, and `team` 
 - **Payload:** `{ sessionId, name, team }`
 - **Broadcast:** `team-names-updated` `{ A: string, B: string }`
 - **Errors:** `error`
-- **Side effects:** writes `teamNames` with merge, as `{ ...current, [team]: name }`. A missing `teamNames` defaults to `{ A: 'A', B: 'B' }`. `team` is not restricted to `A` or `B`.
+- **Side effects:** writes `teamNames` with merge, as `{ ...current, [team]: name }`. A missing `teamNames` defaults to `{ A: 'A', B: 'B' }`.
 - **Sent by:** a team member on `TeamDisplay.vue`.
 
 ### `remove-team-member`
@@ -125,7 +125,7 @@ Replaces the whole game state. This is the main write path and the host's only w
   3. Stored `roundOver` false and incoming true: broadcasts `round-over`.
   4. Stored `roundOver` true and incoming false and `roundReset` false: this is "next round". It overwrites these fields in the incoming state and broadcasts `next-round` then `reset-buzzers`: `roundReset`, `roundOver`, `startingTeamSet`, `strikes`, `pointPool`, `secondTeamGuessUsed`, `timerRunning`, `pointsAwarded` and `nextRound` become false or `0`; `buzzedPlayer` and `question` become `''`; `currentTeam` becomes `'A'`; `firstTeam`, `scoreMultiplier` and `winningTeam` become `null`; `timer` becomes `0`; `answers` and `guessedAnswers` become `[]`; `teamStrikes` becomes `{ A: 0, B: 0 }`; `currentStep` becomes `1`. It does not touch `multiplierSet`, `answersSaved`, `startingTeam`, `questionSaved`, `buzzerOnlyPressed` or `correctAfterBuzzer`.
   5. `roundReset` true: overwrites the state with the round-reset values and broadcasts `reset-round` then `reset-buzzers`. This set is the step 4 list plus `multiplierSet`, `answersSaved`, `startingTeam`, `questionSaved`, `buzzerOnlyPressed` and `correctAfterBuzzer`, all reset (`roundReset` is also set back to false).
-  6. `gameReset` true: overwrites the state with the game-reset values and broadcasts `reset-round` then `reset-buzzers`. It resets the round fields as in step 5, plus `roundCounter` to `0`, `teamScores` to `{ A: 0, B: 0 }`, `gameReset` and `nextRound` to false, and sets `currentTeam` to lowercase `'a'` (quirk 4). It keeps `teamMembers` and `teamNames`.
+  6. `gameReset` true: overwrites the state with the game-reset values and broadcasts `reset-round` then `reset-buzzers`. It resets the round fields as in step 5, plus `roundCounter` to `0`, `teamScores` to `{ A: 0, B: 0 }`, `gameReset` and `nextRound` to false, and sets `currentTeam` to `'A'`. It keeps `teamMembers` and `teamNames`.
   7. Writes the result to Firestore with `set()` and no merge, replacing the document.
   8. Broadcasts `update-game`.
 - **Sent by:** the host only, from `HostDashboard.vue`.
@@ -160,7 +160,7 @@ Checks that a session exists. The only event with an ack.
   - Session exists: ack `{ exists: true }`.
   - Session missing: ack `{ exists: false }` and `error` `Session does not exist`.
   - Payload has a `sessionId` but fails validation: ack `{ exists: false }` and `error` `Invalid request - validate-session`.
-  - Payload has no `sessionId`: `error` `Session ID is required` and no ack (quirk 7).
+  - Payload has no `sessionId`: ack `{ exists: false }` and `error` `Session ID is required`.
   - Unexpected failure: ack `{ exists: false }` and `error` `Error validating session`.
 - **Sent by:** `validateSessionId` in `frontend/src/api/session.ts`, which waits for the ack and falls back to `GET /api/session-exists/:sessionId` on a timeout.
 
@@ -309,13 +309,10 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 ## Known quirks
 
-Current behavior that may surprise you, documented as is. None are fixed by this document; the follow-up issue (#107) tracks them. Fixed quirks are removed and the rest keep their numbers, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
+Current behavior that may surprise you, documented as is. None are fixed by this document; the follow-up issue (#107) tracks them. Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
 
-1. **No authorization (code).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend.
-2. **`team` is not validated (code).** `join-team` with a team other than `A` or `B` throws a `TypeError` inside the handler, and the client gets `Failed to join team`. `update-team-name` writes any key into `teamNames`. `remove-team-member` with an unknown team does nothing.
-3. **`currentTeam` casing (code).** The game reset sets `currentTeam` to `'a'`; every other reset uses `'A'`.
-4. **`update-game` replaces the document (code).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
-5. **`buzz` has no "first wins" rule (code).** Every buzz overwrites `buzzedPlayer`, so the last one in wins, and the broadcast `update-game` carries the raw document, not a validated `GameState`.
-6. **`validate-session` without a `sessionId` never calls its ack (code).** The caller gets only `error` and has to time out. The frontend always sends a `sessionId` and has an HTTP fallback.
-7. **Disconnect cleanup is partial (code).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team.
-8. **`POST /api/create-session/:sessionId` accepts any ID (code).** A session created under an ID that is not 4 characters of `A-Z0-9` cannot be used over Socket.IO, since every event rejects such an ID. The host view still calls this route after getting its ID from `POST /api/sessions`, where it is a no-op. The Cypress setup depends on the route.
+- **Quirk 1: No authorization (code).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend.
+- **Quirk 5: `update-game` replaces the document (code).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
+- **Quirk 6: `buzz` has no "first wins" rule (code).** Every buzz overwrites `buzzedPlayer`, so the last one in wins, and the broadcast `update-game` carries the raw document, not a validated `GameState`.
+- **Quirk 8: Disconnect cleanup is partial (code).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team.
+- **Quirk 9: `POST /api/create-session/:sessionId` accepts any ID (code).** A session created under an ID that is not 4 characters of `A-Z0-9` cannot be used over Socket.IO, since every event rejects such an ID. The host view still calls this route after getting its ID from `POST /api/sessions`, where it is a no-op. The Cypress setup depends on the route.
