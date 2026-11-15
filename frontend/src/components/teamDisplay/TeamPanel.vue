@@ -71,15 +71,15 @@
       </div>
     </div>
     <div class="buzzer-container" v-if="showBuzzer && guessedAnswers.length == 0">
-      <button class="buzzer-button" :disabled="buzzerDisabled" @click="$emit('buzz')">
-        {{ store.buzzedPlayer ? 'Buzzed!' : 'BUZZER' }}
+      <button class="buzzer-button" :disabled="buzzerDisabled || !canBuzz" @click="$emit('buzz')">
+        {{ store.buzzedPlayer ? 'Buzzed!' : idleBuzzerLabel }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 const store = useGameStore();
 const currentPlayerTeam = localStorage.getItem('playerTeam');
@@ -97,11 +97,24 @@ interface TeamPanelProps {
   showBuzzer: boolean;
   startingTeamSet: boolean;
   buzzerDisabled: boolean;
+  /** False when the host selected someone else on this team (#23). */
+  canBuzz?: boolean;
+  /** The selected buzzer of this team, if any. */
+  buzzerOwner?: string | null;
   initialEditedName?: string;
   guessedAnswers: { id: string }[]; // updated
 }
 
-const props = defineProps<TeamPanelProps>();
+const props = withDefaults(defineProps<TeamPanelProps>(), {
+  canBuzz: true,
+  buzzerOwner: null,
+});
+
+// A teammate who was not selected sees who may buzz instead of a live button (#23).
+const idleBuzzerLabel = computed(() => {
+  if (!props.canBuzz && props.buzzerOwner) return `Buzzer: ${props.buzzerOwner}`;
+  return 'BUZZER';
+});
 const emit = defineEmits<{
   'edit-team': [string];
   'save-team': [{ team: string; name: string }];
