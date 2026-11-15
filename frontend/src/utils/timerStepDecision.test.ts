@@ -5,11 +5,21 @@ import { GameStep } from './gameSteps';
 const on = { enabled: true, buzzer: 20, guessing: 90 };
 
 describe('decideTimerAction', () => {
-  it('starts the buzzer preset on moving Multiplier -> Buzzer', () => {
-    expect(decideTimerAction(GameStep.Multiplier, GameStep.Buzzer, on)).toEqual({
+  it('starts the buzzer preset on moving SelectBuzzers -> Buzzer (Confirm or Skip)', () => {
+    expect(decideTimerAction(GameStep.SelectBuzzers, GameStep.Buzzer, on)).toEqual({
       action: 'start',
       seconds: 20,
     });
+  });
+
+  it('starts nothing while the host selects buzzers (Multiplier -> SelectBuzzers)', () => {
+    expect(decideTimerAction(GameStep.Multiplier, GameStep.SelectBuzzers, on)).toEqual({
+      action: 'none',
+    });
+  });
+
+  it('does not start the buzzer preset when selection was skipped as a jump', () => {
+    expect(decideTimerAction(GameStep.Multiplier, GameStep.Buzzer, on)).toEqual({ action: 'none' });
   });
 
   it('starts the guessing preset on moving WhoStarts -> Guessing', () => {
@@ -26,7 +36,7 @@ describe('decideTimerAction', () => {
 
   it('does nothing with presets off, so the manual timer is untouched', () => {
     const off = { ...on, enabled: false };
-    expect(decideTimerAction(GameStep.Multiplier, GameStep.Buzzer, off)).toEqual({
+    expect(decideTimerAction(GameStep.SelectBuzzers, GameStep.Buzzer, off)).toEqual({
       action: 'none',
     });
     expect(decideTimerAction(GameStep.Buzzer, GameStep.WhoStarts, off)).toEqual({ action: 'none' });
@@ -34,7 +44,7 @@ describe('decideTimerAction', () => {
 
   it('does nothing for a step with no preset', () => {
     const noBuzzer = { ...on, buzzer: 0 };
-    expect(decideTimerAction(GameStep.Multiplier, GameStep.Buzzer, noBuzzer)).toEqual({
+    expect(decideTimerAction(GameStep.SelectBuzzers, GameStep.Buzzer, noBuzzer)).toEqual({
       action: 'none',
     });
     expect(decideTimerAction(GameStep.Buzzer, GameStep.WhoStarts, noBuzzer)).toEqual({
