@@ -1,11 +1,15 @@
 /** The part of an HTMLAudioElement that `playSound` uses. */
 export interface PlayableAudio {
   play(): Promise<void> | void;
+  pause?(): void;
+  currentTime?: number;
+  muted?: boolean;
 }
 
 export interface PlaySoundDeps {
   muted: boolean;
-  createAudio: (src: string) => PlayableAudio;
+  /** Returns the reused element for a file (see soundRegistry). */
+  getAudio: (src: string) => PlayableAudio;
   /** Called with anything that is not an expected browser refusal. */
   onError: (error: unknown) => void;
 }
@@ -13,7 +17,7 @@ export interface PlaySoundDeps {
 /** Autoplay policy (NotAllowedError) and an interrupted play (AbortError) are not app errors. */
 const IGNORED_ERRORS = ['NotAllowedError', 'AbortError'];
 
-const isIgnored = (error: unknown) =>
+export const isIgnoredAudioError = (error: unknown) =>
   typeof error === 'object' &&
   error !== null &&
   IGNORED_ERRORS.includes((error as { name?: string }).name ?? '');
@@ -27,11 +31,14 @@ const isIgnored = (error: unknown) =>
 export function playSound(src: string, deps: PlaySoundDeps): void {
   if (deps.muted) return;
   const report = (error: unknown) => {
-    if (!isIgnored(error)) deps.onError(error);
+    if (!isIgnoredAudioError(error)) deps.onError(error);
   };
   try {
     // Older browsers return undefined from play(); Promise.resolve covers both.
-    Promise.resolve(deps.createAudio(src).play()).catch(report);
+    const audio = deps.getAudio(src);
+    // A reused element may still be playing from last time: start over.
+    if (audio.currentTime !== undefined) audio.currentTime = 0;
+    Promise.resolve(audio.play()).catch(report);
   } catch (error) {
     report(error);
   }

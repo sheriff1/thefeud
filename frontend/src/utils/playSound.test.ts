@@ -6,25 +6,32 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(play: () => Promise<void> | void, muted = false) {
   const playFn = vi.fn(play);
-  const createAudio = vi.fn<(src: string) => PlayableAudio>(() => ({ play: playFn }));
+  const getAudio = vi.fn<(src: string) => PlayableAudio>(() => ({ play: playFn }));
   const onError = vi.fn();
-  playSound('/sounds/ding.mp3', { muted, createAudio, onError });
-  return { playFn, createAudio, onError };
+  playSound('/sounds/ding.mp3', { muted, getAudio, onError });
+  return { playFn, getAudio, onError };
 }
 
 describe('playSound', () => {
   it('plays the given file once and reports nothing', async () => {
-    const { playFn, createAudio, onError } = setup(() => Promise.resolve());
+    const { playFn, getAudio, onError } = setup(() => Promise.resolve());
     await flush();
-    expect(createAudio).toHaveBeenCalledWith('/sounds/ding.mp3');
+    expect(getAudio).toHaveBeenCalledWith('/sounds/ding.mp3');
     expect(playFn).toHaveBeenCalledTimes(1);
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('does not even create the audio when muted', () => {
-    const { createAudio, playFn } = setup(() => Promise.resolve(), true);
-    expect(createAudio).not.toHaveBeenCalled();
+  it('does not even fetch the audio when muted', () => {
+    const { getAudio, playFn } = setup(() => Promise.resolve(), true);
+    expect(getAudio).not.toHaveBeenCalled();
     expect(playFn).not.toHaveBeenCalled();
+  });
+
+  it('restarts a reused element from the beginning', () => {
+    const audio = { play: vi.fn(), currentTime: 3 };
+    playSound('/sounds/ding.mp3', { muted: false, getAudio: () => audio, onError: vi.fn() });
+    expect(audio.currentTime).toBe(0);
+    expect(audio.play).toHaveBeenCalledTimes(1);
   });
 
   it('ignores NotAllowedError', async () => {
