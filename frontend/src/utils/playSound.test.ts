@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { playSound } from './playSound';
+import { playSound, type PlayableAudio } from './playSound';
 
 const named = (name: string) => Object.assign(new Error(name), { name });
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function setup(play: () => Promise<void> | void, muted = false) {
   const playFn = vi.fn(play);
-  const createAudio = vi.fn((_src: string) => ({ play: playFn }));
+  const createAudio = vi.fn<(src: string) => PlayableAudio>(() => ({ play: playFn }));
   const onError = vi.fn();
   playSound('/sounds/ding.mp3', { muted, createAudio, onError });
   return { playFn, createAudio, onError };
