@@ -7,7 +7,9 @@
     </div>
     <!-- Timer Display -->
     <div class="game-info-item">
-      <div class="game-info-value">{{ formattedTimer }}</div>
+      <div class="game-info-value" :class="{ 'game-info-value--time-up': timeUp }">
+        {{ formattedTimer }}
+      </div>
       <div class="game-info-label">Time Remaining</div>
     </div>
     <!-- Points Pool -->
@@ -31,6 +33,7 @@ interface GameInfoProps {
   timer: number; // in seconds
   pointPool: number;
   scoreMultiplier: number | null; // null if not set
+  timeUp?: boolean; // the timer ran out: show the clock in red
 }
 
 const props = defineProps<GameInfoProps>();
@@ -72,6 +75,9 @@ const formattedScoreMultiplier = computed(() =>
   font-size: 2rem;
   font-weight: bold;
   color: var(--color-primary, #000);
+}
+.game-info-value--time-up {
+  color: var(--color-error, #dc2626);
 }
 .game-info-label {
   font-size: 0.75rem;

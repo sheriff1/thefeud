@@ -89,6 +89,7 @@
               :timer="store.timer"
               :pointPool="store.pointPool"
               :scoreMultiplier="store.scoreMultiplier"
+              :timeUp="timeUp"
             />
           </div>
 
@@ -128,6 +129,7 @@ import { track } from '../utils/analytics';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
+import { shouldPlayTimesUp } from '../utils/timerCue';
 import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
@@ -200,6 +202,12 @@ const playStrikeSound = (teamStrikeCount: number) => {
 };
 
 const playRoundOverSound = () => {
+  if (isMuted.value) return;
+  const audio = new Audio('/sounds/round-over.mp3');
+  audio.play();
+};
+
+const playTimesUpSound = () => {
   if (isMuted.value) return;
   const audio = new Audio('/sounds/round-over.mp3');
   audio.play();
@@ -284,6 +292,26 @@ socket.on('error', (error: { message: any }) => {
   }
   alert(`Error: ${error.message}`);
 });
+
+// The timer ran out by itself: red clock + sound, until it is set again or the step/round changes
+const timeUp = ref(false);
+watch(
+  () => ({ timer: store.timer, timerRunning: store.timerRunning }),
+  (next, prev) => {
+    if (shouldPlayTimesUp(prev, next)) {
+      timeUp.value = true;
+      playTimesUpSound();
+    } else if (next.timer > 0) {
+      timeUp.value = false;
+    }
+  },
+);
+watch(
+  () => [store.currentStep, store.roundCounter],
+  () => {
+    timeUp.value = false;
+  },
+);
 
 // Watch for changes in guessed answers
 watch(

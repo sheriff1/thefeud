@@ -68,12 +68,14 @@
       :stopTimer="stopTimer"
       :resetTimer="resetTimer"
       :setTimer="setTimer"
+      v-model:presets="timerPresets"
+      :timeUp="timeUp"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import Papa from 'papaparse';
 import { v4 as uuidv4 } from 'uuid';
@@ -90,10 +92,12 @@ import { useSessionSync } from '@/composables/useSessionSync';
 import { useLogout } from '@/composables/useLogout';
 import { getSessionId } from '@/composables/getSessionId';
 import { useInviteLinks } from '@/composables/useInviteLinks';
+import { useCountdown } from '@/composables/useCountdown';
+import { loadTimerPresets, saveTimerPresets } from '../utils/timerPresets';
+import { decideTimerAction } from '../utils/timerStepDecision';
 import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
 const router = useRouter();
 
-let timerInterval: number | null = null;
 const sessionId = getSessionId(); // from the URL query params
 const store = useGameStore();
 const showLibraryDialog = ref(false);
@@ -275,37 +279,74 @@ const setTimer = () => {
   store.setTimer(timerInput.value);
 };
 
+const timerPresets = ref(loadTimerPresets());
+watch(timerPresets, (presets) => saveTimerPresets(presets), { deep: true });
+const timeUp = ref(false); // the timer ran out by itself; cleared by the next start or reset
+
+// Counts down from a wall-clock end time and tells everyone through update-game (#17).
+const countdown = useCountdown({
+  now: () => Date.now(),
+  setInterval: (fn, ms) => window.setInterval(fn, ms),
+  clearInterval: (id) => window.clearInterval(id as number),
+  getRemaining: () => store.timer,
+  setRemaining: (seconds) => store.setTimer(seconds),
+  setRunning: (running) => (running ? store.startTimer() : store.stopTimer()),
+  onChange: () => updateGameState(store.$state),
+  onExpire: () => {
+    timeUp.value = true;
+  },
+});
+
 const startTimer = () => {
-  if (timerInterval) return;
-  store.startTimer();
-  timerInterval = setInterval(() => {
-    if (store.timer > 0) {
-      store.decrementTimer();
-      // console.log('startTimer() called from HostDashboard.vue');
-      updateGameState(store.$state); // Emit the updated game state
-    } else {
-      stopTimer();
-    }
-  }, 1000) as unknown as number;
+  timeUp.value = false;
+  countdown.start();
 };
 
 function stopTimer() {
-  store.stopTimer();
-  if (timerInterval !== null && timerInterval !== undefined) {
-    clearInterval(timerInterval);
-  }
-  timerInterval = null;
-  // console.log('stopTimer() called from HostDashboard.vue');
-  // if (emit) updateGameState(store.$state); // Emit the updated game state
+  countdown.stop();
+  store.stopTimer(); // also clears a stale "running" flag restored after a reload
 }
 
 const resetTimer = () => {
   stopTimer();
+  timeUp.value = false;
   store.resetTimer();
   timerInput.value = 0;
-  // console.log('resetTimer() called from HostDashboard.vue');
   updateGameState(store.$state); // Emit the updated game state
 };
+
+// Auto-start the preset timer when the game moves forward into the buzzer or guessing step,
+// and stop it when that step is left. Reload-safe: see decideTimerAction.
+watch(
+  () => store.currentStep,
+  (next, prev) => {
+    const decision = decideTimerAction(prev, next, timerPresets.value);
+    if (decision.action === 'stop') {
+      stopTimer();
+    } else if (decision.action === 'start') {
+      stopTimer();
+      timeUp.value = false;
+      store.setTimer(decision.seconds);
+      countdown.start();
+    }
+  },
+  // Synchronous, so the timer is already set when GameMgr sends the new step right after
+  // assigning it; both updates then carry the same timer and the backend cannot reorder them
+  // into a stale "timer 0" state.
+  { flush: 'sync' },
+);
+
+// After a host reload the backend can still say "running": pick the countdown back up once.
+let resumeChecked = false;
+watch(
+  () => store.timerRunning,
+  (running) => {
+    if (!running || resumeChecked) return;
+    resumeChecked = true;
+    if (!countdown.isActive() && store.timer > 0) countdown.start();
+  },
+  { immediate: true },
+);
 
 const handleCorrectGuess = (answerId: any) => {
   correctCount.value++;
@@ -630,6 +671,7 @@ onMounted(async () => {
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
+  countdown.dispose();
   socket.off('update-game', handleUpdatedGame);
   socket.removeAllListeners();
 });
