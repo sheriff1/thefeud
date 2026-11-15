@@ -130,6 +130,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import socket from '../utils/socket';
 import { track } from '../utils/analytics';
+import { captureError } from '../utils/monitoring';
+import { playSound } from '../utils/playSound';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
@@ -184,17 +186,17 @@ const inviteOptions: InviteOption[] = [
 ];
 const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
-const playDingSound = () => {
-  if (isMuted.value) return;
-  const audio = new Audio('/sounds/ding.mp3'); // Path to the "ding" sound file
-  audio.play();
-};
+// Every sound goes through playSound: it respects mute and swallows the browser's autoplay refusal (#118).
+const play = (src: string) =>
+  playSound(src, {
+    muted: isMuted.value,
+    createAudio: (s) => new Audio(s),
+    onError: (e) => captureError(e, { source: 'audio' }),
+  });
 
-const playBuzzerSound = () => {
-  if (isMuted.value) return;
-  const audio = new Audio('/sounds/buzzer.mp3');
-  audio.play();
-};
+const playDingSound = () => play('/sounds/ding.mp3');
+
+const playBuzzerSound = () => play('/sounds/buzzer.mp3');
 
 const playStrikeSound = (teamStrikeCount: number) => {
   // Show the X with the number of strikes
@@ -203,31 +205,14 @@ const playStrikeSound = (teamStrikeCount: number) => {
   setTimeout(() => {
     showStrikeX.value = false;
   }, 1200); // Show for 1.2 seconds
-  if (isMuted.value) {
-    return;
-  } else {
-    const audio = new Audio('/sounds/strike.mp3');
-    audio.play();
-  }
+  play('/sounds/strike.mp3');
 };
 
-const playRoundOverSound = () => {
-  if (isMuted.value) return;
-  const audio = new Audio('/sounds/round-over.mp3');
-  audio.play();
-};
+const playRoundOverSound = () => play('/sounds/round-over.mp3');
 
-const playTimesUpSound = () => {
-  if (isMuted.value) return;
-  const audio = new Audio('/sounds/round-over.mp3');
-  audio.play();
-};
+const playTimesUpSound = () => play('/sounds/round-over.mp3');
 
-const playNextRoundSound = () => {
-  if (isMuted.value) return;
-  const audio = new Audio('/sounds/next-round.mp3');
-  audio.play();
-};
+const playNextRoundSound = () => play('/sounds/next-round.mp3');
 
 const pressBuzzer = () => {
   if (!hasBuzzed.value) {
