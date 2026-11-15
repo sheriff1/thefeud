@@ -1,6 +1,7 @@
 import GameMgr from '../../../src/components/hostDashboard/GameMgr.vue';
 import { createPinia, setActivePinia } from 'pinia';
 import { useGameStore } from '../../../src/stores/gamestore';
+import { GameStep } from '../../../src/utils/gameSteps';
 
 describe('GameMgr', () => {
   let pinia: any;
@@ -23,7 +24,7 @@ describe('GameMgr', () => {
 
     // Reset store to initial state
     gameStore.$reset();
-    gameStore.currentStep = 1;
+    gameStore.currentStep = GameStep.Start;
     gameStore.teamNames = { A: 'Team Alpha', B: 'Team Beta' };
 
     // Create stubs inside beforeEach where cy.stub() is available
@@ -62,13 +63,13 @@ describe('GameMgr', () => {
 
     cy.contains('Game Manager').should('be.visible');
     cy.get('.steps').should('be.visible');
-    cy.get('.step').should('have.length', 7);
+    cy.get('.step').should('have.length', 8);
     cy.contains("Let's get started!").should('be.visible');
     cy.get('button').contains('Start Round').should('be.visible');
   });
 
   it('displays progress steps correctly', () => {
-    gameStore.currentStep = 3;
+    gameStore.currentStep = GameStep.Multiplier;
 
     cy.mount(GameMgr, {
       props: defaultProps,
@@ -97,13 +98,13 @@ describe('GameMgr', () => {
     cy.safeClick('button:contains("Start Round")');
 
     cy.then(() => {
-      expect(gameStore.currentStep).to.equal(2);
+      expect(gameStore.currentStep).to.equal(GameStep.QA);
       expect(updateGameState).to.have.been.called;
     });
   });
 
   it('handles step 2 - Question and Answers selection methods', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
 
     cy.mount(GameMgr, {
       props: defaultProps,
@@ -120,7 +121,7 @@ describe('GameMgr', () => {
   });
 
   it('shows CSV upload modal when upload button is clicked', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
 
     cy.mount(GameMgr, {
       props: defaultProps,
@@ -136,7 +137,7 @@ describe('GameMgr', () => {
   });
 
   it('shows library dialog when library button is clicked', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const fetchLibraryFiles = cy.stub();
 
     cy.mount(GameMgr, {
@@ -153,7 +154,7 @@ describe('GameMgr', () => {
   });
 
   it('shows manual entry form when enter manually is clicked', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const onUpdateShowQASection = cy.stub();
 
     cy.mount(GameMgr, {
@@ -173,7 +174,7 @@ describe('GameMgr', () => {
   });
 
   it('validates question input', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
 
     cy.mount(GameMgr, {
       props: { ...defaultProps, showQASection: true, questionInput: '' },
@@ -187,7 +188,7 @@ describe('GameMgr', () => {
   });
 
   it('handles answer pairs management', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const answerPairs = [
       { text: 'Answer 1', points: 10 },
       { text: 'Answer 2', points: 8 },
@@ -217,8 +218,8 @@ describe('GameMgr', () => {
     });
   });
 
-  it('handles step 3 - Multiplier selection', () => {
-    gameStore.currentStep = 3;
+  it('handles the Multiplier step', () => {
+    gameStore.currentStep = GameStep.Multiplier;
     const setMultiplier = cy.stub();
 
     cy.mount(GameMgr, {
@@ -235,12 +236,84 @@ describe('GameMgr', () => {
 
     cy.then(() => {
       expect(setMultiplier).to.have.been.calledWith(2);
-      expect(gameStore.currentStep).to.equal(4);
+      expect(gameStore.currentStep).to.equal(GameStep.SelectBuzzers);
     });
   });
 
-  it('handles step 4 - Buzzer round', () => {
-    gameStore.currentStep = 4;
+  it('handles the Select buzzers step - Confirm is disabled until a team has a pick', () => {
+    gameStore.currentStep = GameStep.SelectBuzzers;
+    gameStore.teamMembers = { A: ['Ann', 'Al'], B: ['Bo'] };
+    const updateGameState = cy.stub();
+
+    cy.mount(GameMgr, {
+      props: { ...defaultProps, updateGameState },
+      global: { plugins: [pinia] },
+    });
+
+    cy.contains('Select team members for buzzers').should('be.visible');
+    cy.get('button').contains('Confirm').should('be.disabled');
+    cy.get('button').contains('Skip (anyone can buzz)').should('not.be.disabled');
+
+    cy.get('[data-testid="buzzer-picks-A"] input[value="Al"]').check();
+    cy.get('button').contains('Confirm').should('not.be.disabled');
+    cy.get('button').contains('Confirm').click();
+    cy.then(() => {
+      expect(gameStore.buzzerPlayers).to.deep.equal({ A: 'Al', B: null });
+      expect(gameStore.currentStep).to.equal(GameStep.Buzzer);
+      // One update carries both the pick and the step.
+      expect(updateGameState).to.have.been.calledOnce;
+    });
+  });
+
+  it('Skip clears the picks and moves to the Buzzer step in one update', () => {
+    gameStore.currentStep = GameStep.SelectBuzzers;
+    gameStore.teamMembers = { A: ['Ann'], B: ['Bo'] };
+    gameStore.buzzerPlayers = { A: 'Ann', B: 'Bo' };
+    const updateGameState = cy.stub();
+
+    cy.mount(GameMgr, {
+      props: { ...defaultProps, updateGameState },
+      global: { plugins: [pinia] },
+    });
+
+    cy.get('button').contains('Skip (anyone can buzz)').click();
+    cy.then(() => {
+      expect(gameStore.buzzerPlayers).to.deep.equal({ A: null, B: null });
+      expect(gameStore.currentStep).to.equal(GameStep.Buzzer);
+      expect(updateGameState).to.have.been.calledOnce;
+    });
+  });
+
+  it('shows "No players yet" for an empty team and offers only the joined players', () => {
+    gameStore.currentStep = GameStep.SelectBuzzers;
+    gameStore.teamMembers = { A: ['Ann'], B: [] };
+
+    cy.mount(GameMgr, {
+      props: defaultProps,
+      global: { plugins: [pinia] },
+    });
+
+    cy.get('[data-testid="buzzer-picks-B"]').contains('No players yet').should('be.visible');
+    cy.get('[data-testid="buzzer-picks-B"] input[type="radio"]').should('not.exist');
+    cy.get('[data-testid="buzzer-picks-A"] input[type="radio"]').should('have.length', 2);
+  });
+
+  it('Multiplier Confirm moves to the Select buzzers step', () => {
+    gameStore.currentStep = GameStep.Multiplier;
+
+    cy.mount(GameMgr, {
+      props: defaultProps,
+      global: { plugins: [pinia] },
+    });
+
+    cy.safeClick('button:contains("Confirm")');
+    cy.then(() => {
+      expect(gameStore.currentStep).to.equal(GameStep.SelectBuzzers);
+    });
+  });
+
+  it('handles Buzzer step - Buzzer round', () => {
+    gameStore.currentStep = GameStep.Buzzer;
     gameStore.question = 'Test Question';
     gameStore.answers = [
       { id: 1, text: 'Answer 1', points: 10 },
@@ -269,7 +342,7 @@ describe('GameMgr', () => {
   });
 
   it('shows buzzed player alert in buzzer round', () => {
-    gameStore.currentStep = 4;
+    gameStore.currentStep = GameStep.Buzzer;
     gameStore.buzzedPlayer = 'John Doe';
     gameStore.question = 'Test Question';
     gameStore.answers = [];
@@ -284,8 +357,46 @@ describe('GameMgr', () => {
     cy.get('.alert-success').should('contain', '🚨 - John Doe buzzed in!');
   });
 
-  it('handles step 5 - Starting team selection', () => {
-    gameStore.currentStep = 5;
+  it('shows the assigned buzzers, marks one who is not connected, and Let anyone buzz clears them', () => {
+    gameStore.currentStep = GameStep.Buzzer;
+    gameStore.teamNames = { A: 'Team Alpha', B: 'Team Beta' };
+    gameStore.teamMembers = { A: ['Ann'], B: [] };
+    gameStore.buzzerPlayers = { A: 'Ann', B: 'Bo' };
+    const updateGameState = cy.stub();
+
+    cy.mount(GameMgr, {
+      props: { ...defaultProps, updateGameState },
+      global: { plugins: [pinia] },
+    });
+
+    cy.get('[data-testid="buzzer-assignment"]').within(() => {
+      cy.contains('Team Alpha buzzer: Ann').should('exist');
+      cy.contains('Team Alpha buzzer: Ann').should('not.contain', '(not connected)');
+      cy.contains('Team Beta buzzer: Bo').should('contain', '(not connected)');
+    });
+    cy.get('button').contains('Let anyone buzz').click();
+    cy.then(() => {
+      expect(gameStore.buzzerPlayers).to.deep.equal({ A: null, B: null });
+      expect(updateGameState).to.have.been.calledOnce;
+    });
+    cy.get('[data-testid="buzzer-assignment"]').should('not.exist');
+  });
+
+  it('shows no assignment block on the Buzzer step when nobody was selected', () => {
+    gameStore.currentStep = GameStep.Buzzer;
+    gameStore.buzzerPlayers = { A: null, B: null };
+
+    cy.mount(GameMgr, {
+      props: defaultProps,
+      global: { plugins: [pinia] },
+    });
+
+    cy.contains('Buzzer Round:').should('be.visible');
+    cy.get('[data-testid="buzzer-assignment"]').should('not.exist');
+  });
+
+  it('handles WhoStarts step - Starting team selection', () => {
+    gameStore.currentStep = GameStep.WhoStarts;
     gameStore.teamNames = { A: 'Team Alpha', B: 'Team Beta' };
     const setStartingTeam = cy.stub();
 
@@ -303,12 +414,12 @@ describe('GameMgr', () => {
     cy.safeClick('button:contains("Team Alpha")');
     cy.then(() => {
       expect(setStartingTeam).to.have.been.calledWith('A');
-      expect(gameStore.currentStep).to.equal(6);
+      expect(gameStore.currentStep).to.equal(GameStep.Guessing);
     });
   });
 
-  it('handles step 6 - Guessing round', () => {
-    gameStore.currentStep = 6;
+  it('handles the Guessing step', () => {
+    gameStore.currentStep = GameStep.Guessing;
     gameStore.question = 'Test Question';
     gameStore.answers = [
       { id: 1, text: 'Answer 1', points: 10 },
@@ -356,8 +467,8 @@ describe('GameMgr', () => {
     });
   });
 
-  it('handles step 7 - Award points', () => {
-    gameStore.currentStep = 7;
+  it('handles the Award step - Award points', () => {
+    gameStore.currentStep = GameStep.Award;
     gameStore.winningTeam = 'A';
     gameStore.pointsAwarded = 25;
     gameStore.teamScores = { A: 100, B: 75 };
@@ -393,7 +504,7 @@ describe('GameMgr', () => {
   });
 
   it('handles CSV file upload', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const handleUpload = cy.stub().resolves(true);
     const onUpdateShowQASection = cy.stub();
 
@@ -427,7 +538,7 @@ describe('GameMgr', () => {
   });
 
   it('handles CSV upload error', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const handleUpload = cy.stub().resolves(false);
 
     cy.mount(GameMgr, {
@@ -453,7 +564,7 @@ describe('GameMgr', () => {
   });
 
   it('validates points input for answers', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const answerPairs = [{ text: 'Test Answer', points: 0 }];
 
     cy.mount(GameMgr, {
@@ -474,7 +585,7 @@ describe('GameMgr', () => {
   });
 
   it('closes library dialog when cancel is clicked', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
     const setShowLibraryDialog = cy.stub();
 
     cy.mount(GameMgr, {
@@ -495,7 +606,7 @@ describe('GameMgr', () => {
   });
 
   it('closes CSV upload modal when X is clicked', () => {
-    gameStore.currentStep = 2;
+    gameStore.currentStep = GameStep.QA;
 
     cy.mount(GameMgr, {
       props: defaultProps,

@@ -228,9 +228,75 @@
       </button>
     </div>
 
-    <!-- 4. Start Buzzer Round -->
+    <!-- 4. Select who gets a buzzer (optional) -->
+    <div v-else-if="gameStore.currentStep === GameStep.SelectBuzzers">
+      <h4 class="mb-4">Select team members for buzzers</h4>
+      <p class="mb-4 text-sm">
+        Pick one member per team to give buzzer access, or skip so anyone can buzz.
+      </p>
+      <div class="flex flex-row flex-wrap gap-4 mb-4">
+        <fieldset
+          v-for="team in BUZZER_TEAMS"
+          :key="team"
+          class="flex-1 min-w-48 p-4 rounded bg-base-100"
+          :data-testid="`buzzer-picks-${team}`"
+        >
+          <legend class="font-bold">Team {{ gameStore.teamNames[team] }}</legend>
+          <p v-if="!gameStore.teamMembers[team].length" class="text-sm">No players yet</p>
+          <template v-else>
+            <label class="flex items-center gap-2 mb-1">
+              <input
+                type="radio"
+                class="radio radio-sm"
+                :name="`buzzer-pick-${team}`"
+                :checked="picks[team] === null"
+                @change="picks[team] = null"
+              />
+              <span>Anyone on this team</span>
+            </label>
+            <label
+              v-for="member in gameStore.teamMembers[team]"
+              :key="member"
+              class="flex items-center gap-2 mb-1"
+            >
+              <input
+                type="radio"
+                class="radio radio-sm"
+                :name="`buzzer-pick-${team}`"
+                :value="member"
+                :checked="picks[team] === member"
+                @change="picks[team] = member"
+              />
+              <span>{{ member }}</span>
+            </label>
+          </template>
+        </fieldset>
+      </div>
+      <div class="flex flex-row gap-4">
+        <button class="btn btn-primary" :disabled="!hasAnyPick(picks)" @click="confirmBuzzersStep">
+          Confirm
+        </button>
+        <button class="btn" @click="skipBuzzersStep">Skip (anyone can buzz)</button>
+      </div>
+    </div>
+
+    <!-- 5. Start Buzzer Round -->
     <div v-else-if="gameStore.currentStep === GameStep.Buzzer">
       <h4 class="mb-4">Buzzer Round:</h4>
+      <div v-if="hasAnyPick(gameStore.buzzerPlayers)" class="mb-4" data-testid="buzzer-assignment">
+        <ul class="text-sm mb-2">
+          <li v-for="team in assignedTeams" :key="team">
+            Team {{ gameStore.teamNames[team] }} buzzer: {{ gameStore.buzzerPlayers[team] }}
+            <span
+              v-if="!isPickConnected(gameStore.buzzerPlayers[team]!, gameStore.teamMembers[team])"
+              class="opacity-70"
+            >
+              (not connected)
+            </span>
+          </li>
+        </ul>
+        <button class="btn btn-sm" @click="letAnyoneBuzz">Let anyone buzz</button>
+      </div>
       <div v-if="gameStore.buzzedPlayer" role="alert" class="alert alert-success alert-soft mb-4">
         <span>🚨 - {{ gameStore.buzzedPlayer }} buzzed in!</span>
       </div>
@@ -428,9 +494,17 @@
 const apiBase = import.meta.env.VITE_API_BASE || '';
 
 // State management
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 import { GameStep, GAME_STEP_ORDER } from '../../utils/gameSteps';
+import {
+  hasAnyPick,
+  isPickConnected,
+  NO_BUZZER_PICKS,
+  type BuzzerPlayers,
+} from '../../utils/buzzerAccess';
+
+const BUZZER_TEAMS = ['A', 'B'] as const;
 const gameStore = useGameStore();
 const showCsvUpload = ref(false);
 const csvUploadError = ref('');
@@ -439,7 +513,7 @@ const csvUploadError = ref('');
 interface GameMgrProps {
   updateGameState: (state: any) => void;
   nextRound: () => void;
-  /* --- currentStep = 2 --- */
+  /* --- QA step --- */
   handleUpload: (event: Event) => Promise<boolean>;
   fetchLibraryFiles: () => void;
   showLibraryDialog: boolean;
@@ -453,18 +527,18 @@ interface GameMgrProps {
   removeAllAnswers: () => void;
   saveQuestionAndAnswers: () => void;
   showQASection: boolean;
-  /* --- currentStep = 3 --- */
+  /* --- Multiplier step --- */
   setMultiplier: (multiplier: number) => void;
-  /* --- currentStep = 4 --- */
+  /* --- Buzzer step --- */
   handleCorrectGuess?: (answerId: string) => void;
   handleIncorrectAndStrike?: () => void;
   emitStrikeSound?: () => void;
   // roundOver: boolean;
-  /* --- currentStep = 5 --- */
+  /* --- WhoStarts step --- */
   showWhoStartsSection?: boolean;
   setStartingTeam: (team: string) => void;
-  /* --- currentStep = 6 --- */
-  /* --- currentStep = 7 --- */
+  /* --- Guessing step --- */
+  /* --- Award step --- */
   revealAllAnswers: () => void;
   /* --- currentStep = TBD --- */
 }
@@ -496,10 +570,41 @@ function saveQuestionAndAnswersStep() {
 
 function confirmMultiplierStep(multiplier: number) {
   props.setMultiplier(multiplier);
-  gameStore.currentStep = GameStep.Buzzer;
+  gameStore.currentStep = GameStep.SelectBuzzers;
   // console.log('confirmMultiplierStep() called from GamgeMgr.vue');
   props.updateGameState(gameStore.$state);
 }
+
+// Step 4: the host picks who may buzz (#23). The pick and the move to the buzzer round go out
+// in one update, so players never see the new step without the assignment.
+const picks = ref<BuzzerPlayers>({ ...NO_BUZZER_PICKS });
+watch(
+  () => gameStore.currentStep,
+  (step) => {
+    if (step === GameStep.SelectBuzzers) picks.value = { ...NO_BUZZER_PICKS };
+  },
+  { immediate: true },
+);
+
+function confirmBuzzersStep() {
+  gameStore.buzzerPlayers = { ...picks.value };
+  gameStore.currentStep = GameStep.Buzzer;
+  props.updateGameState(gameStore.$state);
+}
+
+function skipBuzzersStep() {
+  gameStore.buzzerPlayers = { ...NO_BUZZER_PICKS };
+  gameStore.currentStep = GameStep.Buzzer;
+  props.updateGameState(gameStore.$state);
+}
+
+// Escape hatch when a selected buzzer never comes back (the host cannot go back a step).
+function letAnyoneBuzz() {
+  gameStore.buzzerPlayers = { ...NO_BUZZER_PICKS };
+  props.updateGameState(gameStore.$state);
+}
+
+const assignedTeams = computed(() => BUZZER_TEAMS.filter((t) => gameStore.buzzerPlayers?.[t]));
 
 function startBuzzerRoundStep() {
   if (
@@ -530,7 +635,7 @@ function startNextRound() {
 
 /* ---- helper functions ---- */
 
-/* --- currentStep = 2 --- */
+/* --- QA step --- */
 function closeLibraryDialog() {
   if (props.setShowLibraryDialog) {
     props.setShowLibraryDialog(false);
@@ -574,11 +679,11 @@ async function onCsvFileChange(e: Event) {
 }
 const isFormValid = computed(() => !questionError.value && !answersError.value);
 
-/* --- currentStep = 3 --- */
-/* --- currentStep = 4 --- */
-/* --- currentStep = 5 --- */
-/* --- currentStep = 6 --- */
-/* --- currentStep = 7 --- */
+/* --- Multiplier step --- */
+/* --- SelectBuzzers and Buzzer steps --- */
+/* --- WhoStarts step --- */
+/* --- Guessing step --- */
+/* --- Award step --- */
 </script>
 
 <style scoped>
