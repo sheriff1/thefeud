@@ -11,6 +11,11 @@ const GameStateSchema = z
     answersSaved: z.boolean(),
     buzzedPlayer: z.string().nullable(),
     buzzerOnlyPressed: z.boolean(),
+    // Host's pick of who may buzz per team (#23). Optional so older clients that omit it still work.
+    buzzerPlayers: z
+      .object({ A: z.string().nullable(), B: z.string().nullable() })
+      .strict()
+      .optional(),
     correctAfterBuzzer: z.boolean(),
     correctBeforeBuzzer: z.boolean(),
     createdAt: z.object({ _seconds: z.number(), _nanoseconds: z.number() }).optional(),
@@ -114,6 +119,7 @@ import admin from 'firebase-admin';
 import fs from 'fs';
 import helmet from 'helmet';
 import { createUniqueSession } from './sessions.js';
+import { isBuzzAllowed } from './buzz-access.js';
 import { asyncHandler, onSafe, clientErrorMessage, SESSION_NOT_FOUND } from './safe-handlers.js';
 import {
   initMonitoring,
@@ -332,15 +338,25 @@ io.on('connection', (socket) => {
     try {
       const { sessionRef } = await getValidSessionDoc(sessionId);
 
-      // Update buzzedPlayer in Firestore
-      await sessionRef.set({ buzzedPlayer: name }, { merge: true });
-
-      // Fetch the latest session state
-      const updatedSessionDoc = await sessionRef.get();
-      const sessionData = updatedSessionDoc.data();
+      // First buzz wins (#23): read and write in one transaction, so two simultaneous buzzes
+      // cannot both be accepted. A buzz is ignored when someone already buzzed or when the
+      // host's buzzer assignment does not allow this name.
+      const accepted = await db.runTransaction(async (tx) => {
+        const doc = await tx.get(sessionRef);
+        if (!doc.exists) {
+          throw new Error(SESSION_NOT_FOUND);
+        }
+        const data = doc.data() || {};
+        if (data.buzzedPlayer) return null;
+        if (!isBuzzAllowed(name, data.buzzerPlayers, data.teamMembers)) return null;
+        tx.set(sessionRef, { buzzedPlayer: name }, { merge: true });
+        return { ...data, buzzedPlayer: name };
+      });
 
       // Broadcast the updated state to all clients in the session
-      io.to(sessionId).emit('update-game', sessionData);
+      if (accepted) {
+        io.to(sessionId).emit('update-game', accepted);
+      }
     } catch (error) {
       captureHandlerError(error, {
         event: 'buzz',
@@ -521,6 +537,7 @@ io.on('connection', (socket) => {
         gameState.roundReset = false;
         gameState.roundOver = false; // Reset roundOver if roundReset is true
         gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
+        gameState.buzzerPlayers = { A: null, B: null }; // The host picks buzzers again each round
         gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
         gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
         gameState.strikes = 0; // Reset strikes
@@ -750,6 +767,7 @@ function getResetRoundState() {
     roundReset: false,
     roundOver: false, // Reset roundOver if roundReset is true
     buzzedPlayer: '', // Reset buzzedPlayer if roundReset is true
+    buzzerPlayers: { A: null, B: null }, // Reset the host's buzzer picks
     startingTeamSet: false, // Reset startingTeamSet if roundReset is true
     currentTeam: 'A', // Reset currentTeam to 'A'
     strikes: 0, // Reset strikes
@@ -780,6 +798,7 @@ function getResetGameState() {
     roundReset: false,
     roundOver: false,
     buzzedPlayer: '',
+    buzzerPlayers: { A: null, B: null },
     startingTeamSet: false,
     currentTeam: 'A',
     strikes: 0,
