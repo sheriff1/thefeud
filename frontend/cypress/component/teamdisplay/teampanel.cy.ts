@@ -158,6 +158,22 @@ describe('TeamPanel', () => {
     cy.get('.buzzer-button').should('be.disabled');
   });
 
+  it('shows a disabled "Buzzer: <name>" button to a teammate who was not selected', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, canBuzz: false, buzzerOwner: 'Alice' },
+    });
+
+    cy.get('.buzzer-button').should('be.disabled').and('contain.text', 'Buzzer: Alice');
+  });
+
+  it('keeps the button live for the selected buzzer', () => {
+    mount(TeamPanel, {
+      props: { ...defaultProps, canBuzz: true, buzzerOwner: 'Alice' },
+    });
+
+    cy.get('.buzzer-button').should('not.be.disabled').and('contain.text', 'BUZZER');
+  });
+
   it('emits buzz event when buzzer is clicked', () => {
     const buzzSpy = cy.stub().as('buzzHandler');
 

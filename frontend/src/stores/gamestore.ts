@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import socket from '../utils/socket';
 import { track } from '../utils/analytics';
 import { GameStep } from '../utils/gameSteps';
+import type { BuzzerPlayers } from '../utils/buzzerAccess';
 
 export const useGameStore = defineStore('game', {
   state: () => ({
@@ -9,6 +10,7 @@ export const useGameStore = defineStore('game', {
     answersSaved: false, // New property to track if answers are saved
     buzzedPlayer: null as string | null, // New property to track the buzzed player
     buzzerOnlyPressed: false, // <-- Add this if not present
+    buzzerPlayers: { A: null, B: null } as BuzzerPlayers, // Host's pick of who may buzz per team (#23)
     correctAfterBuzzer: false, // <-- Add this if not present
     correctBeforeBuzzer: false, // <-- Add this if not present
     createdAt: undefined as { _seconds: number; _nanoseconds: number } | undefined,
@@ -214,6 +216,7 @@ export const useGameStore = defineStore('game', {
       this.roundReset = false; // New property to track if the round is reset
       this.nextRound = false; // New property to track if the next round is started
       this.buzzedPlayer = null; // Reset the buzzed player
+      this.buzzerPlayers = { A: null, B: null };
     },
 
     updateRoundCounter(round: number) {

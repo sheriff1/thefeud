@@ -62,9 +62,11 @@
               :active="store.currentTeam === 'A'"
               :editing="editingTeam === 'A'"
               :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
-              :showBuzzer="isMultiplierSet && selectedTeam === 'A' && !store.startingTeamSet"
+              :showBuzzer="isBuzzerRoundOn && selectedTeam === 'A' && !store.startingTeamSet"
               :startingTeamSet="store.startingTeamSet"
               :buzzerDisabled="isBuzzerDisabled"
+              :canBuzz="canBuzz('A', playerName, store.buzzerPlayers)"
+              :buzzerOwner="buzzerOwner('A', store.buzzerPlayers)"
               :initialEditedName="editedTeamName"
               :guessedAnswers="store.guessedAnswers"
               @edit-team="startEditingTeamName"
@@ -105,9 +107,11 @@
               :active="store.currentTeam === 'B'"
               :editing="editingTeam === 'B'"
               :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
-              :showBuzzer="isMultiplierSet && selectedTeam === 'B' && !store.startingTeamSet"
+              :showBuzzer="isBuzzerRoundOn && selectedTeam === 'B' && !store.startingTeamSet"
               :startingTeamSet="store.startingTeamSet"
               :buzzerDisabled="isBuzzerDisabled"
+              :canBuzz="canBuzz('B', playerName, store.buzzerPlayers)"
+              :buzzerOwner="buzzerOwner('B', store.buzzerPlayers)"
               :initialEditedName="editedTeamName"
               :guessedAnswers="store.guessedAnswers"
               @edit-team="startEditingTeamName"
@@ -130,6 +134,8 @@ import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
 import { shouldPlayTimesUp } from '../utils/timerCue';
+import { GameStep } from '../utils/gameSteps';
+import { canBuzz, buzzerOwner } from '../utils/buzzerAccess';
 import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
@@ -156,6 +162,10 @@ const hasJoined = ref(false);
 const hasBuzzed = ref(false);
 const isBuzzerDisabled = computed(() => hasBuzzed.value || !!store.buzzedPlayer);
 const isMultiplierSet = computed(() => !!store.scoreMultiplier);
+// Players can only buzz once the buzzer round has started, so the host's pick is in place (#23).
+const isBuzzerRoundOn = computed(
+  () => isMultiplierSet.value && store.currentStep >= GameStep.Buzzer,
+);
 const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
 const isMuted = ref(false); // Mute state

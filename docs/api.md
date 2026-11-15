@@ -260,18 +260,18 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 **Buzzer and turns**
 
-| Field                 | Type           | Notes                                               |
-| --------------------- | -------------- | --------------------------------------------------- |
-| `buzzedPlayer`        | string or null | `buzz` sets it to a name; resets use `''`           |
-| `buzzerOnlyPressed`   | boolean        |                                                     |
-| `buzzerPlayers`       | object         | Optional `{ A, B }`, name or `null`; see `buzz`     |
-| `correctAfterBuzzer`  | boolean        |                                                     |
-| `correctBeforeBuzzer` | boolean        |                                                     |
-| `currentTeam`         | string         | `'A'` after a round reset, `'a'` after a game reset |
-| `firstTeam`           | string or null | Reset to `null`                                     |
-| `startingTeam`        | string or null | Reset to `null`                                     |
-| `startingTeamSet`     | boolean        |                                                     |
-| `secondTeamGuessUsed` | boolean        |                                                     |
+| Field                 | Type           | Notes                                           |
+| --------------------- | -------------- | ----------------------------------------------- |
+| `buzzedPlayer`        | string or null | `buzz` sets it to a name; resets use `''`       |
+| `buzzerOnlyPressed`   | boolean        |                                                 |
+| `buzzerPlayers`       | object         | Optional `{ A, B }`, name or `null`; see `buzz` |
+| `correctAfterBuzzer`  | boolean        |                                                 |
+| `correctBeforeBuzzer` | boolean        |                                                 |
+| `currentTeam`         | string         | `'A'` after any reset                           |
+| `firstTeam`           | string or null | Reset to `null`                                 |
+| `startingTeam`        | string or null | Reset to `null`                                 |
+| `startingTeamSet`     | boolean        |                                                 |
+| `secondTeamGuessUsed` | boolean        |                                                 |
 
 **Scoring**
 
@@ -310,8 +310,8 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 ## Known quirks
 
-Current behavior that may surprise you, documented as is. None are fixed by this document; the follow-up issue (#107) tracks them. Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
+Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is tracked in #124, quirk 5 in #122 and quirk 8 in #123 (the rest were fixed under #107 and #23). Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
 
-- **Quirk 1: No authorization (code).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend. The host's buzzer assignment (`buzzerPlayers`) is therefore not a security boundary: `buzz` checks the claimed name against it, and anyone can claim the selected name.
-- **Quirk 5: `update-game` replaces the document (code).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`, which can let a second buzz win after a stale host state clears it). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
-- **Quirk 8: Disconnect cleanup is partial (code).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team. A disconnect removes the player from `teamMembers` but not from `buzzerPlayers`, which holds a name: a selected buzzer who reconnects (the frontend re-sends `join-team`) keeps the assignment.
+- **Quirk 1: No authorization (code, #124).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend. The host's buzzer assignment (`buzzerPlayers`) is therefore not a security boundary: `buzz` checks the claimed name against it, and anyone can claim the selected name.
+- **Quirk 5: `update-game` replaces the document (code, #122).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`, which can let a second buzz win after a stale host state clears it). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
+- **Quirk 8: Disconnect cleanup is partial (code, #123).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team. A disconnect removes the player from `teamMembers` but not from `buzzerPlayers`, which holds a name: a selected buzzer who reconnects (the frontend re-sends `join-team`) keeps the assignment.

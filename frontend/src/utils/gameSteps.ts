@@ -1,17 +1,18 @@
 /**
  * The host's game steps (#17). `currentStep` in the game state is one of these numbers.
  * The values are what the backend stores, so keep them stable; ORDER defines the flow
- * and the step bar. Adding a step (e.g. #23's "Select buzzers") means adding it to
- * GameStep and to GAME_STEP_ORDER, and renumbering the values.
+ * and the step bar. Adding a step means adding it to GameStep and to GAME_STEP_ORDER, and
+ * renumbering the values (#23 inserted SelectBuzzers before Buzzer, so Buzzer is now 5).
  */
 export const GameStep = {
   Start: 1,
   QA: 2,
   Multiplier: 3,
-  Buzzer: 4,
-  WhoStarts: 5,
-  Guessing: 6,
-  Award: 7,
+  SelectBuzzers: 4,
+  Buzzer: 5,
+  WhoStarts: 6,
+  Guessing: 7,
+  Award: 8,
 } as const;
 
 export type GameStepValue = (typeof GameStep)[keyof typeof GameStep];
@@ -21,6 +22,7 @@ export const GAME_STEP_ORDER: ReadonlyArray<{ step: GameStepValue; label: string
   { step: GameStep.Start, label: 'Start' },
   { step: GameStep.QA, label: 'Q&A' },
   { step: GameStep.Multiplier, label: 'Multiplier' },
+  { step: GameStep.SelectBuzzers, label: 'Buzzers' },
   { step: GameStep.Buzzer, label: 'Buzzer' },
   { step: GameStep.WhoStarts, label: 'Who Starts' },
   { step: GameStep.Guessing, label: 'Guessing' },
