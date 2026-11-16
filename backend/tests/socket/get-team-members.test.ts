@@ -50,7 +50,15 @@ let gameState = {
 };
 beforeEach(async () => {
   sessionId = Math.random().toString(36).substring(2, 6).toUpperCase();
-  await db.collection('sessions').doc(sessionId).set({ sessionId, createdAt: Date.now() });
+  // teamMembers is server-owned (#122): update-game ignores it, so seed the stored session.
+  await db
+    .collection('sessions')
+    .doc(sessionId)
+    .set({
+      sessionId,
+      createdAt: Date.now(),
+      teamMembers: { A: ['player1', 'player2'], B: ['player3'] },
+    });
 
   gameState = {
     answers: [],
@@ -111,11 +119,6 @@ describe('Socket.io', () => {
   // ----------- GET-TEAM-MEMBERS  ----------- //
   // ✅ [SUCCESS] socket.on('get-team-members',...)
   it('should get both teams team members', async () => {
-    // teamMembers is server-owned (#122): update-game ignores it, so seed the stored session.
-    await db
-      .collection('sessions')
-      .doc(sessionId)
-      .set({ teamMembers: { A: ['player1', 'player2'], B: ['player3'] } }, { merge: true });
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Event not received in time')), 4000);
 
@@ -130,14 +133,6 @@ describe('Socket.io', () => {
       };
 
       socket.on('joined-session', () => {
-        socket.emit('update-game', {
-          sessionId: sessionId,
-          gameState: { ...gameState },
-        });
-      });
-
-      socket.on('update-game', () => {
-        // Only emit get-team-members after update-game is confirmed
         socket.emit('get-team-members', { sessionId });
       });
 
