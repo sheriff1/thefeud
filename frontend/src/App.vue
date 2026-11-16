@@ -1,6 +1,6 @@
 <template>
   <ConnectionBanner />
-  <div class="navbar bg-base-100 shadow-sm">
+  <div class="navbar app-navbar bg-base-100 shadow-sm">
     <div class="flex-1">
       <a href="/" class="btn btn-ghost text-base-content !text-base-content">The Feud</a>
     </div>
@@ -16,6 +16,7 @@
             href="https://github.com/sheriff1/thefeud"
             target="_blank"
             class="text-base-content !text-base-content flex items-center"
+            aria-label="About"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -33,7 +34,7 @@
                 20.2 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"
               />
             </svg>
-            About</a
+            <span class="nav-about-label">About</span></a
           >
         </li>
         <li v-if="store.sessionId">
@@ -312,5 +313,34 @@ watch(theme, (newTheme) => {
 body {
   margin: 0;
   font-family: Avenir, Helvetica, Arial, sans-serif;
+}
+
+/* Phones (#131): the navbar must fit 360px and its controls reach 44px. */
+@media (max-width: 767px) {
+  .app-navbar {
+    flex-wrap: wrap;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .app-navbar .menu {
+    padding: 0;
+    flex-wrap: nowrap;
+  }
+  .app-navbar .menu > li > * {
+    min-height: 44px;
+    min-width: 44px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+  .app-navbar .nav-about-label {
+    display: none;
+  }
+  .app-navbar .btn {
+    min-height: 44px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
 }
 </style>

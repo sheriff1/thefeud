@@ -40,7 +40,16 @@
       </span>
     </div>
     <div class="team-row">
-      <ul class="team-members-list">
+      <!-- Phones only (#131): the list is collapsed to the buzzed player; this toggles the rest. -->
+      <button
+        type="button"
+        class="members-toggle"
+        :aria-expanded="membersOpen"
+        @click="membersOpen = !membersOpen"
+      >
+        👥 {{ members.length }} {{ membersOpen ? '▴' : '▾' }}
+      </button>
+      <ul class="team-members-list" :class="{ collapsed: !membersOpen }">
         <li
           v-for="member in members"
           :key="member"
@@ -120,6 +129,8 @@ const emit = defineEmits<{
   'save-team': [{ team: string; name: string }];
   buzz: [];
 }>();
+
+const membersOpen = ref(false);
 
 const editedName = ref(props.initialEditedName || props.teamName);
 
@@ -256,5 +267,91 @@ function saveTeamNameChange() {
   background: #e5e7eb;
   color: #aaa;
   cursor: not-allowed;
+}
+
+.members-toggle {
+  display: none;
+}
+
+/* Phones (#131): a compact card in the score strip; the buzzer becomes a full-width bottom bar. */
+@media (max-width: 767px) {
+  .team-info {
+    min-width: 0;
+    width: 100%;
+    padding: 0.75rem 0.5rem;
+  }
+  .team-score {
+    font-size: 2.75rem;
+    line-height: 1;
+  }
+  .team-info .divider {
+    margin: 0.25rem 0;
+  }
+  .team-header {
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+  }
+  .team-header .btn {
+    min-width: 44px;
+    min-height: 44px;
+    margin-left: 0.25rem;
+  }
+  .team-header input {
+    width: 100%;
+    min-width: 0;
+  }
+  .team-header .btn.ml-4 {
+    margin-left: 0.25rem;
+  }
+  .team-row {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 0;
+  }
+  .members-toggle {
+    display: block;
+    min-height: 44px;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 0 0.25rem;
+    font-size: 0.9rem;
+  }
+  .team-members-list {
+    margin: 0;
+  }
+  /* Collapsed: only the player who buzzed stays visible. */
+  .team-members-list.collapsed li:not(.buzzed) {
+    display: none;
+  }
+  .team-strikes {
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    align-items: center;
+    min-width: 0;
+    margin-top: 0.25rem;
+  }
+  .team-strikes .game-info-label {
+    margin-top: 0;
+  }
+  .buzzer-container {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 900;
+    margin: 0;
+    padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+    background-color: var(--color-base-100, #fff);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+  }
+  .buzzer-button {
+    width: 100%;
+    height: 72px;
+    padding: 0 1rem;
+    border-radius: 12px;
+  }
 }
 </style>
