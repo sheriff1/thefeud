@@ -71,7 +71,7 @@ Adds a player to a team.
 - **Payload:** `{ sessionId, name, team }` where `team` is `"A"` or `"B"`
 - **Broadcast:** `team-members-updated` `{ A: string[], B: string[] }`
 - **Errors:** `error`.
-- **Side effects:** reads `teamMembers`, appends `name` to the team if not already there (idempotent), writes `teamMembers` with merge, joins the room, and records `socket.id -> { sessionId, name, team }` in memory for the `disconnect` cleanup. The read-modify-write is not a transaction.
+- **Side effects:** reads `teamMembers`, appends `name` to the team if not already there (idempotent), writes `teamMembers` with merge, joins the room, and records `socket.id -> { sessionId, name, team }` in memory for the `disconnect` cleanup. The read and the write run in one Firestore transaction, so simultaneous joins cannot lose each other.
 - **Sent by:** a team member on `TeamDisplay.vue` after choosing a name and team, and again on reconnect.
 
 ### `update-team-name`
@@ -81,7 +81,7 @@ Renames a team. Note the field meaning: `name` is the new team name, and `team` 
 - **Payload:** `{ sessionId, name, team }`
 - **Broadcast:** `team-names-updated` `{ A: string, B: string }`
 - **Errors:** `error`
-- **Side effects:** writes `teamNames` with merge, as `{ ...current, [team]: name }`. A missing `teamNames` defaults to `{ A: 'A', B: 'B' }`.
+- **Side effects:** writes `teamNames` with merge, as `{ ...current, [team]: name }`, in one Firestore transaction. A missing `teamNames` defaults to `{ A: 'A', B: 'B' }`.
 - **Sent by:** a team member on `TeamDisplay.vue`.
 
 ### `remove-team-member`
@@ -89,9 +89,9 @@ Renames a team. Note the field meaning: `name` is the new team name, and `team` 
 Removes a player from a team.
 
 - **Payload:** `{ sessionId, name, team }`
-- **Broadcast:** `team-members-updated` `{ A: string[], B: string[] }`, only if the team key exists
-- **Errors:** `error`. A session that has no `teamMembers` yet fails with `Error removing team member`. A `team` key that is not present is a silent no-op: no event, no error.
-- **Side effects:** writes `teamMembers` with merge. It broadcasts even if `name` was not in the team.
+- **Broadcast:** `team-members-updated` `{ A: string[], B: string[] }`
+- **Errors:** `error`. A session that has no `teamMembers` yet is treated as `{ A: [], B: [] }`.
+- **Side effects:** writes `teamMembers` with merge, in one Firestore transaction. It broadcasts even if `name` was not in the team.
 - **Sent by:** the host (to kick a player) and a team member (to leave).
 
 ### `get-team-members`
@@ -114,20 +114,20 @@ Asks for the stored session document.
 
 ### `update-game`
 
-Replaces the whole game state. This is the main write path and the host's only way to change the game.
+Replaces the game state, except the server-owned fields `teamMembers` and `buzzedPlayer`. This is the main write path and the host's only way to change the game.
 
 - **Payload:** `{ sessionId, gameState }` where `gameState` is the complete [GameState](#gamestate). The schema is strict: every required field must be present, and no extra field is allowed.
 - **Broadcast:** `update-game` with the state as saved (after the transitions below), preceded by any of `round-over`, `next-round`, `reset-round`, `reset-buzzers`
 - **Errors:** `error`. A missing `gameState` gives `Game state is required to update game`.
 - **Side effects, in order:**
-  1. Reads the stored `roundOver` and compares it with the incoming one.
+  1. Starts one Firestore transaction (Firestore may run it again if it is contended; events are broadcast only after it commits). Reads the stored document. The incoming `teamMembers` and `buzzedPlayer` are ignored and replaced by the stored values (`{ A: [], B: [] }` and `''` when absent), so a stale host cannot overwrite what `join-team`, `remove-team-member` and `buzz` wrote. Only the resets in steps 4 to 6 clear `buzzedPlayer`. Compares the stored `roundOver` with the incoming one.
   2. If `expiryTime` is absent, sets it to now plus 24 hours (ISO string). An existing value is kept.
   3. Stored `roundOver` false and incoming true: broadcasts `round-over`.
   4. Stored `roundOver` true and incoming false and `roundReset` false: this is "next round". It overwrites these fields in the incoming state and broadcasts `next-round` then `reset-buzzers`: `roundReset`, `roundOver`, `startingTeamSet`, `strikes`, `pointPool`, `secondTeamGuessUsed`, `timerRunning`, `pointsAwarded` and `nextRound` become false or `0`; `buzzedPlayer` and `question` become `''`; `buzzerPlayers` becomes `{ A: null, B: null }`; `currentTeam` becomes `'A'`; `firstTeam`, `scoreMultiplier` and `winningTeam` become `null`; `timer` becomes `0`; `answers` and `guessedAnswers` become `[]`; `teamStrikes` becomes `{ A: 0, B: 0 }`; `currentStep` becomes `1`. It does not touch `multiplierSet`, `answersSaved`, `startingTeam`, `questionSaved`, `buzzerOnlyPressed` or `correctAfterBuzzer`.
   5. `roundReset` true: overwrites the state with the round-reset values and broadcasts `reset-round` then `reset-buzzers`. This set is the step 4 list plus `multiplierSet`, `answersSaved`, `startingTeam`, `questionSaved`, `buzzerOnlyPressed` and `correctAfterBuzzer`, all reset (`roundReset` is also set back to false).
   6. `gameReset` true: overwrites the state with the game-reset values and broadcasts `reset-round` then `reset-buzzers`. It resets the round fields as in step 5, plus `roundCounter` to `0`, `teamScores` to `{ A: 0, B: 0 }`, `gameReset` and `nextRound` to false, and sets `currentTeam` to `'A'`. It keeps `teamMembers` and `teamNames`.
-  7. Writes the result to Firestore with `set()` and no merge, replacing the document.
-  8. Broadcasts `update-game`.
+  7. Writes the result to Firestore with `set()` and no merge, replacing the document, and commits.
+  8. Broadcasts the events collected above (in that order), then `update-game`.
 - **Sent by:** the host only, from `HostDashboard.vue`.
 
 ### `buzz`
@@ -137,7 +137,7 @@ A player buzzes in.
 - **Payload:** `{ sessionId, name }`
 - **Broadcast:** `update-game` with the whole stored session document (not a validated `GameState`)
 - **Errors:** `error`
-- **Side effects:** runs one Firestore transaction that reads the session document and writes `buzzedPlayer: name` with merge only if the buzz is accepted, then broadcasts the stored document. A buzz is accepted only when (1) `buzzedPlayer` is empty, so **the first buzz wins** and later ones are ignored, and (2) the host's `buzzerPlayers` allows `name`: anyone is allowed when `buzzerPlayers` is absent or both entries are `null`; the selected buzzer of either team is always allowed; a name listed in `teamMembers` of a team whose entry is set is rejected unless it is that selected buzzer; names on neither team are not restricted. A rejected buzz is ignored without an `error` reply and without a broadcast. The assignment check is a consistency check, not security: the server cannot tell who sent the name (quirk 1). The same name on both teams is treated as allowed when it matches either selected buzzer. A host `update-game` can still overwrite `buzzedPlayer` (quirk 5), so first-wins holds against concurrent buzzes, not against a stale host state.
+- **Side effects:** runs one Firestore transaction that reads the session document and writes `buzzedPlayer: name` with merge only if the buzz is accepted, then broadcasts the stored document. A buzz is accepted only when (1) `buzzedPlayer` is empty, so **the first buzz wins** and later ones are ignored, and (2) the host's `buzzerPlayers` allows `name`: anyone is allowed when `buzzerPlayers` is absent or both entries are `null`; the selected buzzer of either team is always allowed; a name listed in `teamMembers` of a team whose entry is set is rejected unless it is that selected buzzer; names on neither team are not restricted. A rejected buzz is ignored without an `error` reply and without a broadcast. The assignment check is a consistency check, not security: the server cannot tell who sent the name (quirk 1). The same name on both teams is treated as allowed when it matches either selected buzzer. A host `update-game` cannot overwrite `buzzedPlayer`: it keeps the stored value, and only the host's round and game resets clear it.
 - **Sent by:** a team member on `TeamDisplay.vue`.
 
 ### `play-strike-sound`
@@ -168,7 +168,7 @@ Checks that a session exists. The only event with an ack.
 
 Built into Socket.IO, not sent by clients on purpose.
 
-- **Behavior:** if the socket earlier sent `join-team`, removes that name from that team, writes `teamMembers` with merge, and broadcasts `team-members-updated`. The tracking map is in memory, so it is lost on a backend restart and has one entry per socket (a second `join-team` on the same socket replaces the first). Hosts and spectators are not tracked, so nothing happens when they disconnect.
+- **Behavior:** if the socket earlier sent `join-team`, removes that name from that team, writes `teamMembers` with merge in one Firestore transaction, and broadcasts `team-members-updated`. The tracking map is in memory, so it is lost on a backend restart and has one entry per socket (a second `join-team` on the same socket replaces the first). Hosts and spectators are not tracked, so nothing happens when they disconnect.
 
 ## Socket.IO: server to client
 
@@ -288,10 +288,10 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 **Teams**
 
-| Field         | Type                           | Notes                                                              |
-| ------------- | ------------------------------ | ------------------------------------------------------------------ |
-| `teamMembers` | `{ A: string[], B: string[] }` | Also written by `join-team`, `remove-team-member` and `disconnect` |
-| `teamNames`   | `{ A: string, B: string }`     | Also written by `update-team-name`                                 |
+| Field         | Type                           | Notes                                                                                                                 |
+| ------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `teamMembers` | `{ A: string[], B: string[] }` | Server-owned: written by `join-team`, `remove-team-member` and `disconnect`; `update-game` ignores the incoming value |
+| `teamNames`   | `{ A: string, B: string }`     | Also written by `update-team-name`                                                                                    |
 
 **Timer**
 
@@ -313,5 +313,5 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is tracked in #124, quirk 5 in #122 and quirk 8 in #123 (the rest were fixed under #107 and #23). Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
 
 - **Quirk 1: No authorization (code, #124).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend. The host's buzzer assignment (`buzzerPlayers`) is therefore not a security boundary: `buzz` checks the claimed name against it, and anyone can claim the selected name.
-- **Quirk 5: `update-game` replaces the document (code, #122).** `set()` without merge means a stale client overwrites newer data written by other events (for example `teamMembers` from `join-team`, or `buzzedPlayer` from `buzz`, which can let a second buzz win after a stale host state clears it). The read-modify-write in `join-team`, `remove-team-member` and `update-team-name` is not transactional either, so two simultaneous writes can lose one.
+- **Quirk 5: `update-game` can still overwrite `teamNames` (code, #122).** `teamNames` is written both by team players (`update-team-name`) and by the host (the manual override, through `update-game`), so `update-game` does not protect it: a stale host state can undo a player's rename. The same applies to every other field the host owns. `teamMembers` and `buzzedPlayer` are protected, and the team-member and team-name writes are transactions. Fixing this needs the frontend to send only changed fields.
 - **Quirk 8: Disconnect cleanup is partial (code, #123).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team. A disconnect removes the player from `teamMembers` but not from `buzzerPlayers`, which holds a name: a selected buzzer who reconnects (the frontend re-sends `join-team`) keeps the assignment.

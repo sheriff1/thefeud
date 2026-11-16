@@ -437,22 +437,12 @@ io.on('connection', (socket) => {
     const { sessionId, name, team } = parseResult.data;
 
     try {
-      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
-
-      let members = { A: [], B: [] };
-      const sessionData = sessionDoc.data();
-      if (sessionData && sessionData.teamMembers) {
-        members = sessionData.teamMembers;
-      }
-
       // Idempotent: a reconnecting client re-joins its team, and after a backend restart it may
       // still be listed (the disconnect cleanup never ran).
-      if (!members[team].includes(name)) {
-        members[team].push(name);
-      }
-
-      // Update Firestore with new team members
-      await sessionRef.set({ teamMembers: members }, { merge: true });
+      const members = await updateTeamMembers(sessionId, (m) => {
+        if (!m[team].includes(name)) m[team].push(name);
+        return true;
+      });
 
       socket.join(sessionId);
 
@@ -512,69 +502,93 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Invalid request - update-game' });
       return;
     }
-    const { sessionId, gameState } = parseResult.data;
+    const { sessionId, gameState: payloadState } = parseResult.data;
     try {
-      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
-      const firestoreState = sessionDoc.data() || {};
+      const sessionRef = db.collection('sessions').doc(sessionId);
 
-      // Get previous roundOver value
-      const prevRoundOver = !!firestoreState.roundOver;
-      const newRoundOver = !!gameState.roundOver;
+      // One transaction (#122): the host's copy may be stale, so teamMembers and buzzedPlayer
+      // (written by join-team, remove-team-member and buzz) always come from the stored document,
+      // and the roundOver transition is detected against the stored value it replaces. Events are
+      // collected and emitted after the commit because Firestore may run this callback again.
+      const events: string[] = [];
+      let gameState: Record<string, any> = payloadState;
+      await db.runTransaction(async (tx) => {
+        events.length = 0;
+        // Fresh copy per attempt: a retry must not see the resets applied by the previous one.
+        gameState = { ...payloadState };
+        const doc = await tx.get(sessionRef);
+        if (!doc.exists) {
+          throw new Error(SESSION_NOT_FOUND);
+        }
+        const firestoreState = doc.data() || {};
 
-      if (!gameState.expiryTime) {
-        // Add expiryTime to the gameState object
-        const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        gameState.expiryTime = new Date(Date.now() + expiryDuration).toISOString();
+        gameState.teamMembers = firestoreState.teamMembers ?? { A: [], B: [] };
+        gameState.buzzedPlayer = firestoreState.buzzedPlayer ?? '';
+
+        // Get previous roundOver value
+        const prevRoundOver = !!firestoreState.roundOver;
+        const newRoundOver = !!gameState.roundOver;
+
+        if (!gameState.expiryTime) {
+          // Add expiryTime to the gameState object
+          const expiryDuration = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+          gameState.expiryTime = new Date(Date.now() + expiryDuration).toISOString();
+        }
+
+        // Emit "round-over" ONLY if transitioning from not over to over
+        if (!prevRoundOver && newRoundOver) {
+          events.push('round-over');
+        }
+
+        // Emit "next-round" ONLY if transitioning from over to not over
+        if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
+          gameState.roundReset = false;
+          gameState.roundOver = false; // Reset roundOver if roundReset is true
+          gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
+          gameState.buzzerPlayers = { A: null, B: null }; // The host picks buzzers again each round
+          gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
+          gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
+          gameState.strikes = 0; // Reset strikes
+          gameState.pointPool = 0; // Reset point pool
+          gameState.firstTeam = null; // Reset firstTeam
+          gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
+          gameState.scoreMultiplier = null; // Reset scoreMultiplier
+          gameState.timer = 0; // Reset timer
+          gameState.timerRunning = false; // Reset timerRunning
+          gameState.question = ''; // Reset question
+          gameState.pointsAwarded = 0; // Reset pointsAwarded
+          gameState.winningTeam = null; // Reset winningTeam
+          gameState.answers = []; // Reset answers
+          gameState.guessedAnswers = []; // Reset guessedAnswers
+          gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
+          gameState.currentStep = 1; // Reset currentStep to 'manage'
+          gameState.nextRound = false;
+          events.push('next-round', 'reset-buzzers');
+        }
+
+        // --- Reset the flag here, after logic that depends on it ---
+        if (gameState.roundReset) {
+          Object.assign(gameState, getResetRoundState());
+          events.push('reset-round', 'reset-buzzers');
+        }
+
+        // --- Reset the flag here, after logic that depends on it ---
+        if (gameState.gameReset) {
+          Object.assign(gameState, getResetGameState());
+          events.push('reset-round', 'reset-buzzers');
+        }
+
+        // Save the updated gameState to Firestore
+        tx.set(sessionRef, gameState);
+      });
+
+      // Literal emit calls: tests/api-docs.test.ts finds the events by reading this file.
+      for (const event of events) {
+        if (event === 'round-over') io.to(sessionId).emit('round-over');
+        if (event === 'next-round') io.to(sessionId).emit('next-round');
+        if (event === 'reset-round') io.to(sessionId).emit('reset-round');
+        if (event === 'reset-buzzers') io.to(sessionId).emit('reset-buzzers');
       }
-
-      // Emit "round-over" ONLY if transitioning from not over to over
-      if (!prevRoundOver && newRoundOver) {
-        io.to(sessionId).emit('round-over');
-      }
-
-      // Emit "next-round" ONLY if transitioning from over to not over
-      if (prevRoundOver && !newRoundOver && !gameState.roundReset) {
-        gameState.roundReset = false;
-        gameState.roundOver = false; // Reset roundOver if roundReset is true
-        gameState.buzzedPlayer = ''; // Reset buzzedPlayer if roundReset is true
-        gameState.buzzerPlayers = { A: null, B: null }; // The host picks buzzers again each round
-        gameState.startingTeamSet = false; // Reset startingTeamSet if roundReset is true
-        gameState.currentTeam = 'A'; // Reset currentTeam to 'A'
-        gameState.strikes = 0; // Reset strikes
-        gameState.pointPool = 0; // Reset point pool
-        gameState.firstTeam = null; // Reset firstTeam
-        gameState.secondTeamGuessUsed = false; // Reset secondTeamGuessUsed
-        gameState.scoreMultiplier = null; // Reset scoreMultiplier
-        gameState.timer = 0; // Reset timer
-        gameState.timerRunning = false; // Reset timerRunning
-        gameState.question = ''; // Reset question
-        gameState.pointsAwarded = 0; // Reset pointsAwarded
-        gameState.winningTeam = null; // Reset winningTeam
-        gameState.answers = []; // Reset answers
-        gameState.guessedAnswers = []; // Reset guessedAnswers
-        gameState.teamStrikes = { A: 0, B: 0 }; // Reset team strikes
-        gameState.currentStep = 1; // Reset currentStep to 'manage'
-        gameState.nextRound = false;
-        io.to(sessionId).emit('next-round');
-        io.to(sessionId).emit('reset-buzzers');
-      }
-
-      // --- Reset the flag here, after logic that depends on it ---
-      if (gameState.roundReset) {
-        Object.assign(gameState, getResetRoundState());
-        io.to(sessionId).emit('reset-round');
-        io.to(sessionId).emit('reset-buzzers');
-      }
-
-      // --- Reset the flag here, after logic that depends on it ---
-      if (gameState.gameReset) {
-        Object.assign(gameState, getResetGameState());
-        io.to(sessionId).emit('reset-round');
-        io.to(sessionId).emit('reset-buzzers');
-      }
-
-      // Save the updated gameState to Firestore
-      await sessionRef.set(gameState);
 
       // Broadcast the updated game state to all clients in the session
       io.to(sessionId).emit('update-game', gameState);
@@ -608,11 +622,15 @@ io.on('connection', (socket) => {
     }
     const { sessionId, name, team } = parseResult.data;
     try {
-      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
-      const sessionData = sessionDoc.data() || {};
-      const currentTeamNames = sessionData.teamNames || { A: 'A', B: 'B' };
-      const updatedTeamNames = { ...currentTeamNames, [team]: name };
-      await sessionRef.set({ teamNames: updatedTeamNames }, { merge: true });
+      const sessionRef = db.collection('sessions').doc(sessionId);
+      const updatedTeamNames = await db.runTransaction(async (tx) => {
+        const doc = await tx.get(sessionRef);
+        if (!doc.exists) throw new Error(SESSION_NOT_FOUND);
+        const currentTeamNames = (doc.data() || {}).teamNames || { A: 'A', B: 'B' };
+        const next = { ...currentTeamNames, [team]: name };
+        tx.set(sessionRef, { teamNames: next }, { merge: true });
+        return next;
+      });
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
     } catch (error) {
       captureHandlerError(error, {
@@ -671,14 +689,11 @@ io.on('connection', (socket) => {
 
     const { sessionId, name, team } = parseResult.data;
     try {
-      const { sessionRef, sessionDoc } = await getValidSessionDoc(sessionId);
-      const sessionData = sessionDoc.data();
-      let members = sessionData.teamMembers;
-      if (members[team]) {
-        members[team] = members[team].filter((memberName: string) => memberName !== name);
-        await sessionRef.set({ teamMembers: members }, { merge: true });
-        io.to(sessionId).emit('team-members-updated', members);
-      }
+      const members = await updateTeamMembers(sessionId, (m) => {
+        m[team] = m[team].filter((memberName: string) => memberName !== name);
+        return true;
+      });
+      io.to(sessionId).emit('team-members-updated', members);
     } catch (error) {
       captureHandlerError(error, {
         event: 'remove-team-member',
@@ -729,20 +744,11 @@ io.on('connection', (socket) => {
     if (player) {
       const { sessionId, name, team } = player;
       try {
-        const sessionRef = db.collection('sessions').doc(sessionId);
-        const sessionDoc = await sessionRef.get();
-        const sessionData = sessionDoc.data();
-        if (sessionDoc.exists && sessionData && sessionData.teamMembers) {
-          let members = sessionData.teamMembers;
-          // Remove player from their team
-          if (members[team]) {
-            members[team] = members[team].filter((memberName: string) => memberName !== name);
-            // Update Firestore
-            await sessionRef.set({ teamMembers: members }, { merge: true });
-            // Broadcast updated team members
-            io.to(sessionId).emit('team-members-updated', members);
-          }
-        }
+        const members = await updateTeamMembers(sessionId, (m) => {
+          m[team] = m[team].filter((memberName: string) => memberName !== name);
+          return true;
+        });
+        io.to(sessionId).emit('team-members-updated', members);
       } catch (error) {
         console.error('Error removing player on disconnect:', error);
         captureHandlerError(error, { event: 'disconnect', sessionId, name });
@@ -760,6 +766,34 @@ async function getValidSessionDoc(sessionId: string) {
     throw new Error(SESSION_NOT_FOUND);
   }
   return { sessionRef, sessionDoc };
+}
+
+type TeamMembers = { A: string[]; B: string[] };
+
+/**
+ * Read-modify-write of `teamMembers` in one transaction (#122), so simultaneous joins, removals
+ * and disconnects cannot lose each other's change. `mutate` edits the members in place and may
+ * run more than once (Firestore retries a contended transaction), so it must be pure. Returns the
+ * committed members; callers broadcast after the commit. Throws SESSION_NOT_FOUND.
+ */
+async function updateTeamMembers(
+  sessionId: string,
+  mutate: (members: TeamMembers) => boolean,
+): Promise<TeamMembers> {
+  const sessionRef = db.collection('sessions').doc(sessionId);
+  return db.runTransaction(async (tx) => {
+    const doc = await tx.get(sessionRef);
+    if (!doc.exists) throw new Error(SESSION_NOT_FOUND);
+    const stored = (doc.data() || {}).teamMembers;
+    const members: TeamMembers = {
+      A: [...(stored?.A ?? [])],
+      B: [...(stored?.B ?? [])],
+    };
+    if (mutate(members)) {
+      tx.set(sessionRef, { teamMembers: members }, { merge: true });
+    }
+    return members;
+  });
 }
 
 function getResetRoundState() {

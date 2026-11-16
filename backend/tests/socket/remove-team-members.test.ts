@@ -112,6 +112,11 @@ describe('Socket.io', () => {
   // ----------- REMOVE-TEAM-MEMBERS  ----------- //
   // ✅ [SUCCESS] socket.on('remove-team-member',...)
   it('should remove team member', async () => {
+    // teamMembers is server-owned (#122): update-game ignores it, so seed the stored session.
+    await db
+      .collection('sessions')
+      .doc(sessionId)
+      .set({ teamMembers: { A: ['player1', 'player2'], B: ['player3'] } }, { merge: true });
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Event not received in time')), 4000);
 
