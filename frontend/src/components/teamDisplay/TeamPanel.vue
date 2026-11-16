@@ -278,6 +278,7 @@ function saveTeamNameChange() {
   .team-info {
     min-width: 0;
     width: 100%;
+    max-width: none; /* Tailwind's `container` caps it at 640px from 640px up */
     padding: 0.75rem 0.5rem;
     /* Both cards carry the 2px border (transparent unless active) so their content lines up. */
     border: 2px solid transparent;

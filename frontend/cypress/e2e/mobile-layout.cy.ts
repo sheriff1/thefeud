@@ -150,3 +150,58 @@ describe('Mobile layout (host dashboard)', () => {
     });
   });
 });
+
+// #147: Tailwind's `container` class caps widths at 640px from 640px up, which left the board
+// narrower than the score strip on a landscape phone (641-767px wide).
+describe('Mobile layout (landscape phone, 740px wide)', () => {
+  let sessionId: string;
+
+  before(() => {
+    cy.createTestSession().then((id) => {
+      sessionId = id;
+      cy.task('hostUpdateGame', {
+        sessionId,
+        patch: {
+          multiplierSet: true,
+          scoreMultiplier: 2,
+          currentStep: GameStep.Guessing,
+          question: 'Name a dessert people bring to a family cookout',
+          answers: [
+            { id: '1', text: 'Pizza', points: 40 },
+            { id: '2', text: 'Cake', points: 30 },
+          ],
+        },
+      });
+    });
+  });
+
+  after(() => {
+    if (sessionId) cy.cleanupTestSession(sessionId);
+  });
+
+  beforeEach(() => {
+    cy.viewport(740, 360);
+  });
+
+  const widthOf = (selector: string) =>
+    cy.get(selector).then(($el) => Math.round($el[0].getBoundingClientRect().width));
+
+  it('spectator: the board and game info are as wide as the score strip', () => {
+    cy.navigateDirectToSpectator(sessionId);
+    cy.get('.answers-container', { timeout: 15000 }).should('be.visible');
+    widthOf('.scoreboard').then((strip) => {
+      widthOf('.answers-container').should('equal', strip);
+      widthOf('.game-info-container').should('equal', strip);
+    });
+  });
+
+  it('host: the panels use the full width of the screen', () => {
+    cy.navigateDirectToHost(sessionId);
+    cy.contains('h3', 'Game Manager', { timeout: 15000 }).should('be.visible');
+    cy.get('.host-page .container').each(($panel) => {
+      const rect = $panel[0].getBoundingClientRect();
+      const clientWidth = $panel[0].ownerDocument.documentElement.clientWidth;
+      expect(Math.round(rect.width), 'panel width').to.be.at.least(clientWidth - 24);
+    });
+  });
+});

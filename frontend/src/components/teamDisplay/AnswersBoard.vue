@@ -311,6 +311,8 @@ watch(
   .answers-container {
     padding: 12px;
     gap: 12px;
+    /* Tailwind's `container` caps the width at 640px from 640px up; a landscape phone is wider. */
+    max-width: none;
   }
   .question-display {
     font-size: 1.25rem;
