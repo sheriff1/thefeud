@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { nextTick, reactive, watch } from 'vue';
 import { createSyncGuard, shouldPlayDing, strikedTeam } from './syncCue';
-import { shouldPlayTimesUp } from './timerCue';
+import { didTimeRunOut } from './timerCue';
 
 describe('shouldPlayDing', () => {
   it('plays for a live increase', () => {
@@ -101,7 +101,7 @@ describe('createSyncGuard', () => {
 describe('first sync does not trigger the timer cue', () => {
   it('stays silent when a fresh store receives a stopped timer at 0', () => {
     const fresh = { timer: 0, timerRunning: false };
-    expect(shouldPlayTimesUp(fresh, { timer: 0, timerRunning: false })).toBe(false);
-    expect(shouldPlayTimesUp(fresh, { timer: 30, timerRunning: true })).toBe(false);
+    expect(didTimeRunOut(fresh, { timer: 0, timerRunning: false })).toBe(false);
+    expect(didTimeRunOut(fresh, { timer: 30, timerRunning: true })).toBe(false);
   });
 });

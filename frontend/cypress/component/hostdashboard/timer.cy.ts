@@ -45,7 +45,7 @@ describe('TimerMgr', () => {
     });
 
     cy.contains('Timer').should('be.visible');
-    cy.contains('Current Timer: 30 seconds').should('be.visible');
+    cy.get('[data-cy="host-clock"]').should('contain.text', '0:30');
     cy.contains('Timer is stopped.').should('be.visible');
     cy.get('button').contains('Start').should('be.visible');
     cy.get('button').contains('Stop').should('be.visible');
@@ -251,7 +251,7 @@ describe('TimerMgr', () => {
       },
     });
 
-    cy.contains('Current Timer: 45 seconds').should('be.visible');
+    cy.get('[data-cy="host-clock"]').should('contain.text', '0:45');
   });
 
   it('updates timer display when store timer changes', () => {
@@ -262,13 +262,13 @@ describe('TimerMgr', () => {
       },
     });
 
-    cy.contains('Current Timer: 30 seconds').should('be.visible');
+    cy.get('[data-cy="host-clock"]').should('contain.text', '0:30');
 
     cy.then(() => {
       gameStore.timer = 60;
     });
 
-    cy.contains('Current Timer: 60 seconds').should('be.visible');
+    cy.get('[data-cy="host-clock"]').should('contain.text', '1:00');
   });
 
   it('has proper styling and structure', () => {
@@ -327,7 +327,7 @@ describe('TimerMgr', () => {
       },
     });
 
-    cy.contains('Current Timer: 99999 seconds').should('be.visible');
+    cy.get('[data-cy="host-clock"]').should('contain.text', '1666:39');
     cy.get('#timer-input').should('have.value', '99999');
   });
 
@@ -460,6 +460,16 @@ describe('TimerMgr', () => {
       cy.get('#timer-time-up').should('not.exist');
       mountWith({ timeUp: true });
       cy.get('#timer-time-up').should('contain', "Time's up!");
+    });
+
+    it('shows a small segmented clock that follows the timer and turns red at time up', () => {
+      gameStore.timer = 125;
+      mountWith();
+      cy.get('[data-cy="host-clock"]').should('contain.text', '2:05');
+      cy.get('[data-cy="host-clock"]').should('have.class', 'segment-clock--sm');
+      cy.get('[data-cy="host-clock"]').should('not.have.class', 'segment-clock--time-up');
+      mountWith({ timeUp: true });
+      cy.get('[data-cy="host-clock"]').should('have.class', 'segment-clock--time-up');
     });
   });
 });
