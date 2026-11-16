@@ -5,13 +5,6 @@
       <div class="game-info-value">{{ formattedRoundCounter }}</div>
       <div class="game-info-label">Round</div>
     </div>
-    <!-- Timer Display -->
-    <div class="game-info-item">
-      <div class="game-info-value" :class="{ 'game-info-value--time-up': timeUp }">
-        {{ formattedTimer }}
-      </div>
-      <div class="game-info-label">Time Remaining</div>
-    </div>
     <!-- Points Pool -->
     <div class="game-info-item">
       <div class="game-info-value">{{ formattedPointPool }}</div>
@@ -30,21 +23,14 @@ import { computed } from 'vue';
 
 interface GameInfoProps {
   roundCounter: number;
-  timer: number; // in seconds
   pointPool: number;
   scoreMultiplier: number | null; // null if not set
-  timeUp?: boolean; // the timer ran out: show the clock in red
 }
 
 const props = defineProps<GameInfoProps>();
 
 // Computed properties for displaying values
 const formattedRoundCounter = computed(() => props.roundCounter.toString());
-const formattedTimer = computed(() => {
-  const minutes = Math.floor(props.timer / 60);
-  const seconds = props.timer % 60;
-  return `${minutes}:${seconds < 10 ? '0' + seconds : seconds}`;
-});
 const formattedPointPool = computed(() => props.pointPool.toLocaleString());
 const formattedScoreMultiplier = computed(() =>
   props.scoreMultiplier == null ? 'x' : `x${props.scoreMultiplier}`,
@@ -75,9 +61,6 @@ const formattedScoreMultiplier = computed(() =>
   font-size: 2rem;
   font-weight: bold;
   color: var(--color-primary, #000);
-}
-.game-info-value--time-up {
-  color: var(--color-error, #dc2626);
 }
 .game-info-label {
   font-size: 0.75rem;

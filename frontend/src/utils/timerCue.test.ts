@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shouldPlayTimesUp } from './timerCue';
+import { shouldPlayTimesUp, TIMES_UP_SOUND } from './timerCue';
 
 describe('shouldPlayTimesUp', () => {
   it('plays when a running timer with time left reaches 0', () => {
@@ -34,5 +34,11 @@ describe('shouldPlayTimesUp', () => {
     expect(
       shouldPlayTimesUp({ timer: 0, timerRunning: false }, { timer: 30, timerRunning: true }),
     ).toBe(false);
+  });
+});
+
+describe('TIMES_UP_SOUND', () => {
+  it('is the buzzer, not the round-over jingle', () => {
+    expect(TIMES_UP_SOUND).toBe('/sounds/buzzer.mp3');
   });
 });

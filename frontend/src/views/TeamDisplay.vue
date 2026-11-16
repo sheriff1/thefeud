@@ -76,6 +76,11 @@
           </div>
           <!-- Answers & Game Info Section -->
           <div>
+            <!-- Clock: above the question so everyone (players and spectators) sees it (#117) -->
+            <div class="clock-block">
+              <SegmentClock :seconds="store.timer" :timeUp="timeUp" size="lg" />
+              <div class="clock-label">Time Remaining</div>
+            </div>
             <AnswersBoard
               :answers="store.answers.map((a: any) => ({ ...a, id: String(a.id) }))"
               :question="store.question"
@@ -88,10 +93,8 @@
             <!-- Game Info Container -->
             <GameInfo
               :roundCounter="store.roundCounter"
-              :timer="store.timer"
               :pointPool="store.pointPool"
               :scoreMultiplier="store.scoreMultiplier"
-              :timeUp="timeUp"
             />
           </div>
 
@@ -136,7 +139,8 @@ import { createSoundRegistry } from '../utils/soundRegistry';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
-import { shouldPlayTimesUp } from '../utils/timerCue';
+import SegmentClock from '../components/SegmentClock.vue';
+import { shouldPlayTimesUp, TIMES_UP_SOUND } from '../utils/timerCue';
 import { createSyncGuard, shouldPlayDing, strikedTeam } from '../utils/syncCue';
 import { GameStep } from '../utils/gameSteps';
 import { canBuzz, buzzerOwner } from '../utils/buzzerAccess';
@@ -250,7 +254,7 @@ const playStrikeSound = (teamStrikeCount: number) => {
 
 const playRoundOverSound = () => play('/sounds/round-over.mp3');
 
-const playTimesUpSound = () => play('/sounds/round-over.mp3');
+const playTimesUpSound = () => play(TIMES_UP_SOUND);
 
 const playNextRoundSound = () => play('/sounds/next-round.mp3');
 
@@ -482,5 +486,16 @@ onUnmounted(() => {
   flex-direction: row;
   gap: 8px;
   z-index: 1000;
+}
+.clock-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.clock-label {
+  font-size: 0.75rem;
+  color: #555;
+  margin-top: 4px;
 }
 </style>
