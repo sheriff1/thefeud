@@ -25,7 +25,7 @@
           :state="sessionIdBoxState"
         />
         <FloatingButton
-          :label="isMuted ? '🔇 Sound Off' : '🔊 Sound On'"
+          :label="soundLabel"
           @click="toggleMute"
           className="mute-btn"
           :state="isMuted ? 'muted' : ''"
@@ -132,6 +132,7 @@ import socket from '../utils/socket';
 import { track } from '../utils/analytics';
 import { captureError } from '../utils/monitoring';
 import { playSound } from '../utils/playSound';
+import { createSoundRegistry } from '../utils/soundRegistry';
 import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
@@ -186,12 +187,50 @@ const inviteOptions: InviteOption[] = [
 ];
 const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessionId);
 
+const SOUND_FILES = [
+  '/sounds/ding.mp3',
+  '/sounds/buzzer.mp3',
+  '/sounds/strike.mp3',
+  '/sounds/round-over.mp3',
+  '/sounds/next-round.mp3',
+];
+const onAudioError = (e: unknown) => captureError(e, { source: 'audio' });
+// One reused Audio element per file: Safari/iOS unlock each element separately (#119).
+const sounds = createSoundRegistry({ createAudio: (s) => new Audio(s), onError: onAudioError });
+const isSoundUnlocked = ref(false);
+const soundLabel = computed(() =>
+  isMuted.value ? '🔇 Sound Off' : isSoundUnlocked.value ? '🔊 Sound On' : '🔈 Tap to enable sound',
+);
+
+// Prime the sounds on the first tap/click/key anywhere, so socket-triggered sounds are allowed
+// later. touchend/click (not touchstart/pointerdown) count as a gesture on iOS. A refused unlock
+// keeps the listeners, so the next tap tries again.
+const UNLOCK_EVENTS = ['click', 'touchend', 'keydown'] as const;
+let unlocking = false;
+function unlockSound() {
+  if (unlocking || isSoundUnlocked.value) return;
+  unlocking = true;
+  sounds
+    .unlock(SOUND_FILES)
+    .then((ok) => {
+      if (!ok) return;
+      isSoundUnlocked.value = true;
+      removeUnlockListeners();
+    })
+    .finally(() => {
+      unlocking = false;
+    });
+}
+function removeUnlockListeners() {
+  UNLOCK_EVENTS.forEach((e) => document.removeEventListener(e, unlockSound, true));
+}
+
 // Every sound goes through playSound: it respects mute and swallows the browser's autoplay refusal (#118).
 const play = (src: string) =>
   playSound(src, {
     muted: isMuted.value,
-    createAudio: (s) => new Audio(s),
-    onError: (e) => captureError(e, { source: 'audio' }),
+    getAudio: sounds.get,
+    onError: onAudioError,
   });
 
 const playDingSound = () => play('/sounds/ding.mp3');
@@ -335,6 +374,7 @@ watch(
 
 // Join a session and listen for updates
 onMounted(() => {
+  UNLOCK_EVENTS.forEach((e) => document.addEventListener(e, unlockSound, true));
   resetSessionGoneGuard();
   if (!sessionId) {
     alert('No session ID provided. Please join a valid session.');
@@ -411,6 +451,7 @@ onMounted(() => {
 
 // Clean up listeners when the component is unmounted
 onUnmounted(() => {
+  removeUnlockListeners();
   socket.removeAllListeners();
 });
 </script>
