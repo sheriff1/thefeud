@@ -83,20 +83,21 @@ watch(playerName, (newName) => {
 </script>
 
 <style scoped>
+/* The backdrop fits the visible screen (inset: 0, not 100vh, which on iOS Safari includes the area
+   behind the toolbars) and scrolls when the dialog is taller than the screen, for example on a
+   phone in landscape (#143). The dialog's auto margins centre it while it fits and let it start at
+   the top, instead of being clipped above the screen, when it does not. */
 .join-team-dialog-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
 }
 
 .join-team-dialog {
+  margin: auto;
   padding: 2rem 2.5rem;
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
