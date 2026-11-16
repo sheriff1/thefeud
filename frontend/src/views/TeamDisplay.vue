@@ -140,7 +140,7 @@ import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
 import SegmentClock from '../components/SegmentClock.vue';
-import { shouldPlayTimesUp, TIMES_UP_SOUND } from '../utils/timerCue';
+import { didTimeRunOut } from '../utils/timerCue';
 import { createSyncGuard, shouldPlayDing, strikedTeam } from '../utils/syncCue';
 import { GameStep } from '../utils/gameSteps';
 import { canBuzz, buzzerOwner } from '../utils/buzzerAccess';
@@ -254,8 +254,6 @@ const playStrikeSound = (teamStrikeCount: number) => {
 
 const playRoundOverSound = () => play('/sounds/round-over.mp3');
 
-const playTimesUpSound = () => play(TIMES_UP_SOUND);
-
 const playNextRoundSound = () => play('/sounds/next-round.mp3');
 
 const pressBuzzer = () => {
@@ -332,14 +330,13 @@ socket.on('error', (error: { message: any }) => {
   alert(`Error: ${error.message}`);
 });
 
-// The timer ran out by itself: red clock + sound, until it is set again or the step/round changes
+// The timer ran out by itself: red clock only (no sound: the host decides on a strike, #117), until it is set again or the step/round changes
 const timeUp = ref(false);
 watch(
   () => ({ timer: store.timer, timerRunning: store.timerRunning }),
   (next, prev) => {
-    if (shouldPlayTimesUp(prev, next)) {
+    if (didTimeRunOut(prev, next)) {
       timeUp.value = true;
-      playTimesUpSound();
     } else if (next.timer > 0) {
       timeUp.value = false;
     }
