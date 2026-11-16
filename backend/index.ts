@@ -1,6 +1,13 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { z } from 'zod';
+import {
+  createPendingRemovals,
+  createdAtMs,
+  parseGraceMs,
+  playerKey,
+  type Player,
+} from './presence.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -308,7 +315,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 // WebSocket Communication
-const socketToPlayer = {};
+// Disconnect cleanup (#123): a disconnected player stays listed for a grace period, so a phone
+// sleep or wifi blip does not flicker the host's list. The player of each socket is kept in
+// socket.data.player; `pendingRemovals` holds the removals waiting for the grace to pass.
+const DISCONNECT_GRACE_MS = parseGraceMs(process.env.DISCONNECT_GRACE_MS);
+const BOOT_TIME = Date.now();
+const pendingRemovals = createPendingRemovals();
+const sweptSessions = new Set<string>();
 
 // -------------------------- Socket.IO CORS -------------------------- //
 const io = new Server(server, {
@@ -403,8 +416,9 @@ io.on('connection', (socket) => {
     }
     const { sessionId } = parseResult.data;
     try {
-      await getValidSessionDoc(sessionId);
+      const { sessionDoc } = await getValidSessionDoc(sessionId);
       socket.join(sessionId);
+      ensureSwept(sessionId, sessionDoc.data()?.createdAt);
       socket.emit('joined-session', { sessionId });
     } catch (error) {
       captureHandlerError(error, {
@@ -436,10 +450,24 @@ io.on('connection', (socket) => {
     }
     const { sessionId, name, team } = parseResult.data;
 
+    const next: Player = { sessionId, name, team };
+    const prev: Player | undefined = socket.data.player;
     try {
+      // One player per socket: joining again moves the player, so a team switch removes them
+      // from the old team. Set before the first await so the live-socket checks see the new player.
+      socket.data.player = next;
+      pendingRemovals.cancel(playerKey(next));
+      const movedFrom = prev && playerKey(prev) !== playerKey(next) ? prev : undefined;
+      const leaveOld = movedFrom ? !(await isHeldByLiveSocket(movedFrom)) : false;
+      if (movedFrom) pendingRemovals.cancel(playerKey(movedFrom));
+
       // Idempotent: a reconnecting client re-joins its team, and after a backend restart it may
       // still be listed (the disconnect cleanup never ran).
+      const sameSession = movedFrom?.sessionId === sessionId;
       const members = await updateTeamMembers(sessionId, (m) => {
+        if (leaveOld && movedFrom && sameSession) {
+          m[movedFrom.team] = m[movedFrom.team].filter((n: string) => n !== movedFrom.name);
+        }
         if (!m[team].includes(name)) m[team].push(name);
         return true;
       });
@@ -447,10 +475,9 @@ io.on('connection', (socket) => {
       socket.join(sessionId);
 
       io.to(sessionId).emit('team-members-updated', members);
-
-      // Track player info for disconnect
-      socketToPlayer[socket.id] = { sessionId, name, team };
+      if (leaveOld && movedFrom && !sameSession) await removePlayer(movedFrom);
     } catch (error) {
+      socket.data.player = prev;
       captureHandlerError(error, {
         event: 'join-team',
         sessionId: payload?.sessionId,
@@ -689,6 +716,11 @@ io.on('connection', (socket) => {
 
     const { sessionId, name, team } = parseResult.data;
     try {
+      // An explicit removal (logout) replaces any pending grace removal for the same player.
+      const removed: Player = { sessionId, name, team };
+      pendingRemovals.cancel(playerKey(removed));
+      const own: Player | undefined = socket.data.player;
+      if (own && playerKey(own) === playerKey(removed)) socket.data.player = undefined;
       const members = await updateTeamMembers(sessionId, (m) => {
         m[team] = m[team].filter((memberName: string) => memberName !== name);
         return true;
@@ -737,27 +769,90 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', async () => {
-    // console.log('A user disconnected:', socket.id);
-
-    const player = socketToPlayer[socket.id];
-    if (player) {
-      const { sessionId, name, team } = player;
-      try {
-        const members = await updateTeamMembers(sessionId, (m) => {
-          m[team] = m[team].filter((memberName: string) => memberName !== name);
-          return true;
-        });
-        io.to(sessionId).emit('team-members-updated', members);
-      } catch (error) {
-        console.error('Error removing player on disconnect:', error);
-        captureHandlerError(error, { event: 'disconnect', sessionId, name });
-      }
-      // Remove from tracking
-      delete socketToPlayer[socket.id];
-    }
+  socket.on('disconnect', () => {
+    const player: Player | undefined = socket.data.player;
+    if (!player) return;
+    // Keep the player listed for the grace period; a re-join within it cancels the removal.
+    pendingRemovals.schedule(playerKey(player), DISCONNECT_GRACE_MS, () => {
+      void expireDisconnected(player);
+    });
   });
 });
+
+/** True when a live socket in the session room currently holds `player`. */
+async function isHeldByLiveSocket(player: Player): Promise<boolean> {
+  const sockets = await io.in(player.sessionId).fetchSockets();
+  return sockets.some((s) => {
+    const p: Player | undefined = s.data.player;
+    return !!p && playerKey(p) === playerKey(player);
+  });
+}
+
+/** Removes `player` from teamMembers and broadcasts, only if they were listed. */
+async function removePlayer(player: Player) {
+  const { sessionId, name, team } = player;
+  try {
+    let changed = false;
+    const members = await updateTeamMembers(sessionId, (m) => {
+      changed = m[team].includes(name); // reset on every retry of the transaction
+      m[team] = m[team].filter((memberName: string) => memberName !== name);
+      return changed;
+    });
+    if (changed) io.to(sessionId).emit('team-members-updated', members);
+  } catch (error) {
+    if (error instanceof Error && error.message === SESSION_NOT_FOUND) return; // session expired
+    console.error('Error removing player on disconnect:', error);
+    captureHandlerError(error, { event: 'disconnect', sessionId, name });
+  }
+}
+
+/** Grace period over: remove the player unless they came back on another socket. */
+async function expireDisconnected(player: Player) {
+  if (await isHeldByLiveSocket(player)) return;
+  await removePlayer(player);
+}
+
+/**
+ * After a backend restart the pending removals are gone, so players who left stay listed. The
+ * first time a session that predates this process is joined, wait one grace period (clients
+ * reconnect and re-join in that time), then drop every listed player that no live socket holds.
+ */
+function ensureSwept(sessionId: string, createdAt: unknown) {
+  if (sweptSessions.has(sessionId)) return;
+  sweptSessions.add(sessionId);
+  const created = createdAtMs(createdAt);
+  if (created === null || created >= BOOT_TIME) return; // created by this process: nothing stale
+  const timer = setTimeout(() => {
+    void sweepStalePlayers(sessionId);
+  }, DISCONNECT_GRACE_MS);
+  timer.unref?.();
+}
+
+async function sweepStalePlayers(sessionId: string) {
+  try {
+    const live = new Set<string>();
+    for (const s of await io.in(sessionId).fetchSockets()) {
+      if (s.data.player) live.add(playerKey(s.data.player));
+    }
+    let changed = false;
+    const members = await updateTeamMembers(sessionId, (m) => {
+      changed = false; // reset on every retry of the transaction
+      for (const team of ['A', 'B'] as const) {
+        const kept = m[team].filter((name: string) => {
+          const key = playerKey({ sessionId, name, team });
+          return live.has(key) || pendingRemovals.has(key);
+        });
+        if (kept.length !== m[team].length) changed = true;
+        m[team] = kept;
+      }
+      return changed;
+    });
+    if (changed) io.to(sessionId).emit('team-members-updated', members);
+  } catch (error) {
+    if (error instanceof Error && error.message === SESSION_NOT_FOUND) return;
+    captureHandlerError(error, { event: 'sweep', sessionId });
+  }
+}
 
 async function getValidSessionDoc(sessionId: string) {
   const sessionRef = db.collection('sessions').doc(sessionId);

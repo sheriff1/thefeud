@@ -53,7 +53,7 @@ npm run build
 
 ## Testing
 
-- **Backend** (`cd backend && npm test`): requires the Firebase Firestore emulator on `127.0.0.1:8080` (start it with `npm run dev` from the repo root, or `firebase emulators:start --only firestore,auth`).
+- **Backend** (`cd backend && npm test`): requires the Firebase Firestore emulator on `127.0.0.1:8080` (start it with `npm run dev` from the repo root, or `firebase emulators:start --only firestore,auth`) and a backend on port 4000 started with `DISCONNECT_GRACE_MS=400` (`npm run dev` does this; otherwise `cd backend && npm run build && NODE_ENV=test PORT=4000 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 DISCONNECT_GRACE_MS=400 node dist/server.js`). The disconnect-cleanup tests need the short grace period; production uses the 30-second default.
 - **Frontend component tests** (`cd frontend && npm run test:component`).
 - **Frontend e2e**: needs the backend, the Firestore/Auth emulators and the Vite dev server running (CI starts them the same way, see `.github/workflows/monorepo-deploy.yml`). See [Running e2e locally](#running-e2e-locally).
 
