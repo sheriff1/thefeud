@@ -167,6 +167,44 @@ describe('team members: concurrent writes', () => {
 });
 
 describe('update-game: server-owned fields', () => {
+  it(
+    'a stale host update-game cannot undo a player rename (#133)',
+    { timeout: 30000 },
+    async () => {
+      const { socket: host, updates } = await observe();
+      const player = await connect();
+      player.emit('update-team-name', { sessionId, name: 'Reds', team: 'A' });
+      await until(async () => (await storedState()).teamNames?.A === 'Reds');
+      updates.length = 0;
+
+      // The host's store still shows the default names.
+      hostSends(host, { question: 'Name a fruit', teamNames: { A: 'A', B: 'B' } });
+      await until(async () => (await storedState()).question === 'Name a fruit');
+
+      expect((await storedState()).teamNames).toEqual({ A: 'Reds', B: 'B' });
+      expect(updates[0].teamNames).toEqual({ A: 'Reds', B: 'B' });
+    },
+  );
+
+  it('update-game does not write teamNames, even into a session without them', async () => {
+    const { socket: host, updates } = await observe();
+    hostSends(host, { question: 'Name a fruit', teamNames: { A: 'Typed', B: 'Typing' } });
+    await until(async () => (await storedState()).question === 'Name a fruit');
+    expect((await storedState()).teamNames).toEqual({ A: 'A', B: 'B' });
+    expect(updates[0].teamNames).toEqual({ A: 'A', B: 'B' });
+  });
+
+  it('keeps an update-team-names racing an update-team-name for the other team', async () => {
+    const [host, player] = await Promise.all([connect(), connect()]);
+    host.emit('update-team-names', { sessionId, teamNames: { A: 'Host Reds' } });
+    player.emit('update-team-name', { sessionId, name: 'Player Blues', team: 'B' });
+    await until(async () => {
+      const n = (await storedState()).teamNames;
+      return n?.A === 'Host Reds' && n?.B === 'Player Blues';
+    });
+    expect((await storedState()).teamNames).toEqual({ A: 'Host Reds', B: 'Player Blues' });
+  });
+
   it('a stale host update-game cannot overwrite teamMembers', { timeout: 30000 }, async () => {
     const { socket: host, updates } = await observe();
     const joiner = await connect();

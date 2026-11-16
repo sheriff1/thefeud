@@ -47,6 +47,7 @@ describe('missing session', () => {
     ['buzz', { sessionId: MISSING, name: 'Sam' }],
     ['join-team', { sessionId: MISSING, name: 'Sam', team: 'A' }],
     ['update-team-name', { sessionId: MISSING, name: 'Reds', team: 'A' }],
+    ['update-team-names', { sessionId: MISSING, teamNames: { A: 'Reds' } }],
     ['remove-team-member', { sessionId: MISSING, name: 'Sam', team: 'A' }],
   ];
 
