@@ -129,8 +129,12 @@ describe('team members: concurrent writes', () => {
     const [host, joiner] = await Promise.all([connect(), connect()]);
     host.emit('remove-team-member', { sessionId, name: 'Old', team: 'A' });
     joiner.emit('join-team', { sessionId, name: 'New', team: 'A' });
-    await until(async () => (await storedState()).teamMembers?.A?.includes('New'));
-    await wait(1000);
+    // Wait for both writes: the join can commit before the remove, so checking only for 'New'
+    // and then a fixed delay raced on slow runners (['Old', 'New'] seen in CI).
+    await until(async () => {
+      const a: string[] = (await storedState()).teamMembers?.A ?? [];
+      return a.includes('New') && !a.includes('Old');
+    });
     expect((await storedState()).teamMembers.A).toEqual(['New']);
   });
 
