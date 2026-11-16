@@ -50,6 +50,13 @@ describe('Spectator View', () => {
 
   it('should show floating buttons for spectators', () => {
     cy.get('.floating-buttons').should('be.visible');
+    // Sound is locked until the first tap (#119)
+    cy.contains('Tap to enable sound').should('be.visible');
+  });
+
+  it('should unlock sound on the first click anywhere', () => {
+    cy.contains('Tap to enable sound').should('be.visible');
+    cy.get('h1').click();
     cy.contains('Sound On').should('be.visible');
   });
 
@@ -97,7 +104,7 @@ describe('Spectator View', () => {
   });
 
   it('should handle mute functionality', () => {
-    cy.safeClick('button:contains("Sound On")');
+    cy.safeClick('.mute-btn');
     cy.contains('Sound Off').should('be.visible');
   });
 
