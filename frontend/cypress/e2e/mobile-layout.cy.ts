@@ -205,3 +205,75 @@ describe('Mobile layout (landscape phone, 740px wide)', () => {
     });
   });
 });
+
+// #143: the join dialog is about 416px tall. On a short screen (a phone in landscape) it used to
+// be clipped above the screen and could not be scrolled, so the team choice and the Join button
+// were out of reach. Chromium has no browser toolbars, so 667x300 stands in for a landscape phone
+// whose toolbars are showing: the Join button starts below the fold there.
+describe('Join dialog on short screens', () => {
+  let sessionId: string;
+
+  before(() => {
+    cy.createTestSession().then((id) => {
+      sessionId = id;
+    });
+  });
+
+  after(() => {
+    if (sessionId) cy.cleanupTestSession(sessionId);
+  });
+
+  [
+    [667, 375],
+    [740, 360],
+    [844, 390],
+    [667, 300],
+  ].forEach(([width, height]) => {
+    it(`can be reached and used at ${width}x${height}`, () => {
+      cy.viewport(width, height);
+      cy.navigateDirectToTeam(sessionId);
+      cy.get('.join-team-dialog', { timeout: 15000 }).should('be.visible');
+      // Not clipped above the screen, and the backdrop scrolls when the dialog is taller.
+      cy.get('.join-team-dialog').then(($dialog) => {
+        expect($dialog[0].getBoundingClientRect().top, 'dialog top').to.be.at.least(0);
+      });
+      cy.get('.join-team-dialog-backdrop').should('have.css', 'overflow-y', 'auto');
+      cy.get('input[placeholder*="Enter your name"]').type('Mo');
+      cy.get('input[type="radio"]').first().click();
+      // Cypress scrolls the Join button into view before clicking, which needs the backdrop to scroll.
+      cy.get('button').contains('Join').click();
+      cy.get('.scoreboard', { timeout: 15000 }).should('be.visible');
+    });
+  });
+
+  it('starts below the fold on a very short screen and scrolls to the Join button', () => {
+    cy.viewport(667, 300);
+    cy.navigateDirectToTeam(sessionId);
+    cy.get('.join-team-dialog', { timeout: 15000 }).should('be.visible');
+    cy.get('button')
+      .contains('Join')
+      .then(($join) => {
+        const win = $join[0].ownerDocument.defaultView!;
+        expect($join[0].getBoundingClientRect().bottom).to.be.greaterThan(win.innerHeight);
+      });
+    cy.get('button').contains('Join').scrollIntoView().should('be.visible');
+  });
+
+  [
+    [390, 844],
+    [1280, 720],
+  ].forEach(([width, height]) => {
+    it(`stays centred when it fits at ${width}x${height}`, () => {
+      cy.viewport(width, height);
+      cy.navigateDirectToTeam(sessionId);
+      cy.get('.join-team-dialog', { timeout: 15000 }).should('be.visible');
+      cy.get('.join-team-dialog').then(($dialog) => {
+        const rect = $dialog[0].getBoundingClientRect();
+        const win = $dialog[0].ownerDocument.defaultView!;
+        const clientWidth = $dialog[0].ownerDocument.documentElement.clientWidth;
+        expect(rect.top, 'space above vs below').to.be.closeTo(win.innerHeight - rect.bottom, 1);
+        expect(rect.left, 'space left vs right').to.be.closeTo(clientWidth - rect.right, 1);
+      });
+    });
+  });
+});
