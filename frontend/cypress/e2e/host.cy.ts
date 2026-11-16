@@ -76,6 +76,20 @@ describe('Host Dashboard', () => {
     cy.contains('Manual Overrides');
   });
 
+  // #133: the host's rename is sent as update-team-names and must reach the stored session.
+  it('saves team names from the manual overrides and players see them', () => {
+    cy.get('#team-a-name').clear();
+    cy.get('#team-a-name').type('Red Team');
+    cy.get('#team-b-name').clear();
+    cy.get('#team-b-name').type('Blue Team');
+    cy.contains('button', 'Save All').click();
+
+    cy.navigateDirectToTeam(testSessionId);
+    cy.get('.join-team-dialog-backdrop', { timeout: 15000 })
+      .should('contain.text', 'Team Red Team')
+      .and('contain.text', 'Team Blue Team');
+  });
+
   /* ---- Timer section ---- */
   it('should show timer controls', () => {
     cy.contains('Timer');

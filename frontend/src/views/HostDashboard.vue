@@ -96,6 +96,7 @@ import { useCountdown } from '@/composables/useCountdown';
 import { loadTimerPresets, saveTimerPresets } from '../utils/timerPresets';
 import { decideTimerAction } from '../utils/timerStepDecision';
 import { leaveGoneSession, isSessionGone, resetSessionGoneGuard } from '../utils/sessionGone';
+import { changedTeamNames, type TeamNames } from '../utils/teamNames';
 const router = useRouter();
 
 const sessionId = getSessionId(); // from the URL query params
@@ -126,6 +127,17 @@ const { sessionIdBoxText, sessionIdBoxState, copyInvite } = useInviteLinks(sessi
 const isTeamNamesUnique = computed(() => {
   return store.teamNames.A.trim().toLowerCase() !== store.teamNames.B.trim().toLowerCase();
 });
+
+// The team names as the server last sent them (#133). The host sends only the names it changed,
+// so a player's rename of the other team is never undone by a stale copy.
+let serverTeamNames: TeamNames = { A: 'A', B: 'B' };
+const rememberServerTeamNames = (names?: Partial<TeamNames>) => {
+  if (names) serverTeamNames = { ...serverTeamNames, ...names };
+};
+const sendTeamNames = (edited: Partial<TeamNames>) => {
+  const patch = changedTeamNames(serverTeamNames, edited);
+  if (patch && sessionId) socket.emit('update-team-names', { sessionId, teamNames: patch });
+};
 
 const updateGameState = (gameState: any) => {
   if (!sessionId) {
@@ -216,6 +228,8 @@ const resetGame = async () => {
   correctCount.value = 0;
 
   store.resetGame();
+  // update-game no longer carries team names to the stored session (#133)
+  sendTeamNames({ A: 'A', B: 'B' });
   // const gameResetState = { ...store.$state, gameReset: true };
   // console.log('resetGame() called from HostDashboard.vue');
   // updateGameState(gameResetState);
@@ -470,6 +484,9 @@ const saveScoreMgmt = () => {
   };
 
   // console.log('saveScoreMgmt() called from HostDashboard.vue');
+  // The names also stay in gameState2: the schema requires them and an older backend still
+  // applies them from update-game.
+  sendTeamNames({ A: trimmedTeamAName, B: trimmedTeamBName });
   updateGameState(gameState2);
 };
 
@@ -599,6 +616,7 @@ function handleUpdatedGame(updatedGameState: any) {
   }
 
   store.teamNames = { ...store.teamNames, ...updatedGameState.teamNames };
+  rememberServerTeamNames(updatedGameState.teamNames);
 }
 
 async function copySessionIdOption(type: 'id' | 'host' | 'team' | 'spectator') {
@@ -627,6 +645,7 @@ onMounted(async () => {
 
   socket.on('team-names-updated', (teamNames: any) => {
     store.teamNames = { ...store.teamNames, ...teamNames };
+    rememberServerTeamNames(teamNames);
   });
 
   socket.on(
@@ -638,6 +657,7 @@ onMounted(async () => {
 
   socket.on('current-state', (currentState: any) => {
     Object.assign(store.$state, currentState); // Update the global store with the current game state
+    rememberServerTeamNames(currentState.teamNames);
 
     // Sync "Who Starts" state
     if (store.firstTeam) {
