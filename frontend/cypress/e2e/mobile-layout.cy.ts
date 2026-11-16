@@ -99,3 +99,54 @@ describe('Mobile layout (team and spectator views)', () => {
     });
   });
 });
+
+describe('Mobile layout (host dashboard)', () => {
+  let sessionId: string;
+
+  before(() => {
+    cy.createTestSession().then((id) => {
+      sessionId = id;
+    });
+  });
+
+  after(() => {
+    if (sessionId) cy.cleanupTestSession(sessionId);
+  });
+
+  [
+    [360, 780],
+    [390, 844],
+  ].forEach(([width, height]) => {
+    it(`fits a ${width}px phone with every step reachable and 44px controls`, () => {
+      cy.viewport(width, height);
+      cy.navigateDirectToHost(sessionId);
+      cy.contains('h3', 'Game Manager', { timeout: 15000 }).should('be.visible');
+      cy.document().then((doc) => {
+        expect(doc.documentElement.scrollWidth, 'document width').to.be.at.most(width);
+      });
+      // All 8 steps sit inside the screen (they wrap into rows instead of running off it).
+      cy.get('.steps .step').should('have.length', 8);
+      cy.get('.steps .step').each(($step) => {
+        const rect = $step[0].getBoundingClientRect();
+        expect(rect.left).to.be.at.least(0);
+        expect(rect.right).to.be.at.most(width);
+      });
+      // The floating buttons are part of the page flow, not fixed over the content.
+      cy.get('.floating-buttons').should('have.css', 'position', 'static');
+      // Buttons and text fields are at least 44px tall.
+      cy.get('.host-page button, .host-page input[type="number"], .host-page input[type="text"]')
+        .filter(':visible')
+        .each(($el) => {
+          expect(
+            $el[0].getBoundingClientRect().height,
+            $el[0].outerHTML.slice(0, 60),
+          ).to.be.at.least(44);
+        });
+      // Labels sit above their fields instead of in a fixed-width column.
+      cy.get('#team-a-score').then(($input) => {
+        const label = Cypress.$('label[for="team-a-score"]')[0].getBoundingClientRect();
+        expect(label.bottom).to.be.at.most($input[0].getBoundingClientRect().top + 1);
+      });
+    });
+  });
+});

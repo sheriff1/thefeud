@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col items-center my-8">
+  <div class="host-page flex flex-col items-center my-8">
     <h1>The Feud Host Dashboard</h1>
     <div class="floating-buttons">
       <FloatingButton
@@ -780,5 +780,55 @@ button {
   flex: 1 1 180px; /* Inputs take remaining space */
   min-width: 0;
   padding: 6px 8px;
+}
+
+/* Phones (#131): the floating buttons join the page flow, forms stack, and controls reach 44px.
+   Child components are reached with :deep so each of them keeps its desktop styles untouched. */
+@media (max-width: 767px) {
+  .host-page h1 {
+    text-align: center;
+    padding: 0 1rem;
+  }
+  .container {
+    margin: 0.5rem;
+    padding: 0.75rem;
+  }
+  .floating-buttons {
+    position: static;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding: 0.5rem 0.5rem 0.75rem;
+  }
+  .host-page :deep(.btn),
+  .host-page :deep(.input),
+  .host-page :deep(.file-input) {
+    min-height: 44px;
+  }
+  .host-page :deep(.btn-circle) {
+    width: 44px;
+    min-width: 44px;
+  }
+  .host-page :deep(a.link) {
+    display: inline-block;
+    padding: 0.6rem 0;
+  }
+  /* Rows that put a label next to a field stack on phones. */
+  .host-page :deep(.form-row) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .host-page :deep(.form-row label),
+  .host-page :deep(.form-row > div),
+  .host-page :deep(.form-row input) {
+    width: 100%;
+  }
+  /* Whole rows are the tap target for toggles and radio buttons. */
+  .host-page :deep(label:has(input[type='checkbox'])),
+  .host-page :deep(label:has(input[type='radio'])) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 }
 </style>
