@@ -64,7 +64,9 @@ A full run takes 9+ minutes, so run one spec at a time while developing.
 1. Make sure ports 4000, 5173, 8080 and 8089 are free: `lsof -nP -iTCP:4000 -iTCP:5173 -iTCP:8080 -iTCP:8089 -sTCP:LISTEN`. A leftover backend or Vite from an earlier session is the usual cause of a blank page or odd failures; stop it (check the owner with `lsof -p <pid> -a -d cwd`) before starting.
 2. Build the backend once: `npm run build` (repo root). The `firebase` CLI must be installed globally and logged in.
 3. Start the stack from the repo root: `npm run dev` (emulators, backend, Vite). Restart it after editing `firebase.json` or `firestore.rules`.
-4. In another terminal, run one spec: `cd frontend && npm run test:e2e:local -- --spec cypress/e2e/home.cy.ts` (about 15 s; `retries=0` so failures show up immediately). From the VS Code integrated terminal this script already unsets `ELECTRON_RUN_AS_NODE`.
+4. In another terminal, run one spec: `cd frontend && npm run test:e2e:local -- --spec cypress/e2e/home.cy.ts` (about 15 s when it passes). From the VS Code integrated terminal this script already unsets `ELECTRON_RUN_AS_NODE`.
+
+   Cypress retries a failing test up to 3 times (`runMode: 3` in `cypress.config.mjs`, kept on purpose), and `--config retries=0` does not turn that off. A failing spec therefore takes about four times as long, and a test that fails and then passes on a retry still counts as passing, so look for `Attempt 1 of 4` in the output: that is a flaky test, not a clean pass. The same retries apply in CI.
 
 To mirror CI exactly instead, start the emulators with `firebase emulators:start --only firestore,auth --project demo-test`, the backend with `FIREBASE_CREDENTIALS='{}' FIRESTORE_EMULATOR_HOST=localhost:8080 FIREBASE_AUTH_EMULATOR_HOST=localhost:8089 FIREBASE_PROJECT_ID=demo-test node backend/dist/server.js`, and Vite with `VITE_FIREBASE_CONFIG='{"apiKey":"test","authDomain":"test","projectId":"test"}' VITE_USE_FIREBASE_EMULATOR=true`. Both setups pass `home.cy.ts` locally. If you see a blank page, `npm run test:e2e:chrome` (system Chrome) is the fallback, because Cypress's bundled Electron has rendered blank on some Macs.
 
@@ -139,6 +141,35 @@ The backend (Express + Socket.IO) runs on [Render](https://render.com/) and is d
 ## API reference
 
 [docs/api.md](docs/api.md) documents the backend's REST routes, every Socket.IO event (payloads, responses, rooms, side effects), the `GameState` shape and the known quirks. Read it before adding or changing an event. `npm test` in `backend/` fails if a route, event or `GameState` field exists in only the code or only the doc.
+
+---
+
+## Operational assumptions
+
+These are true today and easy to break without noticing.
+
+- **One backend instance.** Disconnect cleanup (#123) keeps its grace timers (`DISCONNECT_GRACE_MS`, default 30 s) and the list of already-swept sessions in memory, and finds a player's live sockets with `io.in(room).fetchSockets()`, which only sees sockets on the same instance. Render Free runs one instance, so this holds. If the backend is ever scaled to more than one instance (or moved to a platform that does), disconnect cleanup, the restart sweep and the live-socket checks stop being correct, and Socket.IO also needs a shared adapter for rooms. Treat scaling out as a design change, not a setting.
+- **A backend restart drops pending removals.** `docs/api.md` (`disconnect`) describes the sweep that cleans up afterwards. Render Free also spins the backend down after about 15 minutes idle and takes about a minute to wake.
+- **Frontend and backend deploy separately.** Vercel builds the frontend on every merge to `main`, and Render redeploys the backend when backend files change, so for a few minutes one side can be newer than the other, and a browser tab left open keeps the old frontend until it is reloaded. For a protocol change, ship in two PRs so each side tolerates the other: #133 shipped the frontend that sends `update-team-names` first (#136), then the backend that stops writing `teamNames` from `update-game` (#137). Until a host tab is reloaded, name edits sent through `update-game` by an old frontend are ignored.
+- **Sentry only sees what the browser sends.** See Environment Variables for the ad-blocker caveat.
+
+---
+
+## Frontend layout conventions
+
+The real use is on phones, so the team, spectator and host views have a phone layout (#131). Rules to keep when changing them (and for new rounds such as #24):
+
+- **One phone breakpoint: `@media (max-width: 767px)`**, written in the component's scoped CSS next to the desktop rules (Tailwind's `md` is 768 px). Everything at 768 px and above must keep its current layout. Prove it by comparing every element's `getBoundingClientRect()` at 768 and 1280 px before and after the change (only class names should differ), and by checking that the document is exactly as wide as the viewport at 360 and 390 px.
+- **Text fields are at least 16 px on phones** (one rule in `src/assets/global.css`). iOS Safari zooms into any field below 16 px when it is focused and stays zoomed after the field loses focus (confirmed on an iPhone). Do not "fix" this with `maximum-scale` in the viewport tag; that blocks pinch-zoom for everyone.
+- **Controls are at least 44 px** on phones. The host dashboard does this with `:deep` rules in `HostDashboard.vue` so each child component keeps its desktop styles.
+- **Team and spectator view:** under 767 px the scoreboard is a grid: both team cards side by side, then the board and game info at full width. The buzzer is a bar fixed to the bottom (`.buzzer-container` in `TeamPanel.vue`), and `TeamDisplay.vue` adds bottom padding while it shows (`showsBuzzerBar`). That condition repeats the one in `TeamPanel.vue`, so change both together (#141). Invite, Sound and Log Out are a row at the top on phones and fixed buttons on desktop. A new round that needs a main action on phones should reuse the bottom bar rather than add another fixed element.
+- **Host dashboard:** the 8 steps wrap into two rows of four, field rows stack (label above field), and the floating buttons join the page flow.
+- **Testing on a phone.** Backend CORS is an exact list of origins, so Vercel previews cannot reach the Render backend, and a phone cannot use `localhost`. Run the dev stack on the LAN instead: start the backend with `ALLOWED_ORIGINS=http://<lan-ip>:5173` and Vite with `VITE_API_BASE=http://<lan-ip>:4000` set in the shell that launches them (they override `frontend/.env`), create a session from the computer (`POST /api/create-session/<ID>`, or the host page), and open `/team?sessionId=<ID>` or `/spectator?sessionId=<ID>` on the phone. No sign-in is needed for those pages.
+- **In dev, the Firebase emulator banner covers the bottom edge of the page**, so Cypress reports the fixed buzzer bar as "not visible". `cypress/e2e/mobile-layout.cy.ts` checks that it exists and where it sits instead.
+- **Known limits of the phone layout.** Checked on an iPhone in portrait and landscape: the sticky buzzer bar works with the keyboard open, and the host dashboard looks right. Open items:
+  - The join dialog cannot be scrolled on short screens, so on a phone in landscape the team choice and Join button can be out of reach (#143, it predates #131).
+  - The host dashboard uses CSS `:has()` to make toggle and radio rows 44px tall; iOS older than 15.4 ignores it and keeps the smaller rows. Not checked on an older iOS yet (#144).
+  - Below 768 px wide in landscape the 72px buzzer bar takes about a quarter of the screen height; the board stays usable.
 
 ---
 
