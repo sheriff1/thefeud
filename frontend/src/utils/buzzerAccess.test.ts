@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { buzzerOwner, canBuzz, hasAnyPick, isPickConnected, NO_BUZZER_PICKS } from './buzzerAccess';
+import {
+  buzzerOwner,
+  canBuzz,
+  hasAnyPick,
+  isBuzzerBarShown,
+  isBuzzerVisible,
+  isPickConnected,
+  NO_BUZZER_PICKS,
+  type BuzzerVisibilityState,
+} from './buzzerAccess';
 
 describe('buzzerAccess', () => {
   it('lets anyone buzz when there is no pick, after Skip, or when the field is missing', () => {
@@ -31,5 +40,41 @@ describe('buzzerAccess', () => {
     expect(isPickConnected('Ann', ['Ann', 'Al'])).toBe(true);
     expect(isPickConnected('Ann', ['Al'])).toBe(false);
     expect(isPickConnected('Ann', undefined)).toBe(false);
+  });
+
+  describe('buzzer visibility (#141)', () => {
+    const live: BuzzerVisibilityState = {
+      selectedTeam: 'A',
+      roundOn: true,
+      startingTeamSet: false,
+      guessedCount: 0,
+    };
+
+    it('shows the buzzer only on the own team of the player, in the buzzer round', () => {
+      expect(isBuzzerVisible('A', live)).toBe(true);
+      expect(isBuzzerVisible('B', live)).toBe(false);
+      expect(isBuzzerVisible('B', { ...live, selectedTeam: 'B' })).toBe(true);
+      expect(isBuzzerVisible('A', { ...live, selectedTeam: 'B' })).toBe(false);
+    });
+
+    it('shows no buzzer to a spectator or before joining', () => {
+      expect(isBuzzerVisible('A', { ...live, selectedTeam: '' })).toBe(false);
+      expect(isBuzzerVisible('B', { ...live, selectedTeam: '' })).toBe(false);
+    });
+
+    it('hides the buzzer when the round is off, the starting team is set or an answer was guessed', () => {
+      expect(isBuzzerVisible('A', { ...live, roundOn: false })).toBe(false);
+      expect(isBuzzerVisible('A', { ...live, startingTeamSet: true })).toBe(false);
+      expect(isBuzzerVisible('A', { ...live, guessedCount: 1 })).toBe(false);
+    });
+
+    it('shows the bottom bar exactly when the buzzer shows for the team of the player', () => {
+      expect(isBuzzerBarShown(live)).toBe(true);
+      expect(isBuzzerBarShown({ ...live, selectedTeam: 'B' })).toBe(true);
+      expect(isBuzzerBarShown({ ...live, selectedTeam: '' })).toBe(false);
+      expect(isBuzzerBarShown({ ...live, roundOn: false })).toBe(false);
+      expect(isBuzzerBarShown({ ...live, startingTeamSet: true })).toBe(false);
+      expect(isBuzzerBarShown({ ...live, guessedCount: 3 })).toBe(false);
+    });
   });
 });
