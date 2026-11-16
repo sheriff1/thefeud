@@ -67,4 +67,12 @@ const formattedScoreMultiplier = computed(() =>
   color: #555;
   margin-top: 4px; /* Space between value and label */
 }
+
+/* Phones (#131): Tailwind's `container` caps the width at 640px from 640px up, which leaves the
+   game info narrower than the score strip on a landscape phone (641-767px). */
+@media (max-width: 767px) {
+  .game-info-container {
+    max-width: none;
+  }
+}
 </style>

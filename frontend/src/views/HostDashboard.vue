@@ -792,6 +792,8 @@ button {
   .container {
     margin: 0.5rem;
     padding: 0.75rem;
+    /* Tailwind's `container` caps the width at 640px from 640px up; a landscape phone is wider. */
+    max-width: none;
   }
   .floating-buttons {
     position: static;
