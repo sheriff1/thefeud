@@ -166,6 +166,10 @@ The real use is on phones, so the team, spectator and host views have a phone la
 - **Host dashboard:** the 8 steps wrap into two rows of four, field rows stack (label above field), and the floating buttons join the page flow.
 - **Testing on a phone.** Backend CORS is an exact list of origins, so Vercel previews cannot reach the Render backend, and a phone cannot use `localhost`. Run the dev stack on the LAN instead: start the backend with `ALLOWED_ORIGINS=http://<lan-ip>:5173` and Vite with `VITE_API_BASE=http://<lan-ip>:4000` set in the shell that launches them (they override `frontend/.env`), create a session from the computer (`POST /api/create-session/<ID>`, or the host page), and open `/team?sessionId=<ID>` or `/spectator?sessionId=<ID>` on the phone. No sign-in is needed for those pages.
 - **In dev, the Firebase emulator banner covers the bottom edge of the page**, so Cypress reports the fixed buzzer bar as "not visible". `cypress/e2e/mobile-layout.cy.ts` checks that it exists and where it sits instead.
+- **Known limits of the phone layout.** Checked on an iPhone in portrait and landscape: the sticky buzzer bar works with the keyboard open, and the host dashboard looks right. Open items:
+  - The join dialog cannot be scrolled on short screens, so on a phone in landscape the team choice and Join button can be out of reach (#143, it predates #131).
+  - The host dashboard uses CSS `:has()` to make toggle and radio rows 44px tall; iOS older than 15.4 ignores it and keeps the smaller rows. Not checked on an older iOS yet (#144).
+  - Below 768 px wide in landscape the 72px buzzer bar takes about a quarter of the screen height; the board stays usable.
 
 ---
 
