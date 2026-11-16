@@ -33,7 +33,12 @@ describe('Mobile layout (team and spectator views)', () => {
 
       it('team view fits the screen and keeps the buzzer bar in reach', () => {
         cy.navigateDirectToTeam(sessionId);
-        cy.get('input[placeholder*="Enter your name"]', { timeout: 15000 }).type('Mo');
+        // iOS Safari zooms into text fields under 16px and stays zoomed after joining.
+        cy.get('input[placeholder*="Enter your name"]', { timeout: 15000 })
+          .should(($input) => {
+            expect(parseFloat(getComputedStyle($input[0]).fontSize)).to.be.at.least(16);
+          })
+          .type('Mo');
         cy.get('input[type="radio"]').first().click();
         cy.get('button').contains('Join').click();
         cy.get('.scoreboard').should('be.visible');
