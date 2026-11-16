@@ -790,4 +790,30 @@ const isFormValid = computed(() => !questionError.value && !answersError.value);
     min-width: 0;
   }
 }
+
+/* Phones (#131): the 8 steps wrap into two rows of four instead of running off the screen, and
+   each answer's fields stack at full width. */
+@media (max-width: 767px) {
+  .steps {
+    display: grid;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 0.75rem;
+    overflow: visible;
+  }
+  .steps .step {
+    min-width: 0;
+  }
+  /* The first step of each row has no step before it to connect to. */
+  .steps .step:nth-child(4n + 1)::before {
+    content: none;
+  }
+  .answer-pair {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .answer-pair input {
+    width: 100%;
+  }
+}
 </style>
