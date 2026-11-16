@@ -305,4 +305,21 @@ watch(
     gap: 3vw;
   }
 }
+
+/* Phones (#131): a shorter row so the whole board fits on fewer screens. */
+@media (max-width: 767px) {
+  .answers-container {
+    padding: 12px;
+    gap: 12px;
+  }
+  .question-display {
+    font-size: 1.25rem;
+  }
+  .answers-grid {
+    gap: 0.5rem;
+  }
+  .answer-box {
+    height: 64px;
+  }
+}
 </style>

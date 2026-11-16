@@ -52,6 +52,16 @@ watch(
   cursor: pointer;
 }
 
+/* Phones (#131): 44px touch targets, and no hover state to wait for on touch screens. */
+@media (max-width: 767px) {
+  .mute-btn,
+  .session-id-box,
+  .logout-box {
+    min-height: 44px;
+    opacity: 1;
+  }
+}
+
 .mute-btn:hover,
 .session-id-box:hover,
 .logout-box:hover {

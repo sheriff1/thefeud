@@ -1,6 +1,7 @@
 import TeamPanel from '@/components/teamDisplay/TeamPanel.vue';
 import { mount } from 'cypress/vue';
 import { createPinia, setActivePinia } from 'pinia';
+import { useGameStore } from '@/stores/gamestore';
 
 describe('TeamPanel', () => {
   beforeEach(() => {
@@ -451,5 +452,49 @@ describe('TeamPanel', () => {
         winAny.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled = false;
       }
     });
+  });
+
+  describe('on a phone (#131)', () => {
+    beforeEach(() => {
+      cy.viewport(390, 844);
+    });
+
+    it('collapses the member list to a toggle and shows the buzzed player', () => {
+      mount(TeamPanel, { props: defaultProps });
+
+      cy.get('.members-toggle').should('be.visible').and('contain.text', '3');
+      cy.get('.team-members-list li').first().should('not.be.visible');
+      cy.get('.members-toggle').click();
+      cy.get('.team-members-list li').should('have.length', 3).and('be.visible');
+      cy.get('.members-toggle').should('have.attr', 'aria-expanded', 'true');
+    });
+
+    it('keeps the buzzed player visible while collapsed', () => {
+      const store = useGameStore();
+      store.buzzedPlayer = 'Bob';
+      mount(TeamPanel, { props: defaultProps });
+
+      cy.contains('.team-members-list li', 'Bob').should('be.visible');
+      cy.contains('.team-members-list li', 'Alice').should('not.be.visible');
+    });
+
+    it('pins the buzzer to the bottom of the screen at full width', () => {
+      mount(TeamPanel, { props: defaultProps });
+
+      cy.get('.buzzer-container').should('have.css', 'position', 'fixed');
+      cy.get('.buzzer-button').then(($btn) => {
+        const rect = $btn[0].getBoundingClientRect();
+        expect(rect.height).to.be.at.least(64);
+        expect(rect.width).to.be.greaterThan(300);
+      });
+    });
+  });
+
+  it('does not show the members toggle on a desktop viewport', () => {
+    cy.viewport(1280, 720);
+    mount(TeamPanel, { props: defaultProps });
+
+    cy.get('.members-toggle').should('not.be.visible');
+    cy.get('.team-members-list li').first().should('be.visible');
   });
 });

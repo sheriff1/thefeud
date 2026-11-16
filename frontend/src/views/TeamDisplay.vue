@@ -34,7 +34,7 @@
         <FloatingButton label="Log Out" :onClick="logout" className="logout-box" />
       </div>
 
-      <div class="gameboard-container">
+      <div class="gameboard-container" :class="{ 'has-buzzer-bar': showsBuzzerBar }">
         <!-- Round Over Banner -->
         <Banner
           v-if="store.roundOver"
@@ -51,7 +51,7 @@
         <!-- Scoreboard Section -->
         <div class="scoreboard">
           <!-- Team A Info -->
-          <div class="basis-1/4">
+          <div class="basis-1/4 team-slot">
             <TeamPanel
               team="A"
               :teamName="store.teamNames['A']"
@@ -75,7 +75,7 @@
             />
           </div>
           <!-- Answers & Game Info Section -->
-          <div>
+          <div class="board-slot">
             <!-- Clock: above the question so everyone (players and spectators) sees it (#117) -->
             <div class="clock-block">
               <SegmentClock :seconds="store.timer" :timeUp="timeUp" size="lg" />
@@ -99,7 +99,7 @@
           </div>
 
           <!-- Team B Info -->
-          <div class="basis-1/4">
+          <div class="basis-1/4 team-slot">
             <TeamPanel
               team="B"
               :teamName="store.teamNames['B']"
@@ -173,6 +173,14 @@ const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 // Players can only buzz once the buzzer round has started, so the host's pick is in place (#23).
 const isBuzzerRoundOn = computed(
   () => isMultiplierSet.value && store.currentStep >= GameStep.Buzzer,
+);
+// Mirrors TeamPanel's buzzer: on phones it is a fixed bottom bar, so the page leaves room for it (#131).
+const showsBuzzerBar = computed(
+  () =>
+    isBuzzerRoundOn.value &&
+    (selectedTeam.value === 'A' || selectedTeam.value === 'B') &&
+    !store.startingTeamSet &&
+    store.guessedAnswers.length === 0,
 );
 const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
@@ -494,5 +502,40 @@ onUnmounted(() => {
   font-size: 0.75rem;
   color: #555;
   margin-top: 4px;
+}
+
+/* Phones (#131): a score strip on top (team A | team B), the board and game info full width below. */
+@media (max-width: 767px) {
+  .gameboard-container {
+    padding: 0.5rem;
+  }
+  .gameboard-container.has-buzzer-bar {
+    /* room for the fixed buzzer bar (about 72px plus its padding and the safe area) */
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+  .scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .team-slot {
+    min-width: 0;
+    display: flex;
+  }
+  .team-slot > * {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .board-slot {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  .floating-buttons {
+    position: static;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 0.5rem 0.5rem 0.75rem;
+  }
 }
 </style>
