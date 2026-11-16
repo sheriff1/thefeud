@@ -93,6 +93,7 @@ jobs:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           FIREBASE_AUTH_EMULATOR_HOST: localhost:8089
           FIREBASE_PROJECT_ID: demo-test
+          DISCONNECT_GRACE_MS: '400'
 
       - name: Wait for backend to be ready
         run: npx wait-on http://localhost:4000/api/health # or another health endpoint

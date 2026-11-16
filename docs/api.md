@@ -29,6 +29,8 @@ Internal reference for the backend in [backend/index.ts](../backend/index.ts): t
 
 **Errors.** Errors are always the event `error` with payload `{ message: string }`. A missing session produces `Session does not exist`. Any other failure inside a handler's `try`/`catch` produces that handler's fixed fallback text (for example `Failed to join team`), never the underlying error message, which stays in the server log and Sentry. Any error thrown outside a handler's own `try`/`catch` is caught by `onSafe` ([safe-handlers.ts](../backend/safe-handlers.ts)), reported to Sentry (tags only, never the payload), and answered with `{ message: 'Internal server error' }`. A handler failure never crashes the process.
 
+**Disconnect grace.** `DISCONNECT_GRACE_MS` (milliseconds, default `30000`, `0` removes at once; an invalid value falls back to the default) sets how long a disconnected player stays in `teamMembers`. Backend tests run the server with `DISCONNECT_GRACE_MS=400`.
+
 **CORS.** Allowed origins come from `ALLOWED_ORIGINS` (comma-separated, default `http://localhost:5173`) and apply to both Express and Socket.IO. Express also sets `helmet()` headers and parses JSON bodies. Requests without an `Origin` header (curl, server-to-server) are allowed.
 
 ## REST routes
@@ -66,12 +68,12 @@ Subscribes the socket to a session's room.
 
 ### `join-team`
 
-Adds a player to a team.
+Adds a player to a team. A socket holds one player: a later `join-team` on the same socket moves the player, removing them from the previous team (or session) first, unless another live socket still holds that player.
 
 - **Payload:** `{ sessionId, name, team }` where `team` is `"A"` or `"B"`
 - **Broadcast:** `team-members-updated` `{ A: string[], B: string[] }`
 - **Errors:** `error`.
-- **Side effects:** reads `teamMembers`, appends `name` to the team if not already there (idempotent), writes `teamMembers` with merge, joins the room, and records `socket.id -> { sessionId, name, team }` in memory for the `disconnect` cleanup. The read and the write run in one Firestore transaction, so simultaneous joins cannot lose each other.
+- **Side effects:** reads `teamMembers`, appends `name` to the team if not already there (idempotent), writes `teamMembers` with merge, joins the room, and records the player on the socket (`socket.data.player`) for the `disconnect` cleanup. A pending disconnect removal for the same player is cancelled, so a client that reconnects and re-sends `join-team` within the grace period is never removed. The read and the write run in one Firestore transaction, so simultaneous joins cannot lose each other.
 - **Sent by:** a team member on `TeamDisplay.vue` after choosing a name and team, and again on reconnect.
 
 ### `update-team-name`
@@ -168,7 +170,8 @@ Checks that a session exists. The only event with an ack.
 
 Built into Socket.IO, not sent by clients on purpose.
 
-- **Behavior:** if the socket earlier sent `join-team`, removes that name from that team, writes `teamMembers` with merge in one Firestore transaction, and broadcasts `team-members-updated`. The tracking map is in memory, so it is lost on a backend restart and has one entry per socket (a second `join-team` on the same socket replaces the first). Hosts and spectators are not tracked, so nothing happens when they disconnect.
+- **Behavior:** if the socket holds a player (it sent `join-team`), the player stays listed for a grace period (`DISCONNECT_GRACE_MS`, default 30000 ms, so a phone sleep or wifi blip does not flicker the host's list). Then, unless the same player has re-joined on another socket (`join-team` cancels the removal and also protects against a late disconnect of an older socket), the backend removes the name from that team, writes `teamMembers` with merge in one Firestore transaction, and broadcasts `team-members-updated` only if the player was still listed. The timers are in memory, so a backend restart drops them; see the restart sweep below. Hosts and spectators never hold a player, so nothing happens when they disconnect. `buzzerPlayers` is not touched: a selected buzzer who reconnects keeps the assignment, and the host sees "(not connected)" once the grace is over and presses "Let anyone buzz" if they never return.
+- **Restart sweep:** the first `join-session` for a session that was created before this process started schedules one sweep after the same grace period. The sweep removes every listed player that no live socket in the room holds and that has no pending removal, and broadcasts `team-members-updated` if anything changed. This cleans up players who left while the backend was down (clients that are still connected reconnect and re-join within the grace period). A player whose phone sleeps through the whole window is removed and is re-added when their client re-sends `join-team`. Sessions created by the running process are never swept.
 
 ## Socket.IO: server to client
 
@@ -310,8 +313,7 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 ## Known quirks
 
-Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is tracked in #124, quirk 5 in #122 and quirk 8 in #123 (the rest were fixed under #107 and #23). Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
+Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is tracked in #124 and quirk 5 in #122 (the rest were fixed under #107, #23 and #123). Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
 
 - **Quirk 1: No authorization (code, #124).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend. The host's buzzer assignment (`buzzerPlayers`) is therefore not a security boundary: `buzz` checks the claimed name against it, and anyone can claim the selected name.
 - **Quirk 5: `update-game` can still overwrite `teamNames` (code, #122).** `teamNames` is written both by team players (`update-team-name`) and by the host (the manual override, through `update-game`), so `update-game` does not protect it: a stale host state can undo a player's rename. The same applies to every other field the host owns. `teamMembers` and `buzzedPlayer` are protected, and the team-member and team-name writes are transactions. Fixing this needs the frontend to send only changed fields.
-- **Quirk 8: Disconnect cleanup is partial (code, #123).** It covers only sockets that sent `join-team`, uses an in-memory map, and a second `join-team` on the same socket replaces the first entry. A player who switches team on one socket stays listed on the old team. A disconnect removes the player from `teamMembers` but not from `buzzerPlayers`, which holds a name: a selected buzzer who reconnects (the frontend re-sends `join-team`) keeps the assignment.
