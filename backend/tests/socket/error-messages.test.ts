@@ -83,7 +83,11 @@ describe('empty name', () => {
 
 describe('internal failures', () => {
   it('sends the fixed fallback, not the raw error message', async () => {
-    // The session has no teamMembers field, so the handler throws a TypeError internally.
+    // Corrupt stored data (a team that is not a list), so the handler throws a TypeError internally.
+    await db
+      .collection('sessions')
+      .doc(sessionId)
+      .set({ teamMembers: { A: 5, B: [] } }, { merge: true });
     const message = await firstError(() =>
       socket.emit('remove-team-member', { sessionId, name: 'Sam', team: 'A' }),
     );
