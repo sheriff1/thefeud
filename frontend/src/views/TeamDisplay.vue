@@ -126,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { useGameStore } from '../stores/gamestore';
 import socket from '../utils/socket';
 import { track } from '../utils/analytics';
@@ -137,6 +137,7 @@ import TeamPanel from '../components/teamDisplay/TeamPanel.vue';
 import AnswersBoard from '../components/teamDisplay/AnswersBoard.vue';
 import GameInfo from '../components/teamDisplay/GameInfo.vue';
 import { shouldPlayTimesUp } from '../utils/timerCue';
+import { createSyncGuard, shouldPlayDing, strikedTeam } from '../utils/syncCue';
 import { GameStep } from '../utils/gameSteps';
 import { canBuzz, buzzerOwner } from '../utils/buzzerAccess';
 import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
@@ -347,11 +348,15 @@ watch(
   },
 );
 
+// current-state is a catch-up (late join, reconnect), not a live event: no sounds or strike
+// animation for it (#127). Only update-game cues.
+const syncGuard = createSyncGuard(nextTick);
+
 // Watch for changes in guessed answers
 watch(
   () => store.guessedAnswers,
   (newGuessedAnswers, oldGuessedAnswers) => {
-    if (newGuessedAnswers.length > oldGuessedAnswers.length) {
+    if (shouldPlayDing(oldGuessedAnswers.length, newGuessedAnswers.length, syncGuard.isSyncing())) {
       playDingSound(); // Play sound when a new answer is guessed
     }
   },
@@ -361,13 +366,8 @@ watch(
 watch(
   () => store.teamStrikes,
   (newStrikes, oldStrikes) => {
-    if (newStrikes.A > oldStrikes.A) {
-      // Team A got a new strike
-      playStrikeSound(newStrikes.A);
-    } else if (newStrikes.B > oldStrikes.B) {
-      // Team B got a new strike
-      playStrikeSound(newStrikes.B);
-    }
+    const team = strikedTeam(oldStrikes, newStrikes, syncGuard.isSyncing());
+    if (team) playStrikeSound(newStrikes[team]);
   },
   { deep: true }, // Watch for deep changes in the teamStrikes object
 );
@@ -400,8 +400,10 @@ onMounted(() => {
   // Listen for the current game state from the backend
   socket.on('current-state', (currentState: { buzzedPlayer: string }) => {
     if (!store.sessionId) return; // Don't update if logged out
-    Object.assign(store.$state, currentState);
-    store.buzzedPlayer = currentState?.buzzedPlayer || '';
+    syncGuard.run(() => {
+      Object.assign(store.$state, currentState);
+      store.buzzedPlayer = currentState?.buzzedPlayer || '';
+    });
   });
 
   // Listen for game state updates
