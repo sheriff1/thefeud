@@ -95,7 +95,7 @@ svg {
 }
 .segment--off {
   fill: currentColor;
-  opacity: 0.1;
+  opacity: 0.06;
 }
 .sr-only {
   position: absolute;

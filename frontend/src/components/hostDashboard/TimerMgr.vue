@@ -9,7 +9,6 @@
         size="sm"
         data-cy="host-clock"
       />
-      <p class="my-2">Current Timer: {{ gameStore.timer }} seconds</p>
       <p class="mb-2" v-if="gameStore.timerRunning">Timer is running...</p>
       <p class="mb-2" v-else>Timer is stopped.</p>
       <div
