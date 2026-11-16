@@ -74,6 +74,19 @@ const SNTSchema = z
   })
   .strict();
 
+// update-team-names (#133): the host sends only the names it changed.
+const SNamesSchema = z
+  .object({
+    sessionId: sessionIdSchema,
+    teamNames: z
+      .object({ A: nameSchema.optional(), B: nameSchema.optional() })
+      .strict()
+      .refine((names) => names.A !== undefined || names.B !== undefined, {
+        message: 'At least one team name is required',
+      }),
+  })
+  .strict();
+
 const SNSchema = z
   .object({
     sessionId: sessionIdSchema,
@@ -550,6 +563,9 @@ io.on('connection', (socket) => {
         const firestoreState = doc.data() || {};
 
         gameState.teamMembers = firestoreState.teamMembers ?? { A: [], B: [] };
+        // teamNames is written by update-team-name and update-team-names (#133), never by this
+        // event, so a stale host copy cannot undo a player's rename.
+        gameState.teamNames = firestoreState.teamNames ?? { A: 'A', B: 'B' };
         gameState.buzzedPlayer = firestoreState.buzzedPlayer ?? '';
 
         // Get previous roundOver value
@@ -649,15 +665,7 @@ io.on('connection', (socket) => {
     }
     const { sessionId, name, team } = parseResult.data;
     try {
-      const sessionRef = db.collection('sessions').doc(sessionId);
-      const updatedTeamNames = await db.runTransaction(async (tx) => {
-        const doc = await tx.get(sessionRef);
-        if (!doc.exists) throw new Error(SESSION_NOT_FOUND);
-        const currentTeamNames = (doc.data() || {}).teamNames || { A: 'A', B: 'B' };
-        const next = { ...currentTeamNames, [team]: name };
-        tx.set(sessionRef, { teamNames: next }, { merge: true });
-        return next;
-      });
+      const updatedTeamNames = await updateTeamNames(sessionId, { [team]: name });
       io.to(sessionId).emit('team-names-updated', updatedTeamNames);
     } catch (error) {
       captureHandlerError(error, {
@@ -666,6 +674,27 @@ io.on('connection', (socket) => {
         name: payload?.name,
       });
       socket.emit('error', { message: clientErrorMessage(error, 'Failed to update team name') });
+    }
+  });
+
+  // The host's manual team-name override (#133). Not host-only on the server (#124).
+  onSafe(socket, 'update-team-names', async (payload) => {
+    const parseResult = SNamesSchema.safeParse(payload);
+    if (!parseResult.success) {
+      if (!payload?.sessionId) {
+        socket.emit('error', { message: 'Session ID is required' });
+        return;
+      }
+      socket.emit('error', { message: 'Invalid request - update-team-names' });
+      return;
+    }
+    const { sessionId, teamNames } = parseResult.data;
+    try {
+      const updatedTeamNames = await updateTeamNames(sessionId, teamNames);
+      io.to(sessionId).emit('team-names-updated', updatedTeamNames);
+    } catch (error) {
+      captureHandlerError(error, { event: 'update-team-names', sessionId: payload?.sessionId });
+      socket.emit('error', { message: clientErrorMessage(error, 'Failed to update team names') });
     }
   });
 
@@ -871,6 +900,25 @@ type TeamMembers = { A: string[]; B: string[] };
  * run more than once (Firestore retries a contended transaction), so it must be pure. Returns the
  * committed members; callers broadcast after the commit. Throws SESSION_NOT_FOUND.
  */
+/**
+ * Merges the given names into the stored teamNames in one transaction, so a player's rename and
+ * the host's override cannot lose each other's change. Returns the committed names; callers
+ * broadcast after the commit. Throws SESSION_NOT_FOUND.
+ */
+async function updateTeamNames(
+  sessionId: string,
+  patch: { A?: string; B?: string },
+): Promise<{ A: string; B: string }> {
+  const sessionRef = db.collection('sessions').doc(sessionId);
+  return db.runTransaction(async (tx) => {
+    const doc = await tx.get(sessionRef);
+    if (!doc.exists) throw new Error(SESSION_NOT_FOUND);
+    const next = { A: 'A', B: 'B', ...((doc.data() || {}).teamNames ?? {}), ...patch };
+    tx.set(sessionRef, { teamNames: next }, { merge: true });
+    return next;
+  });
+}
+
 async function updateTeamMembers(
   sessionId: string,
   mutate: (members: TeamMembers) => boolean,

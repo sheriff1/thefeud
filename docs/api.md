@@ -86,6 +86,16 @@ Renames a team. Note the field meaning: `name` is the new team name, and `team` 
 - **Side effects:** writes `teamNames` with merge, as `{ ...current, [team]: name }`, in one Firestore transaction. A missing `teamNames` defaults to `{ A: 'A', B: 'B' }`.
 - **Sent by:** a team member on `TeamDisplay.vue`.
 
+### `update-team-names`
+
+The host's manual team-name override (#133). It sets one or both team names. `update-game` does not write `teamNames`, so this is the host's only way to rename a team.
+
+- **Payload:** `{ sessionId, teamNames: { A?: string, B?: string } }`. At least one of `A` and `B` is required, each name must be non-empty, and no other key is allowed. The host sends only the names it changed, so it cannot undo a player's concurrent rename of the other team.
+- **Broadcast:** `team-names-updated` `{ A: string, B: string }` (the merged names)
+- **Errors:** `error`: `Session ID is required` without a `sessionId`, and `Invalid request - update-team-names` for any other validation failure.
+- **Side effects:** merges the given names into `teamNames` in one Firestore transaction, with the same defaults as `update-team-name`. The server does not check that the two names differ (the host UI does), and it is not host-only (see quirk 1).
+- **Sent by:** the host only, from `HostDashboard.vue` (Save All in the manual override, and Reset Game).
+
 ### `remove-team-member`
 
 Removes a player from a team.
@@ -116,13 +126,13 @@ Asks for the stored session document.
 
 ### `update-game`
 
-Replaces the game state, except the server-owned fields `teamMembers` and `buzzedPlayer`. This is the main write path and the host's only way to change the game.
+Replaces the game state, except the server-owned fields `teamMembers`, `teamNames` and `buzzedPlayer`. This is the main write path and the host's only way to change the game.
 
 - **Payload:** `{ sessionId, gameState }` where `gameState` is the complete [GameState](#gamestate). The schema is strict: every required field must be present, and no extra field is allowed.
 - **Broadcast:** `update-game` with the state as saved (after the transitions below), preceded by any of `round-over`, `next-round`, `reset-round`, `reset-buzzers`
 - **Errors:** `error`. A missing `gameState` gives `Game state is required to update game`.
 - **Side effects, in order:**
-  1. Starts one Firestore transaction (Firestore may run it again if it is contended; events are broadcast only after it commits). Reads the stored document. The incoming `teamMembers` and `buzzedPlayer` are ignored and replaced by the stored values (`{ A: [], B: [] }` and `''` when absent), so a stale host cannot overwrite what `join-team`, `remove-team-member` and `buzz` wrote. Only the resets in steps 4 to 6 clear `buzzedPlayer`. Compares the stored `roundOver` with the incoming one.
+  1. Starts one Firestore transaction (Firestore may run it again if it is contended; events are broadcast only after it commits). Reads the stored document. The incoming `teamMembers`, `teamNames` and `buzzedPlayer` are ignored and replaced by the stored values (`{ A: [], B: [] }`, `{ A: 'A', B: 'B' }` and `''` when absent), so a stale host cannot overwrite what `join-team`, `remove-team-member`, `buzz`, `update-team-name` and `update-team-names` wrote. `teamNames` stays required in the payload (older frontends still send it) but its value is not used. Only the resets in steps 4 to 6 clear `buzzedPlayer`. Compares the stored `roundOver` with the incoming one.
   2. If `expiryTime` is absent, sets it to now plus 24 hours (ISO string). An existing value is kept.
   3. Stored `roundOver` false and incoming true: broadcasts `round-over`.
   4. Stored `roundOver` true and incoming false and `roundReset` false: this is "next round". It overwrites these fields in the incoming state and broadcasts `next-round` then `reset-buzzers`: `roundReset`, `roundOver`, `startingTeamSet`, `strikes`, `pointPool`, `secondTeamGuessUsed`, `timerRunning`, `pointsAwarded` and `nextRound` become false or `0`; `buzzedPlayer` and `question` become `''`; `buzzerPlayers` becomes `{ A: null, B: null }`; `currentTeam` becomes `'A'`; `firstTeam`, `scoreMultiplier` and `winningTeam` become `null`; `timer` becomes `0`; `answers` and `guessedAnswers` become `[]`; `teamStrikes` becomes `{ A: 0, B: 0 }`; `currentStep` becomes `1`. It does not touch `multiplierSet`, `answersSaved`, `startingTeam`, `questionSaved`, `buzzerOnlyPressed` or `correctAfterBuzzer`.
@@ -201,7 +211,7 @@ Eleven events. The frontend registers listeners in `HostDashboard.vue`, `TeamDis
 ### `team-names-updated`
 
 - **Payload:** `{ A: string, B: string }`
-- **To:** everyone in the room after `update-team-name`.
+- **To:** everyone in the room after `update-team-name` and `update-team-names`.
 
 ### `update-game`
 
@@ -294,7 +304,7 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 | Field         | Type                           | Notes                                                                                                                 |
 | ------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | `teamMembers` | `{ A: string[], B: string[] }` | Server-owned: written by `join-team`, `remove-team-member` and `disconnect`; `update-game` ignores the incoming value |
-| `teamNames`   | `{ A: string, B: string }`     | Also written by `update-team-name`                                                                                    |
+| `teamNames`   | `{ A: string, B: string }`     | Server-owned: written by `update-team-name` and `update-team-names`; `update-game` ignores the incoming value         |
 
 **Timer**
 
@@ -313,7 +323,6 @@ The shape that `update-game` accepts and that the host sends. The source of trut
 
 ## Known quirks
 
-Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is an accepted design decision (#124) and quirk 5 is tracked in #122 (the rest were fixed under #107, #23 and #123). Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
+Current behavior that may surprise you, documented as is. None are fixed by this document. Quirk 1 is an accepted design decision (#124); the rest were fixed under #107, #23, #123 and #133. Fixed quirks are removed and the rest keep the numbers used in #107, so the numbering has gaps. "Code" means read from the source; nothing here was reproduced against a running server.
 
 - **Quirk 1: No authorization, accepted (code, #124).** Anyone with a 4-character session ID can send any event, including `update-game`, `remove-team-member` and `buzz` as any name. Roles exist only in the frontend. The host's buzzer assignment (`buzzerPlayers`) is therefore a consistency check, not a security boundary: `buzz` checks the claimed name against it, and anyone can claim the selected name. This is deliberate: the game is played among friends, and every option (a per-session host token, Firebase anonymous identities) needs new stored state and breaks a normal flow. Reopen the decision if a feature ever needs a real trust boundary, such as public sessions.
-- **Quirk 5: `update-game` can still overwrite `teamNames` (code, #122).** `teamNames` is written both by team players (`update-team-name`) and by the host (the manual override, through `update-game`), so `update-game` does not protect it: a stale host state can undo a player's rename. The same applies to every other field the host owns. `teamMembers` and `buzzedPlayer` are protected, and the team-member and team-name writes are transactions. Fixing this needs the frontend to send only changed fields.

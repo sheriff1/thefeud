@@ -19,6 +19,7 @@ const EVENTS = [
   'get-current-state',
   'update-game',
   'update-team-name',
+  'update-team-names',
   'get-team-members',
   'remove-team-member',
   'validate-session',
