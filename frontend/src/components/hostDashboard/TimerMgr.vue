@@ -2,6 +2,13 @@
   <div class="container bg-base-300 text-base-content">
     <h3>Timer</h3>
     <div>
+      <SegmentClock
+        class="my-2"
+        :seconds="gameStore.timer"
+        :timeUp="timeUp"
+        size="sm"
+        data-cy="host-clock"
+      />
       <p class="my-2">Current Timer: {{ gameStore.timer }} seconds</p>
       <p class="mb-2" v-if="gameStore.timerRunning">Timer is running...</p>
       <p class="mb-2" v-else>Timer is stopped.</p>
@@ -100,6 +107,7 @@
 </template>
 
 <script setup lang="ts">
+import SegmentClock from '../SegmentClock.vue';
 import { computed } from 'vue';
 import { useGameStore } from '../../stores/gamestore';
 import { preventNonNumeric } from '@/composables/preventNonNumeric';

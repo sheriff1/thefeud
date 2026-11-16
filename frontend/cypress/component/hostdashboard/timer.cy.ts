@@ -461,5 +461,15 @@ describe('TimerMgr', () => {
       mountWith({ timeUp: true });
       cy.get('#timer-time-up').should('contain', "Time's up!");
     });
+
+    it('shows a small segmented clock that follows the timer and turns red at time up', () => {
+      gameStore.timer = 125;
+      mountWith();
+      cy.get('[data-cy="host-clock"]').should('contain.text', '2:05');
+      cy.get('[data-cy="host-clock"]').should('have.class', 'segment-clock--sm');
+      cy.get('[data-cy="host-clock"]').should('not.have.class', 'segment-clock--time-up');
+      mountWith({ timeUp: true });
+      cy.get('[data-cy="host-clock"]').should('have.class', 'segment-clock--time-up');
+    });
   });
 });
