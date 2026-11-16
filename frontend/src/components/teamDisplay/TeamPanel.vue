@@ -279,6 +279,8 @@ function saveTeamNameChange() {
     min-width: 0;
     width: 100%;
     padding: 0.75rem 0.5rem;
+    /* Both cards carry the 2px border (transparent unless active) so their content lines up. */
+    border: 2px solid transparent;
   }
   .team-score {
     font-size: 2.75rem;
@@ -288,6 +290,8 @@ function saveTeamNameChange() {
     margin: 0.25rem 0;
   }
   .team-header {
+    /* As tall as the edit button, so the rows below line up whether or not it is shown. */
+    min-height: 44px;
     margin-bottom: 0.25rem;
     font-size: 0.9rem;
     overflow-wrap: anywhere;
