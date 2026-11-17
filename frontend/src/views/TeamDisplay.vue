@@ -62,13 +62,12 @@
               :active="store.currentTeam === 'A'"
               :editing="editingTeam === 'A'"
               :isWinning="store.teamScores['A'] > store.teamScores[otherTeam('A')]"
-              :showBuzzer="isBuzzerRoundOn && selectedTeam === 'A' && !store.startingTeamSet"
+              :showBuzzer="isBuzzerVisible('A', buzzerState)"
               :startingTeamSet="store.startingTeamSet"
               :buzzerDisabled="isBuzzerDisabled"
               :canBuzz="canBuzz('A', playerName, store.buzzerPlayers)"
               :buzzerOwner="buzzerOwner('A', store.buzzerPlayers)"
               :initialEditedName="editedTeamName"
-              :guessedAnswers="store.guessedAnswers"
               @edit-team="startEditingTeamName"
               @save-team="saveTeamName"
               @buzz="pressBuzzer"
@@ -110,13 +109,12 @@
               :active="store.currentTeam === 'B'"
               :editing="editingTeam === 'B'"
               :isWinning="store.teamScores['B'] > store.teamScores[otherTeam('B')]"
-              :showBuzzer="isBuzzerRoundOn && selectedTeam === 'B' && !store.startingTeamSet"
+              :showBuzzer="isBuzzerVisible('B', buzzerState)"
               :startingTeamSet="store.startingTeamSet"
               :buzzerDisabled="isBuzzerDisabled"
               :canBuzz="canBuzz('B', playerName, store.buzzerPlayers)"
               :buzzerOwner="buzzerOwner('B', store.buzzerPlayers)"
               :initialEditedName="editedTeamName"
-              :guessedAnswers="store.guessedAnswers"
               @edit-team="startEditingTeamName"
               @save-team="saveTeamName"
               @buzz="pressBuzzer"
@@ -143,7 +141,7 @@ import SegmentClock from '../components/SegmentClock.vue';
 import { didTimeRunOut } from '../utils/timerCue';
 import { createSyncGuard, shouldPlayDing, strikedTeam } from '../utils/syncCue';
 import { GameStep } from '../utils/gameSteps';
-import { canBuzz, buzzerOwner } from '../utils/buzzerAccess';
+import { canBuzz, buzzerOwner, isBuzzerVisible, isBuzzerBarShown } from '../utils/buzzerAccess';
 import InviteModal, { type InviteOption } from '../components/InviteModal.vue';
 import FloatingButton from '../components/teamDisplay/FloatingButton.vue';
 import Banner from '../components/teamDisplay/Banner.vue';
@@ -174,14 +172,15 @@ const isMultiplierSet = computed(() => !!store.scoreMultiplier);
 const isBuzzerRoundOn = computed(
   () => isMultiplierSet.value && store.currentStep >= GameStep.Buzzer,
 );
-// Mirrors TeamPanel's buzzer: on phones it is a fixed bottom bar, so the page leaves room for it (#131).
-const showsBuzzerBar = computed(
-  () =>
-    isBuzzerRoundOn.value &&
-    (selectedTeam.value === 'A' || selectedTeam.value === 'B') &&
-    !store.startingTeamSet &&
-    store.guessedAnswers.length === 0,
-);
+// One rule decides when the buzzer shows (#141). On phones it is a fixed bottom bar, so the page
+// also leaves room for it while it shows (#131).
+const buzzerState = computed(() => ({
+  selectedTeam: selectedTeam.value,
+  roundOn: isBuzzerRoundOn.value,
+  startingTeamSet: store.startingTeamSet,
+  guessedCount: store.guessedAnswers.length,
+}));
+const showsBuzzerBar = computed(() => isBuzzerBarShown(buzzerState.value));
 const editingTeam = ref<'A' | 'B' | null>(null); // 'A' or 'B' or null
 const editedTeamName = ref('');
 const isMuted = ref(false); // Mute state

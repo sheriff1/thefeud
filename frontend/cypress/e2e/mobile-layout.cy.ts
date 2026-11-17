@@ -48,6 +48,7 @@ describe('Mobile layout (team and spectator views)', () => {
             multiplierSet: true,
             scoreMultiplier: 2,
             currentStep: GameStep.Buzzer,
+            startingTeamSet: false,
             question: 'Name a dessert people bring to a family cookout',
             answers: [
               { id: '1', text: 'Pizza', points: 40 },
@@ -79,6 +80,14 @@ describe('Mobile layout (team and spectator views)', () => {
         cy.get('.team-header .btn').each(($btn) => {
           expect($btn[0].getBoundingClientRect().height).to.be.at.least(44);
         });
+        // The page leaves room for the bar while it shows, and both go away together (#141).
+        cy.get('.gameboard-container').should('have.class', 'has-buzzer-bar');
+        cy.task('hostUpdateGame', {
+          sessionId,
+          patch: { startingTeamSet: true, currentStep: GameStep.Guessing },
+        });
+        cy.get('.buzzer-container').should('not.exist');
+        cy.get('.gameboard-container').should('not.have.class', 'has-buzzer-bar');
       });
 
       it('spectator view fits the screen', () => {

@@ -22,7 +22,6 @@ describe('TeamPanel', () => {
     showBuzzer: true,
     startingTeamSet: true,
     buzzerDisabled: false,
-    guessedAnswers: [],
   };
 
   it('renders team information correctly', () => {
@@ -130,22 +129,18 @@ describe('TeamPanel', () => {
     cy.get('.strike-x svg').should('have.length', 3);
   });
 
-  it('shows buzzer when showBuzzer is true and no guessed answers', () => {
+  it('shows buzzer when showBuzzer is true', () => {
     mount(TeamPanel, {
-      props: { ...defaultProps, showBuzzer: true, guessedAnswers: [] },
+      props: { ...defaultProps, showBuzzer: true },
     });
 
     cy.get('.buzzer-button').should('be.visible');
     cy.get('.buzzer-button').should('contain.text', 'BUZZER');
   });
 
-  it('hides buzzer when guessed answers exist', () => {
+  it('hides the buzzer when showBuzzer is false', () => {
     mount(TeamPanel, {
-      props: {
-        ...defaultProps,
-        showBuzzer: true,
-        guessedAnswers: [{ id: '1' }],
-      },
+      props: { ...defaultProps, showBuzzer: false },
     });
 
     cy.get('.buzzer-button').should('not.exist');

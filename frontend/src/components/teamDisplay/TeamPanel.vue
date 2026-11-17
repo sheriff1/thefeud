@@ -79,7 +79,7 @@
         <span class="game-info-label">Strikes</span>
       </div>
     </div>
-    <div class="buzzer-container" v-if="showBuzzer && guessedAnswers.length == 0">
+    <div class="buzzer-container" v-if="showBuzzer">
       <button class="buzzer-button" :disabled="buzzerDisabled || !canBuzz" @click="$emit('buzz')">
         {{ store.buzzedPlayer ? 'Buzzed!' : idleBuzzerLabel }}
       </button>
@@ -111,7 +111,6 @@ interface TeamPanelProps {
   /** The selected buzzer of this team, if any. */
   buzzerOwner?: string | null;
   initialEditedName?: string;
-  guessedAnswers: { id: string }[]; // updated
 }
 
 const props = withDefaults(defineProps<TeamPanelProps>(), {
