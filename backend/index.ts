@@ -895,12 +895,6 @@ async function getValidSessionDoc(sessionId: string) {
 type TeamMembers = { A: string[]; B: string[] };
 
 /**
- * Read-modify-write of `teamMembers` in one transaction (#122), so simultaneous joins, removals
- * and disconnects cannot lose each other's change. `mutate` edits the members in place and may
- * run more than once (Firestore retries a contended transaction), so it must be pure. Returns the
- * committed members; callers broadcast after the commit. Throws SESSION_NOT_FOUND.
- */
-/**
  * Merges the given names into the stored teamNames in one transaction, so a player's rename and
  * the host's override cannot lose each other's change. Returns the committed names; callers
  * broadcast after the commit. Throws SESSION_NOT_FOUND.
@@ -919,6 +913,12 @@ async function updateTeamNames(
   });
 }
 
+/**
+ * Read-modify-write of `teamMembers` in one transaction (#122), so simultaneous joins, removals
+ * and disconnects cannot lose each other's change. `mutate` edits the members in place and may
+ * run more than once (Firestore retries a contended transaction), so it must be pure. Returns the
+ * committed members; callers broadcast after the commit. Throws SESSION_NOT_FOUND.
+ */
 async function updateTeamMembers(
   sessionId: string,
   mutate: (members: TeamMembers) => boolean,
